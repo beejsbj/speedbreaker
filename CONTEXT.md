@@ -5,7 +5,7 @@ Speedbreaker is a personal Android attention aid that inserts deliberate frictio
 ## Language
 
 **Target app**:
-An installed app chosen for mediation, with its own settings inherited from global defaults. A target app is not necessarily forbidden; access is made deliberate.
+An installed app chosen for mediation, with its own settings inherited from global defaults. Speedbreaker, the launcher, Settings, input methods, permission controllers, and System UI cannot be target apps.
 _Avoid_: Blocked app, distraction app
 
 **Intervention**:
@@ -17,8 +17,12 @@ The condition that starts an intervention when a target app is newly opened outs
 _Avoid_: App block
 
 **Usage trigger**:
-The condition that starts an intervention when either continuous or cumulative-daily use of a target app reaches its configured time threshold.
+The condition that starts an intervention when either continuous or cumulative-daily active use of a target app reaches its configured time threshold.
 _Avoid_: Screen-time limit
+
+**Active use**:
+Screen-on time when a target app is foregrounded or visibly present in picture-in-picture or split-screen. Background activity does not count.
+_Avoid_: Background time, process runtime
 
 **Cooldown**:
 A configured grace period after Continue during which returning to the same target app does not start another opening-triggered intervention.
