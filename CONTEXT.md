@@ -17,7 +17,7 @@ The condition that starts an intervention when a target app is newly opened outs
 _Avoid_: App block
 
 **Usage trigger**:
-The condition that starts an intervention when either continuous or cumulative-daily active use of a target app reaches its configured time threshold.
+The condition that starts an intervention when continuous active use reaches its configured threshold or, when enabled for that target app, cumulative-daily active use reaches its configured threshold.
 _Avoid_: Screen-time limit
 
 **Active use**:
@@ -27,6 +27,10 @@ _Avoid_: Background time, process runtime
 **Cooldown**:
 A configured grace period after Continue during which returning to the same target app does not start another opening-triggered intervention.
 _Avoid_: Bypass, exemption
+
+**Active schedule**:
+The days of the week on which a target app's policy applies.
+_Avoid_: Calendar, routine
 
 **Continue**:
 The explicit choice to proceed into the target app after completing an intervention.
