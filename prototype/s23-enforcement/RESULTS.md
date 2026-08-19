@@ -61,6 +61,16 @@ was observed on hardware, not what the Android APIs are merely expected to do.
   breaker. This is consistent with re-intervening on resumed visible use rather
   than charging the screen-off interval toward the continuous-use threshold.
 
+### Accessibility service recovery
+
+- The running probe process was sent `SIGKILL` from its own application UID to
+  simulate abrupt process death without force-stopping the package.
+- The original PID disappeared, Android started a new process with a different
+  PID, and the Accessibility service logged `Accessibility service connected`
+  within eight seconds.
+- Samsung still reported the service as both enabled and bound after the
+  restart. No permission toggle or app relaunch was needed.
+
 ## Verified implementation choice
 
 `TYPE_ACCESSIBILITY_OVERLAY` is viable on this S23+ and is the baseline
@@ -83,11 +93,12 @@ re-intervention, not kiosk/device-owner control.
 
 - Picture-in-picture and split-screen visibility accounting.
 - Incoming-call/emergency yield.
-- Accessibility service reconnection after a real process death and reboot.
+- Accessibility service reconnection after a real device reboot.
 - Samsung battery optimization / idle survival.
 
 `am kill dev.burooj.speedbreaker.probe` did not terminate the bound service
-process, so that command did not prove the rebind case.
+process. The later same-UID `SIGKILL` did terminate it and is the process-death
+evidence recorded above; it does not substitute for a device reboot.
 
 ## Probe defect found and closed
 
