@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Speedbreaker Probe</string>
+    <string name="accessibility_description">A temporary on-device proof that detects a selected app and places a timed Speedbreaker in front of it.</string>
+</resources>
+

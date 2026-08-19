@@ -1,0 +1,16 @@
+<resources>
+    <style name="Theme.SpeedbreakerProbe" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#141414</item>
+        <item name="android:navigationBarColor">#F7F3EA</item>
+        <item name="android:statusBarColor">#F7F3EA</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <style name="Theme.SpeedbreakerProbe.Breaker" parent="Theme.SpeedbreakerProbe">
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowDisablePreview">true</item>
+    </style>
+</resources>
+
