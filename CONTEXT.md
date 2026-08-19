@@ -2,6 +2,22 @@
 
 Speedbreaker is a personal Android attention aid that inserts deliberate friction between the impulse to open a distracting app and the choice to continue using it.
 
+## Product direction
+
+- The production interface uses Material 3 Expressive as its component and
+  motion foundation, restrained into a minimal, calming ink-and-ivory visual
+  language. Expressive means purposeful hierarchy, shape, type, and motion—not
+  visual noise, bright decoration, or gamification.
+- The breathing pause remains the visual center. Reflection and choices arrive
+  progressively instead of competing for attention at once.
+- Production layouts must adapt cleanly across portrait, landscape, split
+  screen, and accessibility text sizes. The throwaway enforcement probe is not
+  a visual reference or acceptance target.
+- Redirect is part of the production Speedbreaker choice set. Its absence from
+  the enforcement probe is deliberate: the probe isolates Android interception,
+  active-use accounting, safety, and recovery before product features are
+  layered on.
+
 ## Language
 
 **Target app**:
