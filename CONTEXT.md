@@ -57,6 +57,10 @@ The explicit choice to leave the target app by opening one of up to three user-c
 A brief, non-accumulating affirmation after Leave or Redirect. It carries no points, streaks, dashboard, or moral judgment; the chosen alternative app is the meaningful reward.
 _Avoid_: Reward, score, achievement
 
+**Reflection**:
+An optional short, user-curated quote or personal reminder that fades in during the final third of a Speedbreaker, after breathing has established the pause and before the choices appear.
+_Avoid_: Content feed, recommendation, engagement prompt
+
 **Whole-app interception**:
 Mediation at the target-app boundary; recognizing a subsection such as Instagram Reels is a later capability.
 _Avoid_: Content detection
