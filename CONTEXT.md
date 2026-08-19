@@ -53,6 +53,10 @@ The explicit choice to abandon the target app and return outside it.
 **Redirect**:
 The explicit choice to leave the target app by opening one of up to three user-configured alternative apps shared across interventions.
 
+**Choice acknowledgment**:
+A brief, non-accumulating affirmation after Leave or Redirect. It carries no points, streaks, dashboard, or moral judgment; the chosen alternative app is the meaningful reward.
+_Avoid_: Reward, score, achievement
+
 **Whole-app interception**:
 Mediation at the target-app boundary; recognizing a subsection such as Instagram Reels is a later capability.
 _Avoid_: Content detection
