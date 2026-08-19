@@ -1,0 +1,6 @@
+{
+  "name": "Mindful Breaker",
+  "description": "A mindful app usage speed breaker that helps you avoid doomscrolling by forcing a breathing exercise before launching distracting apps.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
