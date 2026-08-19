@@ -60,19 +60,6 @@ public final class BreakerActivity extends Activity {
             store.beginBreaker(SystemClock.elapsedRealtime() + 5_000L, reason == null ? "manual" : reason);
         }
 
-        getWindow().setStatusBarColor(IVORY);
-        getWindow().setNavigationBarColor(IVORY);
-        if (android.os.Build.VERSION.SDK_INT >= 30) {
-            WindowInsetsController controller = getWindow().getInsetsController();
-            if (controller != null) {
-                controller.hide(WindowInsets.Type.statusBars());
-                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-            }
-        } else {
-            getWindow().getDecorView().setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-        }
-
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
@@ -118,6 +105,18 @@ public final class BreakerActivity extends Activity {
         root.addView(leaveButton, leaveParams);
 
         setContentView(root);
+        getWindow().setStatusBarColor(IVORY);
+        getWindow().setNavigationBarColor(IVORY);
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            WindowInsetsController controller = getWindow().getDecorView().getWindowInsetsController();
+            if (controller != null) {
+                controller.hide(WindowInsets.Type.statusBars());
+                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        }
         handler.post(update);
     }
 
