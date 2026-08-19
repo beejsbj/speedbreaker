@@ -71,6 +71,22 @@ was observed on hardware, not what the Android APIs are merely expected to do.
 - Samsung still reported the service as both enabled and bound after the
   restart. No permission toggle or app relaunch was needed.
 
+### Split-screen active use
+
+- Samsung's native Recents flow created a real split pair with Calculator on
+  the left and YouTube on the right. Android reported both tasks visible in
+  multi-window mode while Calculator held focus.
+- After the setup cooldown expired, ten seconds of visible, unfocused YouTube
+  produced a breaker with reason `continuous visible use` while Calculator
+  remained the focused app.
+- This verifies the probe's window-visibility approach counts a target that is
+  visibly present in split-screen; foreground focus alone is not required.
+- The framework overlay filled the available application area, excluding the
+  landscape system bar. The probe's fixed vertical content did not adapt to the
+  short landscape height, however, and clipped **Leave** below the viewport.
+  The disposable probe is therefore evidence for enforcement behavior, not a
+  reusable production layout.
+
 ## Verified implementation choice
 
 `TYPE_ACCESSIBILITY_OVERLAY` is viable on this S23+ and is the baseline
@@ -91,7 +107,7 @@ re-intervention, not kiosk/device-owner control.
 
 ## Still to exercise
 
-- Picture-in-picture and split-screen visibility accounting.
+- Picture-in-picture visibility accounting.
 - Incoming-call/emergency yield.
 - Accessibility service reconnection after a real device reboot.
 - Samsung battery optimization / idle survival.
