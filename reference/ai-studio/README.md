@@ -16,4 +16,4 @@ This directory preserves the original Google AI Studio export as source material
 - `mindful-breaker.zip` — untouched downloaded archive.
 - `mindful-breaker-export/` — extracted archive for inspection.
 - `conversation.md` — the AI Studio build conversation supplied by Burooj.
-
+- `audit.md` — evidence-backed inventory of what is functional, simulated, reusable, and stale.
