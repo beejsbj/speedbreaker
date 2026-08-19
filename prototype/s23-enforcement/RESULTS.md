@@ -53,6 +53,13 @@ was observed on hardware, not what the Android APIs are merely expected to do.
 - After Continue, going Home and waiting 28 seconds produced no continuous-use
   breaker. This verifies that background YouTube did not accumulate active time
   in that test.
+- After Continue, the screen was turned off with YouTube still underneath. The
+  phone remained non-interactive for more than 40 seconds, past both the
+  15-second cooldown and 10-second visible-use threshold. The breaker count
+  remained unchanged and no breaker became active.
+- Waking the phone exposed YouTube again and produced a fresh `app entry`
+  breaker. This is consistent with re-intervening on resumed visible use rather
+  than charging the screen-off interval toward the continuous-use threshold.
 
 ## Verified implementation choice
 
@@ -74,7 +81,6 @@ re-intervention, not kiosk/device-owner control.
 
 ## Still to exercise
 
-- Screen-off/on while a target remains underneath.
 - Picture-in-picture and split-screen visibility accounting.
 - Incoming-call/emergency yield.
 - Accessibility service reconnection after a real process death and reboot.
