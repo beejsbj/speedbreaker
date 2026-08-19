@@ -87,6 +87,26 @@ was observed on hardware, not what the Android APIs are merely expected to do.
   The disposable probe is therefore evidence for enforcement behavior, not a
   reusable production layout.
 
+### Picture-in-picture active use
+
+- YouTube played a test video and entered Android's real pinned
+  picture-in-picture mode after Home was pressed.
+- Android reported the YouTube task as visible with
+  `mLastReportedPictureInPictureMode=true` while Niagara Launcher held focus.
+- After cooldown, ten seconds of visible PiP produced a breaker with reason
+  `continuous visible use`.
+- The test video was then stopped and the media volume was restored to its
+  original value.
+
+### Dialer safety yield
+
+- With a YouTube entry breaker visible, opening the system dialer with no
+  number immediately dismissed the overlay.
+- The recorded outcome was
+  `yielded to safety UI: com.samsung.android.dialer`; no call was placed.
+- This verifies the configured dialer yield path, but not incoming-call or
+  emergency-call behavior.
+
 ## Verified implementation choice
 
 `TYPE_ACCESSIBILITY_OVERLAY` is viable on this S23+ and is the baseline
@@ -107,7 +127,6 @@ re-intervention, not kiosk/device-owner control.
 
 ## Still to exercise
 
-- Picture-in-picture visibility accounting.
 - Incoming-call/emergency yield.
 - Accessibility service reconnection after a real device reboot.
 - Samsung battery optimization / idle survival.
