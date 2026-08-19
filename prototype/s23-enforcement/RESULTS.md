@@ -109,9 +109,27 @@ was observed on hardware, not what the Android APIs are merely expected to do.
 
 ## Verified implementation choice
 
-`TYPE_ACCESSIBILITY_OVERLAY` is viable on this S23+ and is the baseline
-enforcement primitive. It works without the separate Draw over other apps
+The verified baseline for this S23+ is:
+
+1. An owner-enabled `AccessibilityService` receives window changes and retrieves
+   interactive windows.
+2. Actual application-window visibility, rather than the latest event package
+   or focused activity alone, determines target entry and active use. This
+   covers foreground, split-screen, and PiP.
+3. `PowerManager.isInteractive()` gates accumulation so screen-off time does not
+   count.
+4. Monotonic elapsed time drives cooldown and visible-use thresholds.
+5. A service-owned `TYPE_ACCESSIBILITY_OVERLAY` presents the Speedbreaker and
+   survives Home, Recents, and Back until an explicit choice or safety yield.
+
+`TYPE_ACCESSIBILITY_OVERLAY` works without the separate Draw over other apps
 permission and does not depend on Android allowing a background Activity start.
+The system Accessibility binding restarted the probe after abrupt process death,
+so the proof did not require a separate foreground service.
+
+Usage Access was not required for opening triggers or continuous visible-use
+accounting in this proof. Its role in reconciling production cumulative-daily
+totals remains a separate implementation question.
 
 The comparison Activity is also viable on this device. Android 16 allowed the
 Accessibility service to start `BreakerActivity` after Speedbreaker had been
