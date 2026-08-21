@@ -1,0 +1,1731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speedbreaker · BJS-346 interaction prototype</title>
+  <style>
+    :root {
+      --ink: #1a1814;
+      --ivory: #f6f3ec;
+      --muted: #6b6560;
+      --line: #d9d2c6;
+      --accent: #2f5d50;
+      --accent-soft: #e3ece8;
+      --warn: #8b4513;
+      --danger: #8b2e2e;
+      --phone-w: 390px;
+      --phone-h: 844px;
+      --radius: 28px;
+      --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: #e8e4dc;
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .banner {
+      max-width: 1200px;
+      margin: 0 auto 16px;
+      padding: 12px 16px;
+      background: #fff8e6;
+      border: 1px solid #e6d9a8;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .banner strong { color: var(--warn); }
+    .layout {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; justify-items: center; }
+    }
+    .phone-shell {
+      width: calc(var(--phone-w) + 24px);
+      padding: 12px;
+      background: #111;
+      border-radius: calc(var(--radius) + 12px);
+      box-shadow: 0 24px 64px rgba(0,0,0,.25);
+    }
+    .phone-bezel {
+      width: var(--phone-w);
+      height: var(--phone-h);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--ivory);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .status-bar {
+      height: 44px;
+      padding: 12px 20px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+      background: var(--ivory);
+      z-index: 5;
+    }
+    .status-bar.dim { opacity: .5; }
+    .phone-body {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .screen-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px 8px;
+    }
+    .nav-bar {
+      height: 48px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      background: var(--ivory);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      border: none;
+      background: none;
+      font: inherit;
+      font-size: 11px;
+      color: var(--muted);
+      padding: 8px 16px;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+    .nav-btn:active { background: var(--line); }
+    .nav-btn.blocked { opacity: .35; cursor: not-allowed; }
+    h1 { font-size: 22px; font-weight: 600; line-height: 1.25; margin-bottom: 8px; }
+    h2 { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+    p, li { font-size: 14px; line-height: 1.55; color: var(--ink); }
+    p { margin-bottom: 12px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .stack { display: flex; flex-direction: column; gap: 12px; }
+    .btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 12px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .btn:active { transform: scale(.98); }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .btn-ghost { background: transparent; }
+    .btn:disabled, .btn[disabled] {
+      opacity: .45;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-row { display: flex; gap: 10px; }
+    .btn-row .btn { flex: 1; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .warn-box {
+      padding: 12px;
+      border-radius: 12px;
+      background: #fff3cd;
+      border: 1px solid #f0d58c;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .danger-box {
+      padding: 14px;
+      border-radius: 12px;
+      background: #fdecea;
+      border: 1px solid #f5c2c0;
+      margin-bottom: 12px;
+    }
+    .danger-box strong { color: var(--danger); display: block; margin-bottom: 4px; }
+    .search {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font: inherit;
+      margin-bottom: 12px;
+      background: #fff;
+    }
+    .app-list { display: flex; flex-direction: column; gap: 6px; }
+    .app-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      cursor: pointer;
+      background: #fff;
+    }
+    .app-row.selected { border-color: var(--accent); background: var(--accent-soft); }
+    .app-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .app-name { font-size: 14px; font-weight: 500; flex: 1; }
+    .launcher-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px 8px;
+      padding-top: 8px;
+    }
+    .launcher-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font: inherit;
+    }
+    .launcher-item .app-icon { width: 52px; height: 52px; border-radius: 14px; font-size: 18px; }
+    .launcher-item span { font-size: 11px; color: var(--muted); text-align: center; }
+    .app-screen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 24px;
+    }
+    .app-screen .app-icon { width: 72px; height: 72px; border-radius: 18px; font-size: 28px; }
+    .app-screen h2 { font-size: 20px; }
+    .top-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .linkish {
+      border: none;
+      background: none;
+      color: var(--accent);
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 8px 0;
+    }
+    .slider-row input[type=range] { flex: 1; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .field select, .field input[type=text], .field input[type=time] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: inherit;
+      background: #fff;
+    }
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(26, 24, 20, .92);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      z-index: 20;
+      padding: 16px 20px 20px;
+    }
+    .overlay-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+      min-height: 36px;
+    }
+    .overlay-meta { font-size: 12px; color: rgba(255,255,255,.65); }
+    .overlay-target { font-size: 15px; font-weight: 600; margin-top: 2px; }
+    .pause-btn {
+      border: 1px solid rgba(255,255,255,.35);
+      background: rgba(255,255,255,.08);
+      color: #fff;
+      font: inherit;
+      font-size: 11px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .pause-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .breath-zone {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      text-align: center;
+    }
+    .breath-ring {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: breathe 4s ease-in-out infinite;
+    }
+    @keyframes breathe {
+      0%, 100% { transform: scale(.88); opacity: .75; }
+      50% { transform: scale(1.08); opacity: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .breath-ring { animation: none; opacity: .9; }
+    }
+    .reflection {
+      font-size: 18px;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity .6s ease;
+      max-width: 260px;
+      line-height: 1.4;
+    }
+    .reflection.visible { opacity: 1; }
+    .overlay-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: auto;
+    }
+    .overlay-actions .btn-row .btn {
+      background: rgba(255,255,255,.12);
+      border-color: rgba(255,255,255,.3);
+      color: #fff;
+    }
+    .overlay-actions .btn-row .btn:disabled {
+      opacity: .25;
+    }
+    .redirect-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .redirect-row .btn {
+      font-size: 12px;
+      padding: 10px 8px;
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.25);
+      color: #fff;
+    }
+    .redirect-row .btn:disabled { display: none; }
+    .hard-lock-note {
+      font-size: 11px;
+      color: rgba(255,255,255,.5);
+      text-align: center;
+      margin-top: 8px;
+    }
+    .haptic-toast {
+      position: absolute;
+      top: 52px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.25);
+      color: #fff;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      z-index: 30;
+      pointer-events: none;
+      animation: fadehaptic 1.2s ease forwards;
+    }
+    @keyframes fadehaptic {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .haptic-toast { animation: none; opacity: .9; }
+    }
+    .notif-strip {
+      position: absolute;
+      top: 44px;
+      left: 8px;
+      right: 8px;
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .notif {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,.08);
+    }
+    .notif button {
+      border: none;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font: inherit;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .inactive-bar {
+      background: var(--danger);
+      color: #fff;
+      font-size: 12px;
+      padding: 8px 16px;
+      text-align: center;
+    }
+    .inactive-bar button {
+      border: none;
+      background: rgba(255,255,255,.2);
+      color: #fff;
+      font: inherit;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: 8px;
+      cursor: pointer;
+    }
+    .side-panel { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+    .panel h3 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .inspector-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 6px 12px;
+      font-size: 13px;
+    }
+    .inspector-grid dt { color: var(--muted); }
+    .inspector-grid dd { font-weight: 500; word-break: break-word; }
+    .sim-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .sim-grid .btn { font-size: 12px; padding: 8px 10px; }
+    .time-controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .time-controls .btn { font-size: 11px; padding: 6px 8px; }
+    .changed { animation: flash 1s ease; }
+    @keyframes flash {
+      0% { background: #fff8dc; }
+      100% { background: transparent; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .changed { animation: none; background: #fff8dc; }
+    }
+    .day-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+    .day-tab {
+      border: 1px solid var(--line);
+      background: #fff;
+      font: inherit;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .day-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin: 16px 0 8px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .progress-dots {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      margin-top: 16px;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--line);
+    }
+    .dot.on { background: var(--accent); }
+    .samsung-tip {
+      border-left: 3px solid var(--warn);
+      padding-left: 12px;
+      margin: 12px 0;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    <strong>Throwaway prototype · BJS-346</strong> — Click through the phone to judge interaction hierarchy and feel.
+    Use the simulator panel to advance time, trigger escapes, and toggle Accessibility. Not the production app.
+  </div>
+  <div class="layout">
+    <div class="phone-shell">
+      <div class="phone-bezel" id="phone">
+        <div class="status-bar" id="statusBar">
+          <span id="clockDisplay">12:00</span>
+          <span id="interactiveBadge">Interactive</span>
+        </div>
+        <div id="inactiveBar"></div>
+        <div class="phone-body" id="phoneBody"></div>
+        <div class="nav-bar">
+          <button class="nav-btn" id="navBack" type="button">Back</button>
+          <button class="nav-btn" id="navHome" type="button">Home</button>
+          <button class="nav-btn" id="navRecents" type="button">Recents</button>
+        </div>
+      </div>
+    </div>
+    <div class="side-panel">
+      <div class="panel">
+        <h3>State inspector</h3>
+        <dl class="inspector-grid" id="inspector"></dl>
+      </div>
+      <div class="panel">
+        <h3>Simulator</h3>
+        <div class="sim-grid" id="simEscapes"></div>
+        <div class="section-title">Advance simulated time</div>
+        <div class="time-controls" id="simTime"></div>
+        <div class="section-title">Prototype</div>
+        <div class="sim-grid" id="simProto"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  'use strict';
+
+  const HARD_LOCK_MS = 8000;
+  const QUICK_RETURN_MS = 60000;
+  const PAUSE_DURATION_MS = 15 * 60 * 1000;
+  const DEFAULT_INTERVAL_MS = 10 * 60 * 1000;
+  const TOKENS_PER_DAY = 2;
+  const REFLECTION = 'What are you here for?';
+  const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const DAY_LABELS = { sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' };
+
+  const CATALOG = [
+    { id: 'instagram', name: 'Instagram', abbr: 'Ig', color: '#E4405F', selectable: true },
+    { id: 'tiktok', name: 'TikTok', abbr: 'Tk', color: '#010101', selectable: true },
+    { id: 'youtube', name: 'YouTube', abbr: 'Yt', color: '#FF0000', selectable: true },
+    { id: 'reddit', name: 'Reddit', abbr: 'Rd', color: '#FF4500', selectable: true },
+    { id: 'twitter', name: 'X', abbr: 'X', color: '#14171A', selectable: true },
+    { id: 'messages', name: 'Messages', abbr: 'Ms', color: '#34A853', selectable: false },
+    { id: 'maps', name: 'Maps', abbr: 'Mp', color: '#4285F4', selectable: false },
+    { id: 'notes', name: 'Notes', abbr: 'Nt', color: '#FBBC04', selectable: false },
+    { id: 'calendar', name: 'Calendar', abbr: 'Ca', color: '#1A73E8', selectable: false },
+    { id: 'phone', name: 'Phone', abbr: 'Ph', color: '#188038', safety: true },
+    { id: 'emergency', name: 'Emergency', abbr: '911', color: '#C5221F', safety: true },
+    { id: 'settings', name: 'Settings', abbr: 'St', color: '#5F6368', safety: true },
+    { id: 'speedbreaker', name: 'Speedbreaker', abbr: 'Sb', color: '#1A1814', excluded: true },
+  ];
+
+  const appById = Object.fromEntries(CATALOG.map(a => [a.id, a]));
+
+  function defaultScheduleWindow() {
+    return { enabled: false, start: '09:00', end: '22:00' };
+  }
+
+  function defaultGlobalSchedule() {
+    const windows = {};
+    DAYS.forEach(d => { windows[d] = defaultScheduleWindow(); });
+    return { enabled: false, windows, copyFrom: 'mon' };
+  }
+
+  function defaultPerApp() {
+    return {
+      intervalEnabled: true,
+      intervalMinutes: 10,
+      scheduleOverride: false,
+      schedule: defaultGlobalSchedule(),
+      redirectOverride: false,
+      redirects: null,
+    };
+  }
+
+  function midnightTomorrow(from) {
+    const d = new Date(from);
+    d.setHours(24, 0, 0, 0);
+    return d;
+  }
+
+  function dayKey(date) {
+    return DAYS[date.getDay()];
+  }
+
+  function parseTimeOnDate(timeStr, date) {
+    const [h, m] = timeStr.split(':').map(Number);
+    const d = new Date(date);
+    d.setHours(h, m, 0, 0);
+    return d;
+  }
+
+  function formatDuration(ms) {
+    if (ms <= 0) return '0s';
+    const s = Math.ceil(ms / 1000);
+    if (s < 60) return s + 's';
+    const m = Math.floor(s / 60);
+    const rs = s % 60;
+    if (m < 60) return rs ? m + 'm ' + rs + 's' : m + 'm';
+    const h = Math.floor(m / 60);
+    const rm = m % 60;
+    return h + 'h ' + rm + 'm';
+  }
+
+  function formatClock(date) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function formatReset(when) {
+    return when.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' tonight';
+  }
+
+  let timeOffsetMs = 0;
+  function now() { return new Date(Date.now() + timeOffsetMs); }
+
+  let state = createInitialState();
+  let tickHandle = null;
+  let lastChangedKeys = new Set();
+
+  function createInitialState() {
+    return {
+      onboardingStep: 0,
+      onboardingDone: false,
+      accessibilityEnabled: false,
+      selectedApps: [],
+      samsungTipSeen: false,
+      global: {
+        breathSeconds: 12,
+        redirects: ['messages', 'maps', 'notes', 'calendar'],
+        schedule: defaultGlobalSchedule(),
+      },
+      perApp: {},
+      screen: 'onboarding',
+      settingsTab: 'global',
+      schedEditDay: null,
+      pickerQuery: '',
+      foregroundApp: null,
+      phoneInteractive: true,
+      intervention: null,
+      sessions: {},
+      pauses: {},
+      tokensDay: null,
+      tokens: {},
+      scheduleTrack: {},
+      haptic: null,
+      lastEvent: 'Prototype loaded',
+    };
+  }
+
+  function ensureTokens(appId) {
+    const today = now().toDateString();
+    if (state.tokensDay !== today) {
+      state.tokensDay = today;
+      state.tokens = {};
+    }
+    if (!state.tokens[appId]) {
+      state.tokens[appId] = { remaining: TOKENS_PER_DAY };
+    }
+    return state.tokens[appId];
+  }
+
+  function ensurePerApp(appId) {
+    if (!state.perApp[appId]) state.perApp[appId] = defaultPerApp();
+    return state.perApp[appId];
+  }
+
+  function getEffectiveRedirects(appId) {
+    const p = ensurePerApp(appId);
+    if (p.redirectOverride && p.redirects) return p.redirects.slice(0, 4);
+    return state.global.redirects.slice(0, 4);
+  }
+
+  function getEffectiveSchedule(appId) {
+    const p = ensurePerApp(appId);
+    if (p.scheduleOverride) return p.schedule;
+    return state.global.schedule;
+  }
+
+  function isInWindow(schedule, date) {
+    if (!schedule.enabled) return true;
+    const dk = dayKey(date);
+    const win = schedule.windows[dk];
+    if (!win || !win.enabled) return false;
+    const start = parseTimeOnDate(win.start, date);
+    let end = parseTimeOnDate(win.end, date);
+    if (end <= start) {
+      if (date >= start) {
+        end = new Date(end);
+        end.setDate(end.getDate() + 1);
+        return date < end;
+      }
+      const prevStart = new Date(start);
+      prevStart.setDate(prevStart.getDate() - 1);
+      return date >= prevStart;
+    }
+    return date >= start && date < end;
+  }
+
+  function isScheduleActive(appId) {
+    if (!state.selectedApps.includes(appId)) return false;
+    return isInWindow(getEffectiveSchedule(appId), now());
+  }
+
+  function scheduleLabel(appId) {
+    const sch = getEffectiveSchedule(appId);
+    if (!sch.enabled) return 'Always enforced';
+    const dk = dayKey(now());
+    const w = sch.windows[dk];
+    if (!w || !w.enabled) return 'Outside window · unenforced today';
+    if (isScheduleActive(appId)) return 'Inside window · ' + w.start + '–' + w.end;
+    return 'Outside window · unenforced (' + w.start + '–' + w.end + ')';
+  }
+
+  function isPauseActive(appId) {
+    const p = state.pauses[appId];
+    return p && p.until > now();
+  }
+
+  function clearSession(appId) {
+    delete state.sessions[appId];
+  }
+
+  function getSession(appId) {
+    return state.sessions[appId] || null;
+  }
+
+  function sessionSummary(appId) {
+    const s = getSession(appId);
+    if (!s) return 'None';
+    const n = now();
+    if (s.pausedAt) {
+      const left = QUICK_RETURN_MS - (n - s.pausedAt);
+      return 'Paused · resume within ' + formatDuration(Math.max(0, left));
+    }
+    if (!s.intervalEnd) return 'Active · interval off';
+    return 'Running · ' + formatDuration(s.intervalEnd - n) + ' left';
+  }
+
+  function quickReturnSummary() {
+    const lines = [];
+    Object.keys(state.sessions).forEach(appId => {
+      const s = state.sessions[appId];
+      if (!s || !s.pausedAt) return;
+      const left = QUICK_RETURN_MS - (now() - s.pausedAt);
+      const label = appById[appId].name + ': ';
+      lines.push(left <= 0 ? label + 'expired' : label + formatDuration(left) + ' to return');
+    });
+    return lines.length ? lines.join('; ') : 'None';
+  }
+
+  function continuousSummary() {
+    if (!state.foregroundApp) return 'None';
+    const s = getSession(state.foregroundApp);
+    if (!s) return 'None';
+    if (s.pausedAt) return 'Paused (away)';
+    if (!s.intervalEnd) return 'Disabled for this app';
+    return formatDuration(Math.max(0, s.intervalEnd - now())) + ' remaining';
+  }
+
+  function markChanged(keys, event) {
+    keys.forEach(k => lastChangedKeys.add(k));
+    if (event) state.lastEvent = event;
+  }
+
+  function startIntervention(appId, trigger, reason) {
+    if (state.intervention) return;
+    const breathMs = state.global.breathSeconds * 1000;
+    state.intervention = {
+      appId,
+      trigger,
+      startedAt: now(),
+      hardLockUntil: new Date(now().getTime() + HARD_LOCK_MS),
+      breathUntil: new Date(now().getTime() + breathMs),
+      partialUnlocked: false,
+      continueUnlocked: false,
+    };
+    state.haptic = { text: 'haptic · opening tap', at: now() };
+    markChanged(['trigger', 'screen'], reason || ('Intervention · ' + trigger));
+  }
+
+  function dismissIntervention(reason) {
+    state.intervention = null;
+    markChanged(['trigger', 'screen'], reason || 'Intervention dismissed');
+  }
+
+  function shouldEnforce(appId) {
+    if (!state.onboardingDone) return false;
+    if (!state.accessibilityEnabled) return false;
+    if (!state.selectedApps.includes(appId)) return false;
+    if (isPauseActive(appId)) return false;
+    if (!isScheduleActive(appId)) return false;
+    return true;
+  }
+
+  function maybeInterveneOnOpen(appId) {
+    if (!shouldEnforce(appId)) {
+      if (isPauseActive(appId)) return;
+      if (!isScheduleActive(appId) && state.selectedApps.includes(appId)) clearSession(appId);
+      return;
+    }
+    const sess = getSession(appId);
+    if (sess && !sess.pausedAt && sess.intervalEnd && sess.intervalEnd > now()) return;
+    startIntervention(appId, 'opening', 'Opening trigger');
+  }
+
+  function checkContinuousTrigger() {
+    const appId = state.foregroundApp;
+    if (!appId || state.intervention) return;
+    if (!shouldEnforce(appId)) return;
+    const p = ensurePerApp(appId);
+    if (!p.intervalEnabled) return;
+    const sess = getSession(appId);
+    if (!sess || sess.pausedAt) return;
+    if (!sess.intervalEnd || sess.intervalEnd > now()) return;
+    if (!state.phoneInteractive) return;
+    startIntervention(appId, 'continuous', 'Continuous-use trigger');
+  }
+
+  function checkPauseExpiry() {
+    state.selectedApps.forEach(appId => {
+      const p = state.pauses[appId];
+      if (!p) return;
+      if (p.until <= now()) {
+        delete state.pauses[appId];
+        markChanged(['pauses'], 'Pause expired · ' + appById[appId].name);
+        if (state.foregroundApp === appId && shouldEnforce(appId)) {
+          startIntervention(appId, 'opening', 'Pause ended while visible');
+        }
+      }
+    });
+  }
+
+  function checkQuickReturnExpiry() {
+    Object.keys(state.sessions).forEach(appId => {
+      const s = state.sessions[appId];
+      if (!s || !s.pausedAt) return;
+      if (now() - s.pausedAt > QUICK_RETURN_MS) {
+        clearSession(appId);
+        markChanged(['continuous', 'quickReturn'], 'Quick-return expired · ' + appById[appId].name);
+      }
+    });
+  }
+
+  function checkScheduleTransition() {
+    state.selectedApps.forEach(appId => {
+      const active = isScheduleActive(appId);
+      const prev = state.scheduleTrack[appId];
+      if (prev === undefined) {
+        state.scheduleTrack[appId] = active;
+        return;
+      }
+      if (prev && !active) {
+        clearSession(appId);
+        markChanged(['schedule', 'continuous'], 'Schedule ended · session cleared');
+      }
+      if (!prev && active && state.foregroundApp === appId && shouldEnforce(appId) && !state.intervention) {
+        startIntervention(appId, 'opening', 'Schedule became active while visible');
+      }
+      state.scheduleTrack[appId] = active;
+    });
+  }
+
+  function tickIntervention() {
+    const iv = state.intervention;
+    if (!iv) return;
+    const n = now();
+    if (!iv.partialUnlocked && n >= iv.hardLockUntil) {
+      iv.partialUnlocked = true;
+      state.haptic = { text: 'haptic · choices unlock', at: n };
+      markChanged(['trigger'], 'Partial unlock at 8s');
+    }
+    if (!iv.continueUnlocked && n >= iv.breathUntil) {
+      iv.continueUnlocked = true;
+      markChanged(['trigger'], 'Continue unlocked');
+    }
+  }
+
+  function openApp(appId) {
+    state.foregroundApp = appId;
+    state.screen = 'app';
+    const sess = getSession(appId);
+    if (sess && sess.pausedAt) {
+      if (now() - sess.pausedAt <= QUICK_RETURN_MS) {
+        const pausedFor = now() - sess.pausedAt;
+        if (sess.intervalEnd) sess.intervalEnd = new Date(sess.intervalEnd.getTime() + pausedFor);
+        sess.pausedAt = null;
+        markChanged(['continuous', 'quickReturn'], 'Returned within 60s · interval resumed');
+      } else {
+        clearSession(appId);
+      }
+    }
+    if (shouldEnforce(appId) && !state.intervention) {
+      if (isPauseActive(appId)) return;
+      const s = getSession(appId);
+      if (s && s.intervalEnd && s.intervalEnd > now() && !s.pausedAt) {
+        /* in active session */
+      } else {
+        maybeInterveneOnOpen(appId);
+      }
+    } else if (!isScheduleActive(appId)) {
+      clearSession(appId);
+    }
+    markChanged(['screen'], 'Opened ' + appById[appId].name);
+  }
+
+  function goHome(reason) {
+    const prev = state.foregroundApp;
+    if (prev) {
+      const sess = getSession(prev);
+      if (sess && sess.intervalEnd && sess.intervalEnd > now() && !sess.pausedAt) {
+        sess.pausedAt = now();
+        markChanged(['quickReturn', 'continuous'], 'Left app · quick-return window started');
+      }
+    }
+    state.foregroundApp = null;
+    state.screen = state.onboardingDone ? 'home' : state.screen;
+    markChanged(['screen'], reason || 'Home');
+  }
+
+  function handleNav(kind) {
+    const iv = state.intervention;
+    if (iv && now() < iv.hardLockUntil) {
+      markChanged(['screen'], 'Nav blocked during hard lock');
+      flashNavBlocked();
+      return;
+    }
+    if (iv && iv.partialUnlocked) {
+      dismissIntervention('Nav ended session');
+    }
+    if (kind === 'home') goHome('Home pressed');
+    else if (kind === 'back') goHome('Back pressed');
+    else goHome('Recents pressed');
+  }
+
+  function flashNavBlocked() {
+    ['navBack', 'navHome', 'navRecents'].forEach(id => {
+      const el = document.getElementById(id);
+      el.classList.add('blocked');
+      setTimeout(() => el.classList.remove('blocked'), 400);
+    });
+  }
+
+  function escapeIntervention(kind) {
+    if (!state.intervention) return;
+    dismissIntervention('Escape · ' + kind);
+    if (kind === 'accessibility') {
+      state.screen = 'accessibility-settings';
+    } else if (kind === 'lockscreen' || kind === 'noninteractive') {
+      state.phoneInteractive = kind !== 'noninteractive' ? false : false;
+      if (kind === 'lockscreen') state.phoneInteractive = false;
+      goHome(kind);
+    } else {
+      goHome(kind);
+    }
+    markChanged(['screen', 'accessibility'], 'Escape override');
+    render();
+  }
+
+  function continueChoice() {
+    const iv = state.intervention;
+    if (!iv || !iv.continueUnlocked) return;
+    const appId = iv.appId;
+    const p = ensurePerApp(appId);
+    dismissIntervention('Continue');
+    if (p.intervalEnabled) {
+      state.sessions[appId] = {
+        intervalEnd: new Date(now().getTime() + p.intervalMinutes * 60 * 1000),
+        pausedAt: null,
+      };
+    } else {
+      state.sessions[appId] = { intervalEnd: null, pausedAt: null };
+    }
+    markChanged(['continuous', 'trigger'], 'Continue · interval started');
+  }
+
+  function leaveChoice() {
+    dismissIntervention('Leave');
+    goHome('Leave');
+  }
+
+  function redirectChoice(targetId) {
+    const iv = state.intervention;
+    if (!iv || !iv.partialUnlocked) return;
+    const from = iv.appId;
+    dismissIntervention('Redirect → ' + appById[targetId].name);
+    clearSession(from);
+    openApp(targetId);
+  }
+
+  function pauseChoice() {
+    const iv = state.intervention;
+    if (!iv || !iv.partialUnlocked) return;
+    const appId = iv.appId;
+    const tok = ensureTokens(appId);
+    if (tok.remaining <= 0) return;
+    tok.remaining -= 1;
+    state.pauses[appId] = { until: new Date(now().getTime() + PAUSE_DURATION_MS), started: now() };
+    dismissIntervention('Pause 15m');
+    goHome('Pause');
+    markChanged(['pauses', 'tokens'], 'Pause consumed · 15m suppression');
+  }
+
+  function endPauseNow(appId) {
+    delete state.pauses[appId];
+    markChanged(['pauses'], 'End now · ' + appById[appId].name);
+    if (state.foregroundApp === appId && shouldEnforce(appId)) {
+      startIntervention(appId, 'opening', 'Pause ended manually while visible');
+    }
+  }
+
+  function advanceTime(ms) {
+    timeOffsetMs += ms;
+    checkPauseExpiry();
+    checkQuickReturnExpiry();
+    checkScheduleTransition();
+    tickIntervention();
+    checkContinuousTrigger();
+    markChanged(['continuous', 'quickReturn', 'pauses', 'schedule', 'trigger'], 'Time +' + formatDuration(ms));
+    render();
+  }
+
+  function resetPrototype() {
+    timeOffsetMs = 0;
+    state = createInitialState();
+    lastChangedKeys = new Set(['screen']);
+    state.lastEvent = 'Prototype reset';
+    render();
+  }
+
+  function completeOnboarding() {
+    state.onboardingDone = true;
+    state.screen = 'home';
+    state.selectedApps.forEach(id => {
+      ensurePerApp(id);
+      state.scheduleTrack[id] = isScheduleActive(id);
+    });
+    markChanged(['screen', 'selected', 'accessibility'], 'Onboarding complete');
+  }
+
+  /* ─── Render phone ─── */
+  const phoneBody = document.getElementById('phoneBody');
+  const inspector = document.getElementById('inspector');
+  const inactiveBar = document.getElementById('inactiveBar');
+  const clockDisplay = document.getElementById('clockDisplay');
+  const interactiveBadge = document.getElementById('interactiveBadge');
+
+  function appIcon(app, small) {
+    return '<div class="app-icon" style="background:' + app.color + '">' + app.abbr + '</div>';
+  }
+
+  function renderOnboarding() {
+    const step = state.onboardingStep;
+    const parts = [];
+    if (step === 0) {
+      parts.push('<div class="screen-scroll"><h1>A pause before the scroll</h1>');
+      parts.push('<p>Speedbreaker adds a short breathing pause when you open apps you chose. You stay in control — Continue, Leave, or Redirect every time.</p>');
+      parts.push('<p class="muted">Silent. No streaks. No cloud.</p>');
+      parts.push('<button class="btn btn-primary" data-action="onboard-next">Continue</button></div>');
+    } else if (step === 1) {
+      parts.push('<div class="screen-scroll"><h1>What Speedbreaker sees</h1>');
+      parts.push('<div class="warn-box"><strong>Local only.</strong> Speedbreaker observes whether <em>your selected apps</em> are visible on screen. Nothing leaves your phone. No history is kept.</div>');
+      parts.push('<p>During the first 8 seconds of a pause, system navigation is temporarily blocked so the breathing surface can land. Calls, emergency, lockscreen, and Accessibility settings always break through.</p>');
+      parts.push('<label style="display:flex;gap:10px;align-items:flex-start;margin:16px 0;font-size:14px;"><input type="checkbox" id="consentCheck"> I understand and want to continue</label>');
+      parts.push('<button class="btn btn-primary" data-action="onboard-consent" disabled id="consentBtn">I agree</button></div>');
+    } else if (step === 2) {
+      parts.push('<div class="screen-scroll"><h1>Enable Accessibility</h1>');
+      parts.push('<p>Speedbreaker uses the Accessibility service to detect when selected apps become visible and to show the pause overlay.</p>');
+      parts.push('<button class="btn btn-primary" data-action="open-a11y">Open Accessibility settings</button>');
+      if (!state.accessibilityEnabled) {
+        parts.push('<p class="muted" style="margin-top:12px">Waiting for service…</p>');
+      } else {
+        parts.push('<p style="color:var(--accent);margin-top:12px">✓ Speedbreaker enabled</p>');
+        parts.push('<button class="btn btn-primary" data-action="onboard-next">Next</button>');
+      }
+      parts.push('</div>');
+    } else if (step === 3) {
+      parts.push('<div class="screen-scroll"><h1>Choose apps</h1>');
+      parts.push('<p class="muted">Nothing preselected. Speedbreaker and system safety apps are excluded.</p>');
+      parts.push('<input class="search" type="search" placeholder="Search apps" value="' + esc(state.pickerQuery) + '" data-input="picker-search">');
+      parts.push('<div class="app-list">');
+      selectableApps().filter(filterPicker).forEach(app => {
+        const sel = state.selectedApps.includes(app.id);
+        parts.push('<div class="app-row' + (sel ? ' selected' : '') + '" data-action="toggle-app" data-app="' + app.id + '">');
+        parts.push(appIcon(app));
+        parts.push('<span class="app-name">' + esc(app.name) + '</span>');
+        parts.push(sel ? '<span class="chip">Selected</span>' : '');
+        parts.push('</div>');
+      });
+      parts.push('</div>');
+      parts.push('<button class="btn btn-primary" data-action="onboard-next"' + (state.selectedApps.length ? '' : ' disabled') + '>Next (' + state.selectedApps.length + ' selected)</button></div>');
+    } else if (step === 4) {
+      parts.push('<div class="screen-scroll"><h1>Opinionated defaults</h1>');
+      parts.push('<p>These apply globally. Per-app overrides come later for interval, schedule, and redirects only.</p>');
+      parts.push('<ul style="margin:0 0 12px 18px;font-size:14px;line-height:1.6"><li>12s breath (8s hard lock)</li><li>10-minute continuous-use interval</li><li>2 Pause tokens per app per day</li><li>Fixed reflection: “' + REFLECTION + '”</li><li>4 redirect slots</li></ul>');
+      if (!state.samsungTipSeen) {
+        parts.push('<div class="samsung-tip"><strong>Samsung users:</strong> Exclude Speedbreaker from sleeping apps and allow unrestricted background activity so the service stays alive. <button class="linkish" data-action="dismiss-samsung">Got it</button></div>');
+      }
+      parts.push('<div class="field"><label>Breath duration (global)</label><div class="slider-row"><input type="range" min="8" max="60" value="' + state.global.breathSeconds + '" data-input="breath"><span>' + state.global.breathSeconds + 's</span></div></div>');
+      parts.push('<button class="btn btn-primary" data-action="finish-onboarding">Start using Speedbreaker</button></div>');
+    }
+    parts.push('<div class="progress-dots">' + [0,1,2,3,4].map(i => '<div class="dot' + (i <= step ? ' on' : '') + '"></div>').join('') + '</div>');
+    return parts.join('');
+  }
+
+  function selectableApps() {
+    return CATALOG.filter(a => a.selectable);
+  }
+
+  function filterPicker(app) {
+    const q = state.pickerQuery.toLowerCase();
+    return !q || app.name.toLowerCase().includes(q);
+  }
+
+  function launcherApps() {
+    return CATALOG.filter(a => !a.excluded);
+  }
+
+  function renderHome() {
+    let html = '<div class="phone-body-inner" style="display:flex;flex-direction:column;height:100%">';
+    html += renderNotifications();
+    html += '<div class="screen-scroll"><div class="top-actions"><span class="muted">Apps</span>';
+    html += '<button class="linkish" data-action="open-settings">Settings</button></div>';
+    html += '<div class="launcher-grid">';
+    launcherApps().forEach(app => {
+      html += '<button class="launcher-item" data-action="launch" data-app="' + app.id + '">';
+      html += appIcon(app);
+      html += '<span>' + esc(app.name) + '</span></button>';
+    });
+    html += '</div></div></div>';
+    return html;
+  }
+
+  function renderNotifications() {
+    const notifs = [];
+    state.selectedApps.forEach(appId => {
+      if (isPauseActive(appId)) {
+        const left = state.pauses[appId].until - now();
+        notifs.push({ appId, text: 'Paused · ' + appById[appId].name + ' · ' + formatDuration(left) + ' left' });
+      }
+    });
+    if (!notifs.length) return '';
+    return '<div class="notif-strip">' + notifs.map(n =>
+      '<div class="notif"><span>' + esc(n.text) + '</span><button data-action="end-pause" data-app="' + n.appId + '">End now</button></div>'
+    ).join('') + '</div>';
+  }
+
+  function renderAppScreen() {
+    const app = appById[state.foregroundApp];
+    let html = '<div style="display:flex;flex-direction:column;height:100%">';
+    html += renderNotifications();
+    html += '<div class="app-screen">' + appIcon(app) + '<h2>' + esc(app.name) + '</h2>';
+    html += '<p class="muted">Mock app · meaningful visibility</p></div></div>';
+    return html;
+  }
+
+  function renderSettings() {
+    let html = '<div class="screen-scroll">';
+    html += '<div class="top-actions"><button class="linkish" data-action="go-home">← Home</button></div>';
+    html += '<h1>Settings</h1>';
+
+    if (!state.accessibilityEnabled) {
+      html += '<div class="danger-box"><strong>Protection inactive</strong>Accessibility is off. Speedbreaker cannot observe or pause apps. <button class="linkish" data-action="open-a11y">Repair</button></div>';
+    }
+
+    html += '<div class="day-tabs">';
+    html += '<button class="day-tab' + (state.settingsTab === 'global' ? ' active' : '') + '" data-action="settings-tab" data-tab="global">Global</button>';
+    state.selectedApps.forEach(id => {
+      html += '<button class="day-tab' + (state.settingsTab === id ? ' active' : '') + '" data-action="settings-tab" data-tab="' + id + '">' + esc(appById[id].name) + '</button>';
+    });
+    html += '</div>';
+
+    if (state.settingsTab === 'global') {
+      html += '<h2>Global defaults</h2>';
+      html += '<div class="field"><label>Breath duration (8–60s)</label><div class="slider-row"><input type="range" min="8" max="60" value="' + state.global.breathSeconds + '" data-input="breath"><span>' + state.global.breathSeconds + 's</span></div></div>';
+      html += '<div class="toggle-row"><span>Global schedule</span><input type="checkbox" data-input="global-sched-enabled"' + (state.global.schedule.enabled ? ' checked' : '') + '></div>';
+      html += renderScheduleEditor(state.global.schedule, 'global');
+      html += '<div class="section-title">Default redirects (4)</div>';
+      html += renderRedirectPicker(state.global.redirects, 'global');
+    } else {
+      const appId = state.settingsTab;
+      const p = ensurePerApp(appId);
+      html += '<h2>' + esc(appById[appId].name) + ' overrides</h2>';
+      html += '<div class="toggle-row"><span>Continuous-use interval</span><input type="checkbox" data-input="interval-enabled" data-app="' + appId + '"' + (p.intervalEnabled ? ' checked' : '') + '></div>';
+      html += '<div class="field"><label>Interval length</label><select data-input="interval-min" data-app="' + appId + '">';
+      [5, 10, 15, 20, 30].forEach(m => {
+        html += '<option value="' + m + '"' + (p.intervalMinutes === m ? ' selected' : '') + '>' + m + ' minutes</option>';
+      });
+      html += '</select></div>';
+      html += '<div class="toggle-row"><span>Replace global schedule</span><input type="checkbox" data-input="sched-override" data-app="' + appId + '"' + (p.scheduleOverride ? ' checked' : '') + '></div>';
+      if (p.scheduleOverride) html += renderScheduleEditor(p.schedule, 'app-' + appId);
+      html += '<div class="toggle-row"><span>Replace default redirects</span><input type="checkbox" data-input="redirect-override" data-app="' + appId + '"' + (p.redirectOverride ? ' checked' : '') + '></div>';
+      if (p.redirectOverride) html += renderRedirectPicker(p.redirects || state.global.redirects.slice(), 'app-' + appId);
+    }
+
+    html += '<button class="btn" data-action="toggle-a11y" style="margin-top:16px">' + (state.accessibilityEnabled ? 'Disable Accessibility (simulate)' : 'Enable Accessibility') + '</button>';
+    html += '</div>';
+    return html;
+  }
+
+  function renderScheduleEditor(schedule, key) {
+    const dk = state.schedEditDay || dayKey(now());
+    let html = '<div class="day-tabs">';
+    DAYS.forEach(d => {
+      html += '<button class="day-tab' + (d === dk ? ' active' : '') + '" data-action="sched-day" data-key="' + key + '" data-day="' + d + '">' + DAY_LABELS[d] + '</button>';
+    });
+    html += '</div>';
+    const win = schedule.windows[dk];
+    html += '<div class="toggle-row"><span>' + DAY_LABELS[dk] + ' window</span><input type="checkbox" data-input="sched-day-enabled" data-key="' + key + '" data-day="' + dk + '"' + (win.enabled ? ' checked' : '') + '></div>';
+    html += '<div class="field"><label>Start</label><input type="time" value="' + win.start + '" data-input="sched-start" data-key="' + key + '" data-day="' + dk + '"></div>';
+    html += '<div class="field"><label>End (may cross midnight)</label><input type="time" value="' + win.end + '" data-input="sched-end" data-key="' + key + '" data-day="' + dk + '"></div>';
+    html += '<button class="btn btn-ghost" data-action="copy-sched" data-key="' + key + '" data-day="' + dk + '">Copy this window to all days</button>';
+    return html;
+  }
+
+  function renderRedirectPicker(redirects, key) {
+    const slots = [0, 1, 2, 3];
+    let html = '<div class="stack">';
+    slots.forEach(i => {
+      html += '<div class="field"><label>Redirect ' + (i + 1) + '</label><select data-input="redirect" data-key="' + key + '" data-slot="' + i + '">';
+      html += '<option value="">—</option>';
+      CATALOG.filter(a => !a.excluded && !a.safety).forEach(a => {
+        const sel = redirects[i] === a.id ? ' selected' : '';
+        html += '<option value="' + a.id + '"' + sel + '>' + esc(a.name) + '</option>';
+      });
+      html += '</select></div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function renderAccessibilitySettings() {
+    return '<div class="screen-scroll"><div class="top-actions"><button class="linkish" data-action="go-back">← Back</button></div>' +
+      '<h1>Accessibility</h1><p>Installed services</p>' +
+      '<div class="app-row" style="cursor:default"><div class="app-icon" style="background:#1A1814">Sb</div><span class="app-name">Speedbreaker</span>' +
+      '<label style="font-size:13px;display:flex;align-items:center;gap:6px"><input type="checkbox" data-input="a11y-toggle"' + (state.accessibilityEnabled ? ' checked' : '') + '> Off / On</label></div>' +
+      '<p class="muted" style="margin-top:12px">Simulated system screen.</p></div>';
+  }
+
+  function renderIntervention() {
+    const iv = state.intervention;
+    if (!iv) return '';
+    const app = appById[iv.appId];
+    const n = now();
+    const inHardLock = n < iv.hardLockUntil;
+    const partial = iv.partialUnlocked;
+    const full = iv.continueUnlocked;
+    const tok = ensureTokens(app.id);
+    const redirectSlots = getEffectiveRedirects(iv.appId).map(r => (r && r !== iv.appId ? r : null));
+    const redirectsConfigured = redirectSlots.some(Boolean);
+    const breathLeft = Math.max(0, iv.breathUntil - n);
+    const hardLeft = Math.max(0, iv.hardLockUntil - n);
+
+    let pauseLabel;
+    if (tok.remaining > 0) {
+      pauseLabel = 'Pause 15m · ' + tok.remaining + ' left';
+    } else {
+      pauseLabel = 'Resets ' + formatReset(midnightTomorrow(now()));
+    }
+
+    let html = '<div class="overlay">';
+    if (state.haptic && now() - state.haptic.at < 1500) {
+      html += '<div class="haptic-toast">' + esc(state.haptic.text) + '</div>';
+    }
+    html += '<div class="overlay-header"><div>';
+    html += '<div class="overlay-meta">' + (iv.trigger === 'opening' ? 'Opening' : 'Continuous use') + ' · ' + esc(app.name) + '</div>';
+    html += '<div class="overlay-target">' + REFLECTION + '</div>';
+    html += '</div>';
+    const pauseDisabled = !partial || tok.remaining <= 0;
+    html += '<button class="pause-btn"' + (pauseDisabled ? ' disabled' : '') + ' data-action="pause">' + esc(pauseLabel) + '</button>';
+    html += '</div>';
+
+    html += '<div class="breath-zone">';
+    html += '<div class="breath-ring"><span style="font-size:13px;opacity:.8">Breathe</span></div>';
+    html += '<div class="reflection' + (partial ? ' visible' : '') + '">' + REFLECTION + '</div>';
+    if (inHardLock) {
+      html += '<div class="hard-lock-note">Hard lock · ' + formatDuration(hardLeft) + ' · navigation blocked</div>';
+    } else {
+      html += '<div class="hard-lock-note">Breath · ' + formatDuration(breathLeft) + ' remaining</div>';
+    }
+    html += '</div>';
+
+    html += '<div class="overlay-actions">';
+    html += '<div class="btn-row">';
+    html += '<button class="btn" data-action="continue"' + (full ? '' : ' disabled') + '>Continue</button>';
+    html += '<button class="btn" data-action="leave"' + (partial ? '' : ' disabled') + '>Leave</button>';
+    html += '</div>';
+    if (redirectsConfigured) {
+      html += '<div class="redirect-row">';
+      for (let i = 0; i < 4; i++) {
+        const rid = redirectSlots[i];
+        if (rid && appById[rid]) {
+          html += '<button class="btn" data-action="redirect" data-app="' + rid + '"' + (partial ? '' : ' disabled') + '>' + esc(appById[rid].name) + '</button>';
+        } else {
+          html += '<button class="btn" disabled>—</button>';
+        }
+      }
+      html += '</div>';
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  function renderInactiveBar() {
+    if (state.onboardingDone && !state.accessibilityEnabled) {
+      inactiveBar.innerHTML = '<div class="inactive-bar">Speedbreaker inactive · Accessibility off<button data-action="open-a11y">Fix</button></div>';
+      inactiveBar.style.display = 'block';
+    } else {
+      inactiveBar.innerHTML = '';
+      inactiveBar.style.display = 'none';
+    }
+  }
+
+  function renderPhone() {
+    renderInactiveBar();
+    clockDisplay.textContent = formatClock(now());
+    interactiveBadge.textContent = state.phoneInteractive ? 'Interactive' : 'Non-interactive';
+    document.getElementById('statusBar').classList.toggle('dim', !state.phoneInteractive);
+
+    let inner = '';
+    if (state.screen === 'accessibility-settings') {
+      inner = renderAccessibilitySettings();
+    } else if (!state.onboardingDone) {
+      inner = renderOnboarding();
+    } else if (state.screen === 'settings') {
+      inner = renderSettings();
+    } else if (state.screen === 'app' && state.foregroundApp) {
+      inner = renderAppScreen();
+    } else {
+      inner = renderHome();
+    }
+
+    phoneBody.innerHTML = inner;
+    phoneBody.insertAdjacentHTML('beforeend', renderIntervention());
+
+    bindPhoneEvents();
+
+    if (state.onboardingStep === 1) {
+      const cb = document.getElementById('consentCheck');
+      const btn = document.getElementById('consentBtn');
+      if (cb && btn) {
+        cb.onchange = () => { btn.disabled = !cb.checked; };
+      }
+    }
+  }
+
+  function renderInspector() {
+    const iv = state.intervention;
+    const fg = state.foregroundApp ? appById[state.foregroundApp].name : 'Home';
+    const screenName = !state.onboardingDone ? 'Onboarding (step ' + (state.onboardingStep + 1) + '/5)' :
+      state.screen === 'settings' ? 'Settings' :
+      state.screen === 'accessibility-settings' ? 'Accessibility settings' :
+      state.screen === 'app' ? 'App · ' + fg : 'Home';
+
+    const selected = state.selectedApps.length
+      ? state.selectedApps.map(id => appById[id].name).join(', ')
+      : 'None';
+
+    const trigger = iv ? (iv.trigger === 'opening' ? 'Opening' : 'Continuous use') : 'None';
+    const hard = iv && now() < iv.hardLockUntil ? 'Hard lock (' + formatDuration(iv.hardLockUntil - now()) + ')' :
+      iv && !iv.continueUnlocked ? 'Partial unlock' : iv ? 'Full unlock' : '—';
+
+    const pauseLines = state.selectedApps.filter(isPauseActive).map(id => {
+      const left = state.pauses[id].until - now();
+      return appById[id].name + ' · ' + formatDuration(left);
+    });
+    const tokenLines = state.selectedApps.map(id => {
+      const t = ensureTokens(id);
+      return appById[id].name + ' · ' + t.remaining + ' token' + (t.remaining === 1 ? '' : 's');
+    });
+
+    const schedLines = state.selectedApps.length
+      ? state.selectedApps.map(id => appById[id].name + ': ' + scheduleLabel(id))
+      : ['No apps selected'];
+
+    const fields = [
+      ['Screen', screenName],
+      ['Selected apps', selected],
+      ['Trigger', trigger + (iv ? ' · ' + hard : '')],
+      ['Continuous-use timer', state.foregroundApp ? continuousSummary() : 'None'],
+      ['Quick-return cooldown', quickReturnSummary()],
+      ['Active pauses', pauseLines.length ? pauseLines.join('; ') : 'None'],
+      ['Pause tokens (today)', tokenLines.length ? tokenLines.join('; ') : '—'],
+      ['Schedule', schedLines.join(' · ')],
+      ['Accessibility', state.accessibilityEnabled ? 'Enabled' : 'Disabled · repair needed'],
+      ['Last event', state.lastEvent],
+    ];
+
+    inspector.innerHTML = fields.map(([label, value]) => {
+      const changed = lastChangedKeys.has(label.toLowerCase().split(' ')[0]) ||
+        (label === 'Last event' && lastChangedKeys.size);
+      const cls = changed ? ' class="changed"' : '';
+      return '<dt' + cls + '>' + esc(label) + '</dt><dd' + cls + '>' + esc(value) + '</dd>';
+    }).join('');
+
+    lastChangedKeys.clear();
+  }
+
+  function renderSimControls() {
+    document.getElementById('simEscapes').innerHTML = [
+      ['Incoming call', 'call'],
+      ['Emergency dialer', 'emergency'],
+      ['Lockscreen', 'lockscreen'],
+      ['Accessibility settings', 'accessibility'],
+      ['Screen non-interactive', 'noninteractive'],
+    ].map(([label, kind]) => '<button class="btn" data-sim="escape" data-kind="' + kind + '">' + label + '</button>').join('');
+
+    document.getElementById('simTime').innerHTML = [
+      ['+10s', 10000],
+      ['+8s (unlock)', 8000],
+      ['+1m', 60000],
+      ['+61s (expire QR)', 61000],
+      ['+15m (pause end)', PAUSE_DURATION_MS],
+    ].map(([label, ms]) => '<button class="btn" data-sim="time" data-ms="' + ms + '">' + label + '</button>').join('');
+
+    document.getElementById('simProto').innerHTML =
+      '<button class="btn" data-sim="reset">Reset prototype</button>' +
+      '<button class="btn" data-sim="interactive">' + (state.phoneInteractive ? 'Mark non-interactive' : 'Mark interactive') + '</button>';
+  }
+
+  function render() {
+    renderPhone();
+    renderInspector();
+    renderSimControls();
+    bindSimEvents();
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  }
+
+  function bindPhoneEvents() {
+    phoneBody.querySelectorAll('[data-action]').forEach(el => {
+      el.onclick = () => handleAction(el.dataset.action, el.dataset);
+    });
+    phoneBody.querySelectorAll('[data-input]').forEach(el => {
+      el.onchange = () => handleInput(el);
+      el.oninput = () => handleInput(el);
+    });
+    inactiveBar.querySelectorAll('[data-action]').forEach(el => {
+      el.onclick = () => handleAction(el.dataset.action, el.dataset);
+    });
+  }
+
+  function bindSimEvents() {
+    document.querySelectorAll('[data-sim]').forEach(el => {
+      el.onclick = () => {
+        const kind = el.dataset.sim;
+        if (kind === 'escape') {
+          if (state.intervention) escapeIntervention(el.dataset.kind);
+          else if (el.dataset.kind === 'accessibility') { state.screen = 'accessibility-settings'; render(); }
+          else if (el.dataset.kind === 'noninteractive') { state.phoneInteractive = false; markChanged(['screen']); render(); }
+          else if (el.dataset.kind === 'lockscreen') { state.phoneInteractive = false; goHome('Lockscreen'); render(); }
+          else { goHome(el.dataset.kind); render(); }
+        } else if (kind === 'time') {
+          advanceTime(Number(el.dataset.ms));
+        } else if (kind === 'reset') {
+          resetPrototype();
+        } else if (kind === 'interactive') {
+          state.phoneInteractive = !state.phoneInteractive;
+          markChanged(['screen']);
+          render();
+        }
+      };
+    });
+  }
+
+  function handleAction(action, data) {
+    switch (action) {
+      case 'onboard-next':
+        state.onboardingStep += 1;
+        markChanged(['screen']);
+        break;
+      case 'onboard-consent':
+        state.onboardingStep += 1;
+        markChanged(['screen']);
+        break;
+      case 'open-a11y':
+        state.screen = 'accessibility-settings';
+        markChanged(['screen', 'accessibility']);
+        break;
+      case 'finish-onboarding':
+        completeOnboarding();
+        break;
+      case 'dismiss-samsung':
+        state.samsungTipSeen = true;
+        break;
+      case 'toggle-app':
+        toggleApp(data.app);
+        break;
+      case 'launch':
+        launchFromHome(data.app);
+        break;
+      case 'open-settings':
+        state.screen = 'settings';
+        state.settingsTab = 'global';
+        markChanged(['screen']);
+        break;
+      case 'go-home':
+        state.screen = 'home';
+        markChanged(['screen']);
+        break;
+      case 'go-back':
+        state.screen = state.onboardingDone ? (state.foregroundApp ? 'app' : 'home') : 'onboarding';
+        if (!state.onboardingDone && state.onboardingStep > 0) { /* stay in onboarding */ state.screen = 'onboarding'; }
+        else if (state.onboardingDone && !state.foregroundApp) state.screen = 'home';
+        markChanged(['screen']);
+        break;
+      case 'settings-tab':
+        state.settingsTab = data.tab;
+        break;
+      case 'copy-sched':
+        copySchedule(data.key, data.day);
+        break;
+      case 'sched-day':
+        state.schedEditDay = data.day;
+        break;
+      case 'toggle-a11y':
+        state.accessibilityEnabled = !state.accessibilityEnabled;
+        markChanged(['accessibility']);
+        break;
+      case 'continue':
+        continueChoice();
+        break;
+      case 'leave':
+        leaveChoice();
+        break;
+      case 'redirect':
+        redirectChoice(data.app);
+        break;
+      case 'pause':
+        pauseChoice();
+        break;
+      case 'end-pause':
+        endPauseNow(data.app);
+        break;
+    }
+    tickIntervention();
+    checkContinuousTrigger();
+    render();
+  }
+
+  function handleInput(el) {
+    const input = el.dataset.input;
+    if (input === 'picker-search') {
+      state.pickerQuery = el.value;
+      render();
+      return;
+    }
+    if (input === 'breath') {
+      state.global.breathSeconds = Number(el.value);
+      el.parentElement.querySelector('span').textContent = el.value + 's';
+      return;
+    }
+    if (input === 'consentCheck') return;
+    if (input === 'a11y-toggle') {
+      state.accessibilityEnabled = el.checked;
+      markChanged(['accessibility']);
+      if (state.accessibilityEnabled && state.onboardingStep === 2 && !state.onboardingDone) {
+        /* allow next */
+      }
+      render();
+      return;
+    }
+    if (input === 'global-sched-enabled') {
+      state.global.schedule.enabled = el.checked;
+      markChanged(['schedule']);
+      render();
+      return;
+    }
+    if (input === 'sched-day-enabled') {
+      getScheduleByKey(el.dataset.key).windows[el.dataset.day].enabled = el.checked;
+      markChanged(['schedule']);
+      return;
+    }
+    if (input === 'sched-start') {
+      getScheduleByKey(el.dataset.key).windows[el.dataset.day].start = el.value;
+      markChanged(['schedule']);
+      return;
+    }
+    if (input === 'sched-end') {
+      getScheduleByKey(el.dataset.key).windows[el.dataset.day].end = el.value;
+      markChanged(['schedule']);
+      return;
+    }
+    if (input === 'redirect') {
+      const arr = getRedirectArray(el.dataset.key);
+      arr[Number(el.dataset.slot)] = el.value || null;
+      arr.length = 4;
+      markChanged(['screen']);
+      render();
+      return;
+    }
+    if (input === 'interval-enabled') {
+      ensurePerApp(el.dataset.app).intervalEnabled = el.checked;
+      markChanged(['continuous']);
+      render();
+      return;
+    }
+    if (input === 'interval-min') {
+      ensurePerApp(el.dataset.app).intervalMinutes = Number(el.value);
+      markChanged(['continuous']);
+      return;
+    }
+    if (input === 'sched-override') {
+      ensurePerApp(el.dataset.app).scheduleOverride = el.checked;
+      markChanged(['schedule']);
+      render();
+      return;
+    }
+    if (input === 'redirect-override') {
+      const p = ensurePerApp(el.dataset.app);
+      p.redirectOverride = el.checked;
+      if (!p.redirects) p.redirects = state.global.redirects.slice();
+      markChanged(['screen']);
+      render();
+      return;
+    }
+  }
+
+  function getScheduleByKey(key) {
+    if (key === 'global') return state.global.schedule;
+    const appId = key.replace('app-', '');
+    return ensurePerApp(appId).schedule;
+  }
+
+  function getRedirectArray(key) {
+    if (key === 'global') return state.global.redirects;
+    const appId = key.replace('app-', '');
+    const p = ensurePerApp(appId);
+    if (!p.redirects) p.redirects = state.global.redirects.slice();
+    return p.redirects;
+  }
+
+  function copySchedule(key, day) {
+    const sch = getScheduleByKey(key);
+    const src = sch.windows[day];
+    DAYS.forEach(d => { sch.windows[d] = { ...src }; });
+    markChanged(['schedule'], 'Schedule copied to all days');
+    render();
+  }
+
+  function toggleApp(appId) {
+    const i = state.selectedApps.indexOf(appId);
+    if (i >= 0) {
+      state.selectedApps.splice(i, 1);
+      delete state.scheduleTrack[appId];
+    } else {
+      state.selectedApps.push(appId);
+      ensurePerApp(appId);
+      state.scheduleTrack[appId] = isScheduleActive(appId);
+    }
+    markChanged(['selected']);
+    render();
+  }
+
+  function launchFromHome(appId) {
+    const app = appById[appId];
+    if (app.safety || app.excluded) {
+      openApp(appId);
+      return;
+    }
+    if (state.selectedApps.includes(appId)) {
+      openApp(appId);
+    } else {
+      openApp(appId);
+    }
+  }
+
+  document.getElementById('navHome').onclick = () => { handleNav('home'); render(); };
+  document.getElementById('navBack').onclick = () => { handleNav('back'); render(); };
+  document.getElementById('navRecents').onclick = () => { handleNav('recents'); render(); };
+
+  function startTick() {
+    if (tickHandle) clearInterval(tickHandle);
+    tickHandle = setInterval(() => {
+      tickIntervention();
+      checkPauseExpiry();
+      checkQuickReturnExpiry();
+      checkScheduleTransition();
+      checkContinuousTrigger();
+      renderInspector();
+      if (state.intervention || state.selectedApps.some(isPauseActive)) {
+        renderPhone();
+      } else {
+        clockDisplay.textContent = formatClock(now());
+        interactiveBadge.textContent = state.phoneInteractive ? 'Interactive' : 'Non-interactive';
+      }
+    }, 250);
+  }
+
+  render();
+  startTick();
+})();
+  </script>
+</body>
+</html>
