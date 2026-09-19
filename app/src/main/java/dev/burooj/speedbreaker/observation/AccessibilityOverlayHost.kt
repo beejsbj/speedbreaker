@@ -135,6 +135,7 @@ internal class AccessibilityOverlayHost(
             composeView = view
             owner = lifecycleOwner
             lifecycleOwner.start()
+            ServiceStatus.reportError(null)
             view.requestFocus()
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
         } catch (error: RuntimeException) {
