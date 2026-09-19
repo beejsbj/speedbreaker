@@ -22,9 +22,13 @@ null per-app schedule continues to mean inherit global.
 - `settings: StateFlow<Settings>`
 - `pauses: StateFlow<Map<String, PauseState>>`
 - `ready: StateFlow<Boolean>`; false until Room has loaded
-- `suspend fun setSettings(settings: Settings)`
+- `suspend fun updateSettings(transform: (Settings) -> Settings)`
 - `suspend fun savePauses(pauses: Map<String, PauseState>)`
+- `suspend fun endPause(packageName: String, nowEpochMs: Long): Boolean`
 
+UI edits transform the latest settings while holding the repository mutex,
+including nested policy and schedule edits. Persist before publishing flows.
+Reject malformed persisted state instead of silently disabling part of a policy.
 Write only changed data. Serialize settings and pause maps to JSON inside Room
 rows; Java entity/DAO/database + `annotationProcessor(room-compiler)` avoids
 adding a second Kotlin compiler plugin. Database errors must not silently imply
@@ -60,6 +64,11 @@ visibility; disabled UI alone is not an enforcement boundary.
 
 `observation.SpeedbreakerService` owns the engine, a ComposeView accessibility
 overlay, visibility polling/events, and ongoing pause notifications with End now.
+Pause notifications require Android notification access and appear only after
+the grant is durable. The notification receiver ends pauses atomically in the
+repository; the connected service applies the specific event without resetting
+other apps' runtime sessions. Service pause writes and receiver transactions are
+ordered, with pending engine changes rebased on the current durable pause map.
 `observation.ServiceStatus` exposes `connected: StateFlow<Boolean>` and
 `fun isEnabled(context: Context): Boolean` for the settings screen. The service
 requires affirmative consent and ready persistence before enforcing.
