@@ -8,6 +8,7 @@ import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.model.TimeWindow
 import dev.burooj.speedbreaker.model.WeeklySchedule
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,7 +29,8 @@ internal class SpeedbreakerRepository private constructor(context: Context) {
         SpeedbreakerDatabase::class.java,
         "speedbreaker.db",
     ).build()
-    private val writeMutex = Mutex()
+    /** Covers loading, writes, and publication so readers never see reordered state. */
+    private val stateMutex = Mutex()
 
     private val _settings = MutableStateFlow(Settings())
     val settings: StateFlow<Settings> = _settings.asStateFlow()
@@ -43,11 +45,20 @@ internal class SpeedbreakerRepository private constructor(context: Context) {
     init {
         scope.launch {
             try {
-                val dao = database.stateDao()
-                _settings.value = dao.read(SETTINGS_KEY)?.value?.let(SettingsJson::decodeSettings) ?: Settings()
-                _pauses.value = dao.read(PAUSES_KEY)?.value?.let(SettingsJson::decodePauses) ?: emptyMap()
-                _ready.value = true
-            } catch (error: Exception) {
+                stateMutex.withLock {
+                    val dao = database.stateDao()
+                    val loadedSettings = dao.read(SETTINGS_KEY)?.value
+                        ?.let(SettingsJson::decodeSettings)
+                        ?: Settings()
+                    val loadedPauses = dao.read(PAUSES_KEY)?.value
+                        ?.let(SettingsJson::decodePauses)
+                        ?: emptyMap()
+                    _settings.value = loadedSettings
+                    _pauses.value = loadedPauses
+                    _ready.value = true
+                }
+            } catch (error: Throwable) {
+                if (error is CancellationException) throw error
                 _error.value = "Speedbreaker’s local settings could not be opened."
             }
         }
@@ -55,14 +66,15 @@ internal class SpeedbreakerRepository private constructor(context: Context) {
 
     suspend fun setSettings(settings: Settings) {
         val checked = SettingsJson.validateSettings(settings)
-        writeMutex.withLock {
+        stateMutex.withLock {
             if (checked == _settings.value) return
             try {
                 withContext(Dispatchers.IO) {
                     database.stateDao().write(StateRecord(SETTINGS_KEY, SettingsJson.encodeSettings(checked)))
                 }
                 _settings.value = checked
-            } catch (error: Exception) {
+            } catch (error: Throwable) {
+                if (error is CancellationException) throw error
                 _error.value = "Speedbreaker couldn’t save your settings."
             }
         }
@@ -70,14 +82,15 @@ internal class SpeedbreakerRepository private constructor(context: Context) {
 
     suspend fun savePauses(pauses: Map<String, PauseState>) {
         val checked = SettingsJson.validatePauses(pauses)
-        writeMutex.withLock {
+        stateMutex.withLock {
             if (checked == _pauses.value) return
             try {
                 withContext(Dispatchers.IO) {
                     database.stateDao().write(StateRecord(PAUSES_KEY, SettingsJson.encodePauses(checked)))
                 }
                 _pauses.value = checked
-            } catch (error: Exception) {
+            } catch (error: Throwable) {
+                if (error is CancellationException) throw error
                 _error.value = "Speedbreaker couldn’t save active pauses."
             }
         }
@@ -94,7 +107,7 @@ internal class SpeedbreakerRepository private constructor(context: Context) {
     }
 }
 
-private object SettingsJson {
+internal object SettingsJson {
     fun validateSettings(input: Settings): Settings {
         val targets = input.apps.keys.filter { it.isNotBlank() }.toSet()
         val apps = input.apps.filterKeys { it in targets }.mapValues { (_, policy) ->
@@ -123,7 +136,7 @@ private object SettingsJson {
 
     private fun validateSchedule(schedule: WeeklySchedule): WeeklySchedule = WeeklySchedule(
         schedule.days.filter { (day, window) ->
-            day in 1..7 && window.startMinute in 0..1439 && window.endMinute in 0..1439 &&
+            day in 1..7 && window.startMinute in 0..1439 && window.endMinute in 0..1440 &&
                 window.startMinute != window.endMinute
         },
     )
@@ -148,12 +161,14 @@ private object SettingsJson {
         }) }
     }.toString()
 
-    fun decodeSettings(json: String): Settings = try {
+    fun decodeSettings(json: String): Settings {
         val root = JSONObject(json)
-        val appsJson = root.optJSONObject("apps") ?: JSONObject()
+        requireFields(root, "consent", "breath", "redirects", "schedule", "apps")
+        val appsJson = root.getJSONObject("apps")
         val apps = buildMap {
             appsJson.keys().forEach { packageName ->
-                val item = appsJson.optJSONObject(packageName) ?: return@forEach
+                val item = appsJson.getJSONObject(packageName)
+                requireFields(item, "continuous", "schedule", "redirects")
                 put(packageName, AppPolicy(
                     continuousSeconds = if (item.isNull("continuous")) null else item.optInt("continuous", 600),
                     schedule = schedule(item.opt("schedule")),
@@ -161,24 +176,29 @@ private object SettingsJson {
                 ))
             }
         }
-        validateSettings(Settings(
+        return validateSettings(Settings(
             consentAccepted = root.optBoolean("consent", false),
             breathSeconds = root.optInt("breath", 12), apps = apps,
             redirects = strings(root.optJSONArray("redirects")), schedule = schedule(root.opt("schedule")),
         ))
-    } catch (_: Exception) { Settings() }
+    }
 
-    fun decodePauses(json: String): Map<String, PauseState> = try {
+    fun decodePauses(json: String): Map<String, PauseState> {
         val root = JSONObject(json)
-        validatePauses(buildMap {
+        return validatePauses(buildMap {
             root.keys().forEach { packageName ->
-                val item = root.optJSONObject(packageName) ?: return@forEach
+                val item = root.getJSONObject(packageName)
+                requireFields(item, "day", "used", "until")
                 put(packageName, PauseState(item.optString("day"), item.optInt("used"), item.optLong("until")))
             }
         })
-    } catch (_: Exception) { emptyMap() }
+    }
 
     private fun array(values: List<String>) = JSONArray().apply { values.forEach(::put) }
+
+    private fun requireFields(objectValue: JSONObject, vararg names: String) {
+        require(names.all(objectValue::has)) { "Incomplete persisted Speedbreaker state." }
+    }
     private fun strings(values: JSONArray?): List<String> = buildList {
         values?.let { array -> for (index in 0 until array.length()) array.optString(index).takeIf(String::isNotBlank)?.let(::add) }
     }

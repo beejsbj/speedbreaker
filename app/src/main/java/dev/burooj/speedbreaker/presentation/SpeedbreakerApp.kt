@@ -5,21 +5,57 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.provider.Settings as AndroidSettings
 import android.telecom.TelecomManager
 import android.view.inputmethod.InputMethodManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
@@ -27,84 +63,763 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import dev.burooj.speedbreaker.model.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.activity.compose.BackHandler
+import dev.burooj.speedbreaker.model.AppPolicy
+import dev.burooj.speedbreaker.model.Settings
+import dev.burooj.speedbreaker.model.TimeWindow
+import dev.burooj.speedbreaker.model.WeeklySchedule
 import dev.burooj.speedbreaker.observation.ServiceStatus
 import dev.burooj.speedbreaker.persistence.SpeedbreakerRepository
 import dev.burooj.speedbreaker.presentation.theme.SpeedbreakerTheme
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import java.util.Locale
 
-@Composable fun SpeedbreakerApp() {
+@Composable
+fun SpeedbreakerApp() {
     SpeedbreakerTheme {
         val context = LocalContext.current
-        val repository = remember { SpeedbreakerRepository.get(context) }
+        val repository = remember(context) { SpeedbreakerRepository.get(context) }
         val settings by repository.settings.collectAsStateWithLifecycle()
         val ready by repository.ready.collectAsStateWithLifecycle()
-        val error by repository.error.collectAsStateWithLifecycle()
+        val repositoryError by repository.error.collectAsStateWithLifecycle()
         val connected by ServiceStatus.connected.collectAsStateWithLifecycle()
-        var screen by remember { mutableStateOf<Screen>(Screen.Home) }
-        var resumeTick by remember { mutableIntStateOf(0) }
-        val notifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
-        val enabled = remember(resumeTick) { ServiceStatus.isEnabled(context) }
+        val runtimeError by ServiceStatus.error.collectAsStateWithLifecycle()
         val scope = rememberCoroutineScope()
-        val save: (Settings) -> Unit = { value -> scope.launch { repository.setSettings(value) } }
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        var route by remember { mutableStateOf<Route>(Route.Home) }
+        var resumeTick by remember { mutableIntStateOf(0) }
+        var redirectRequest by remember { mutableStateOf<RedirectRequest?>(null) }
+        val notificationPermission = rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) { }
+        val accessibilityEnabled = remember(resumeTick) { ServiceStatus.isEnabled(context) }
+
+        val lifecycle = LocalLifecycleOwner.current.lifecycle
+        DisposableEffect(lifecycle) {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) resumeTick++
+            }
+            lifecycle.addObserver(observer)
+            onDispose { lifecycle.removeObserver(observer) }
+        }
+
+        fun save(updated: Settings) {
+            scope.launch { repository.setSettings(updated) }
+        }
+
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background,
+        ) {
             when {
-                error != null -> Failure(error)
+                repositoryError != null -> RepositoryFailure(repositoryError)
                 !ready -> CenterText("Opening your local settings…")
-                !settings.consentAccepted -> Disclosure { save(settings.copy(consentAccepted = true)) }
-                else -> when (val route = screen) {
-                    Screen.Home -> Home(settings, enabled && connected, { context.startActivity(Intent(AndroidSettings.ACTION_ACCESSIBILITY_SETTINGS)) }, { screen = Screen.Apps }, { screen = Screen.Global }, { screen = Screen.App(it) }, { if (android.os.Build.VERSION.SDK_INT >= 33) notifications.launch(Manifest.permission.POST_NOTIFICATIONS) })
-                    Screen.Apps -> Picker(settings.apps.keys, { screen = Screen.Home }) { app ->
-                        val apps = settings.apps.toMutableMap(); if (app.packageName in apps) apps.remove(app.packageName) else apps[app.packageName] = AppPolicy(); save(settings.copy(apps = apps))
-                    }
-                    Screen.Global -> Global(settings, { screen = Screen.Home }, save)
-                    is Screen.App -> AppSettings(route.name, settings, { screen = Screen.Home }, save)
+                !settings.consentAccepted -> DisclosureScreen {
+                    save(settings.copy(consentAccepted = true))
+                }
+                route == Route.Home -> HomeScreen(
+                    settings = settings,
+                    protected = accessibilityEnabled && connected && runtimeError == null,
+                    runtimeError = runtimeError,
+                    onEnableAccessibility = {
+                        context.startActivity(Intent(AndroidSettings.ACTION_ACCESSIBILITY_SETTINGS))
+                    },
+                    onOpenBatterySettings = { openAppDetails(context) },
+                    onApps = { route = Route.Apps },
+                    onGlobal = { route = Route.Global },
+                    onApp = { route = Route.App(it) },
+                    onNotifications = {
+                        if (android.os.Build.VERSION.SDK_INT >= 33) {
+                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    },
+                )
+                route == Route.Apps -> AppPicker(
+                    selected = settings.apps.keys,
+                    onBack = { route = Route.Home },
+                    onToggle = { app ->
+                        val updatedApps = settings.apps.toMutableMap()
+                        if (app.packageName in updatedApps) {
+                            updatedApps.remove(app.packageName)
+                        } else {
+                            updatedApps[app.packageName] = AppPolicy()
+                        }
+                        save(settings.copy(apps = updatedApps))
+                    },
+                )
+                route == Route.Global -> GlobalEditor(
+                    settings = settings,
+                    onBack = { route = Route.Home },
+                    onBreathChange = { save(settings.copy(breathSeconds = it)) },
+                    onScheduleChange = { save(settings.copy(schedule = it)) },
+                    onRedirects = {
+                        redirectRequest = RedirectRequest(
+                            title = "Redirect alternatives",
+                            selected = settings.redirects,
+                            targetPackages = settings.apps.keys,
+                            apply = { value -> save(settings.copy(redirects = value)) },
+                        )
+                    },
+                )
+                route is Route.App -> {
+                    val packageName = (route as Route.App).packageName
+                    AppEditor(
+                        packageName = packageName,
+                        settings = settings,
+                        onBack = { route = Route.Home },
+                        onPolicy = { policy ->
+                            save(settings.copy(apps = settings.apps + (packageName to policy)))
+                        },
+                        onRedirects = { current ->
+                            redirectRequest = RedirectRequest(
+                                title = "Per-app redirect alternatives",
+                                selected = current,
+                                targetPackages = settings.apps.keys,
+                                apply = { value ->
+                                    val policy = settings.apps[packageName]
+                                    if (policy != null) {
+                                        save(
+                                            settings.copy(
+                                                apps = settings.apps + (packageName to policy.copy(redirects = value)),
+                                            ),
+                                        )
+                                    }
+                                },
+                            )
+                        },
+                    )
                 }
             }
         }
-        val lifecycle = LocalLifecycleOwner.current.lifecycle
-        DisposableEffect(lifecycle) { val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_RESUME) resumeTick++ }; lifecycle.addObserver(observer); onDispose { lifecycle.removeObserver(observer) } }
+        redirectRequest?.let { request ->
+            RedirectPickerDialog(
+                request = request,
+                onDismiss = { redirectRequest = null },
+            )
+        }
     }
 }
-private sealed interface Screen { data object Home: Screen; data object Apps: Screen; data object Global: Screen; data class App(val name: String): Screen }
-@Composable private fun CenterText(text: String) = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(text) }
-@Composable private fun Failure(error: String?) = Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) { Text("Speedbreaker is inactive", style = MaterialTheme.typography.headlineSmall); Text(error ?: "Local settings aren’t available, so protection cannot start."); Text("Restart the app after resolving the storage problem.") }
-@Composable private fun Disclosure(accept: () -> Unit) = Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-    Spacer(Modifier.height(28.dp)); Text("Make the next tap intentional.", style = MaterialTheme.typography.headlineMedium)
-    Text("Speedbreaker adds a brief breathing pause before apps you choose. It observes only the visible selected app, locally on this phone.")
-    Text("During the first eight seconds of a pause, navigation cannot dismiss it. Calls, the dialer, lock screen, Accessibility settings, and a non-interactive phone always break through.")
-    Text("It stores no usage history, reflection answers, analytics, or cloud data. It does not ask for Usage Access or a separate overlay permission.")
-    Button(accept, Modifier.fillMaxWidth()) { Text("I understand — continue") }
+
+private sealed interface Route {
+    data object Home : Route
+    data object Apps : Route
+    data object Global : Route
+    data class App(val packageName: String) : Route
 }
-@Composable private fun Home(settings: Settings, active: Boolean, enable: () -> Unit, apps: () -> Unit, global: () -> Unit, edit: (String) -> Unit, notifications: () -> Unit) = Page("Speedbreaker") {
-    Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { Text(if (active) "Protection is active" else "Protection is inactive", style = MaterialTheme.typography.titleLarge); Text(if (active) "Accessibility is connected." else "Enable Accessibility to let Speedbreaker protect selected apps. Settings remain editable while it is off."); if (!active) Button(enable) { Text("Enable Accessibility") } } }
-    Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { Text("Samsung battery guidance", style = MaterialTheme.typography.titleMedium); Text("For reliable pauses, allow Speedbreaker to run in the background and avoid putting it to sleep in Samsung battery settings."); OutlinedButton(enable) { Text("Open Android settings") } } }
-    if (android.os.Build.VERSION.SDK_INT >= 33) OutlinedButton(notifications, Modifier.fillMaxWidth()) { Text("Allow pause notifications (optional)") }
-    ListItem({ Text("Selected apps") }, supportingContent = { Text(if (settings.apps.isEmpty()) "None yet — choose apps to mediate." else "${settings.apps.size} selected") }, modifier = Modifier.clickable(onClick = apps)); Divider()
-    ListItem({ Text("Global defaults") }, supportingContent = { Text("${settings.breathSeconds}-second breath · ${summary(settings.schedule)}") }, modifier = Modifier.clickable(onClick = global))
-    if (settings.apps.isNotEmpty()) { Text("Per-app settings", style = MaterialTheme.typography.titleMedium); settings.apps.keys.sorted().forEach { pkg -> ListItem({ Text(label(LocalContext.current, pkg)) }, supportingContent = { Text(pkg) }, modifier = Modifier.clickable { edit(pkg) }) } }
+
+private data class RedirectRequest(
+    val title: String,
+    val selected: List<String>,
+    val targetPackages: Set<String>,
+    val apply: (List<String>) -> Unit,
+)
+
+@Composable
+private fun RepositoryFailure(error: String?) {
+    Column(
+        modifier = Modifier.safeDrawingPadding().padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text("Speedbreaker is inactive", style = MaterialTheme.typography.headlineSmall)
+        Text(error ?: "Local settings aren’t available, so protection cannot start.")
+        Text("Restart the app after resolving the storage problem.")
+    }
 }
-@Composable private fun Picker(selected: Set<String>, back: () -> Unit, toggle: (LaunchableApp) -> Unit) { val apps = remember { discover(LocalContext.current) }; var query by remember { mutableStateOf("") }; Column(Modifier.fillMaxSize()) { Header("Choose apps", back); OutlinedTextField(query, { query = it }, { Text("Search apps") }, Modifier.fillMaxWidth().padding(horizontal = 16.dp), singleLine = true); Text("Nothing is selected by default. System and safety-critical apps are unavailable. If a newly selected target is a redirect, that redirect set is cleared rather than left partially active.", Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall); LazyColumn { items(apps.filter { it.label.contains(query, true) || it.packageName.contains(query, true) }, { it.packageName }) { app -> ListItem({ Text(app.label) }, supportingContent = { Text(app.packageName) }, leadingContent = { AppIcon(app) }, trailingContent = { Checkbox(app.packageName in selected, { toggle(app) }) }, modifier = Modifier.clickable { toggle(app) }) } } } }
-@Composable private fun Global(settings: Settings, back: () -> Unit, save: (Settings) -> Unit) = Column(Modifier.fillMaxSize()) { Header("Global defaults", back); Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) { Text("Breath: ${settings.breathSeconds} seconds", style = MaterialTheme.typography.titleMedium); Slider(settings.breathSeconds.toFloat(), { save(settings.copy(breathSeconds = it.toInt())) }, valueRange = 8f..60f, steps = 51); Redirects("Redirect alternatives", settings.redirects, settings.apps.keys) { save(settings.copy(redirects = it)) }; Schedule("Active schedule", settings.schedule) { save(settings.copy(schedule = it)) } } }
-@Composable private fun AppSettings(pkg: String, settings: Settings, back: () -> Unit, save: (Settings) -> Unit) { val policy = settings.apps[pkg] ?: return; Column(Modifier.fillMaxSize()) { Header(label(LocalContext.current, pkg), back); Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) { Text("Continuous-use interval", style = MaterialTheme.typography.titleMedium); Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(policy.continuousSeconds != null, { checked -> change(settings, pkg, policy.copy(continuousSeconds = if (checked) 600 else null), save) }); Text(if (policy.continuousSeconds == null) "Off" else "On") }; policy.continuousSeconds?.let { seconds -> val min = (seconds / 60).coerceIn(1, 120); Text("Every $min minutes"); Slider(min.toFloat(), { change(settings, pkg, policy.copy(continuousSeconds = it.toInt() * 60), save) }, valueRange = 1f..120f, steps = 118) }; OverrideSchedule(policy, settings, pkg, save); OverrideRedirects(policy, settings, pkg, save) } } }
-private fun change(settings: Settings, pkg: String, policy: AppPolicy, save: (Settings) -> Unit) = save(settings.copy(apps = settings.apps + (pkg to policy)))
-@Composable private fun OverrideSchedule(policy: AppPolicy, settings: Settings, pkg: String, save: (Settings) -> Unit) { Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(policy.schedule != null, { enabled -> change(settings, pkg, policy.copy(schedule = if (enabled) WeeklySchedule() else null), save) }); Text(if (policy.schedule == null) "Schedule: inherit global" else "Schedule: override global") }; policy.schedule?.let { Schedule("Per-app active schedule", it) { change(settings, pkg, policy.copy(schedule = it), save) } } }
-@Composable private fun OverrideRedirects(policy: AppPolicy, settings: Settings, pkg: String, save: (Settings) -> Unit) { Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(policy.redirects != null, { enabled -> change(settings, pkg, policy.copy(redirects = if (enabled) emptyList() else null), save) }); Text(if (policy.redirects == null) "Redirects: inherit global" else "Redirects: replace global") }; policy.redirects?.let { Redirects("Per-app redirect alternatives", it, settings.apps.keys) { change(settings, pkg, policy.copy(redirects = it), save) } } }
-@Composable private fun Redirects(title: String, values: List<String>, targets: Set<String>, change: (List<String>) -> Unit) { val apps = remember { discover(LocalContext.current) }.filter { it.packageName !in targets }; Text(title, style = MaterialTheme.typography.titleMedium); Text(if (values.size == 4) "Four alternatives configured." else "Choose exactly four alternatives. Partial selections are inactive.", style = MaterialTheme.typography.bodySmall); apps.forEach { app -> val chosen = app.packageName in values; FilterChip(chosen, { change(if (chosen) values - app.packageName else if (values.size < 4) values + app.packageName else values) }, { Text(if (chosen) "✓ ${app.label}" else app.label) }) } }
-@Composable private fun Schedule(title: String, value: WeeklySchedule?, change: (WeeklySchedule?) -> Unit) { Text(title, style = MaterialTheme.typography.titleMedium); if (value == null) { Text("Always active.", style = MaterialTheme.typography.bodySmall); OutlinedButton({ change(WeeklySchedule()) }) { Text("Set active days") }; return }; Text("One window per day. An end before its start continues overnight.", style = MaterialTheme.typography.bodySmall); val names = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"); names.forEachIndexed { index, name -> val day = index + 1; val window = value.days[day]; Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { Checkbox(window != null, { checked -> change(WeeklySchedule(value.days.toMutableMap().apply { if (checked) put(day, TimeWindow(540, 1020)) else remove(day) })) }); Text(name, Modifier.width(40.dp)); if (window != null) { Minute("Start", window.startMinute) { start -> if (start != window.endMinute) change(WeeklySchedule(value.days + (day to window.copy(startMinute = start)))) }; Minute("End", window.endMinute) { end -> if (end != window.startMinute) change(WeeklySchedule(value.days + (day to window.copy(endMinute = end)))) } } } }; if (value.days.isNotEmpty()) { val source = value.days.values.first(); Column(verticalArrangement = Arrangement.spacedBy(4.dp)) { names.forEachIndexed { index, name -> AssistChip({ change(WeeklySchedule(value.days + ((index + 1) to source))) }, { Text("Copy to $name") }) } } }; OutlinedButton({ change(null) }) { Text("Use always active") } }
-@Composable private fun Minute(title: String, minute: Int, change: (Int) -> Unit) { var text by remember(minute) { mutableStateOf(time(minute)) }; OutlinedTextField(text, { entered -> text = entered; parse(entered)?.let(change) }, { Text(title) }, Modifier.width(112.dp), singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)) }
-private fun time(minute: Int) = "%02d:%02d".format(Locale.US, minute / 60, minute % 60)
-private fun parse(text: String): Int? { val parts = text.split(":"); if (parts.size != 2) return null; return ((parts[0].toIntOrNull() ?: return null) * 60 + (parts[1].toIntOrNull() ?: return null)).takeIf { it in 0..1439 } }
-private fun summary(schedule: WeeklySchedule?) = if (schedule == null) "always active" else if (schedule.days.isEmpty()) "no active days" else "scheduled"
-@OptIn(ExperimentalMaterial3Api::class) @Composable private fun Header(title: String, back: () -> Unit) = CenterAlignedTopAppBar({ Text(title) }, navigationIcon = { if (title != "Speedbreaker") TextButton(back) { Text("Back") } })
-@Composable private fun Page(title: String, content: @Composable ColumnScope.() -> Unit) = Column(Modifier.fillMaxSize()) { Header(title, {}); Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), content = content) }
-private data class LaunchableApp(val packageName: String, val label: String, val icon: Drawable)
-private fun discover(context: Context): List<LaunchableApp> { val pm = context.packageManager; val home = pm.resolveActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName; val input = AndroidSettings.Secure.getString(context.contentResolver, AndroidSettings.Secure.DEFAULT_INPUT_METHOD)?.substringBefore('/'); val inputs = context.getSystemService(InputMethodManager::class.java)?.enabledInputMethodList?.map { it.packageName }.orEmpty(); val dialer = context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage; val denied = setOfNotNull(context.packageName, home, input, dialer) + inputs + setOf("com.android.settings", "com.android.systemui", "com.google.android.permissioncontroller", "com.android.permissioncontroller", "com.android.packageinstaller"); return pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), PackageManager.MATCH_ALL).mapNotNull { r -> val info = r.activityInfo ?: return@mapNotNull null; val pkg = info.packageName; if (pkg in denied || safety(pkg)) null else LaunchableApp(pkg, r.loadLabel(pm).toString(), r.loadIcon(pm)) }.distinctBy { it.packageName }.sortedBy { it.label.lowercase(Locale.getDefault()) } }
-private fun safety(pkg: String) = listOf("systemui", "permissioncontroller", "packageinstaller", "emergency", "dialer", "incall", "telecom", "inputmethod").any { it in pkg.lowercase(Locale.US) }
-private fun label(context: Context, pkg: String) = try { context.packageManager.getApplicationLabel(context.packageManager.getApplicationInfo(pkg, 0)).toString() } catch (_: Exception) { pkg }
-@Composable private fun AppIcon(app: LaunchableApp) { val image = remember(app.packageName) { app.icon.toBitmap(96, 96).asImageBitmap() }; Image(image, app.label, Modifier.size(40.dp)) }
+
+@Composable
+private fun CenterText(text: String) {
+    Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.Center) {
+        Text(text)
+    }
+}
+
+@Composable
+private fun DisclosureScreen(onAccept: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        Spacer(Modifier.height(28.dp))
+        Text("Make the next tap intentional.", style = MaterialTheme.typography.headlineMedium)
+        Text("Speedbreaker adds a brief breathing pause before apps you choose. It observes only the visible selected app, locally on this phone.")
+        Text("During the first eight seconds of a pause, navigation cannot dismiss it. Calls, the dialer, lock screen, Accessibility settings, and a non-interactive phone always break through.")
+        Text("It stores no usage history, reflection answers, analytics, or cloud data. It does not ask for Usage Access or a separate overlay permission.")
+        Button(onClick = onAccept, modifier = Modifier.fillMaxWidth()) {
+            Text("I understand — continue")
+        }
+    }
+}
+
+@Composable
+private fun HomeScreen(
+    settings: Settings,
+    protected: Boolean,
+    runtimeError: String?,
+    onEnableAccessibility: () -> Unit,
+    onOpenBatterySettings: () -> Unit,
+    onApps: () -> Unit,
+    onGlobal: () -> Unit,
+    onApp: (String) -> Unit,
+    onNotifications: () -> Unit,
+) = SettingsPage("Speedbreaker") {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                if (protected) "Protection is active" else "Protection is inactive",
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Text(
+                runtimeError ?: if (protected) {
+                    "Accessibility is connected."
+                } else {
+                    "Enable Accessibility to let Speedbreaker protect selected apps. Settings remain editable while it is off."
+                },
+            )
+            if (!protected) {
+                Button(onClick = onEnableAccessibility) { Text("Enable Accessibility") }
+            }
+        }
+    }
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Samsung battery guidance", style = MaterialTheme.typography.titleMedium)
+            Text("For reliable pauses, allow Speedbreaker to run in the background and avoid putting it to sleep in Samsung battery settings.")
+            OutlinedButton(onClick = onOpenBatterySettings) { Text("Open app settings") }
+        }
+    }
+    if (android.os.Build.VERSION.SDK_INT >= 33) {
+        OutlinedButton(onClick = onNotifications, modifier = Modifier.fillMaxWidth()) {
+            Text("Allow pause notifications (optional)")
+        }
+    }
+    SettingsRow(
+        title = "Selected apps",
+        subtitle = if (settings.apps.isEmpty()) "Next: choose apps after enabling Accessibility." else "${settings.apps.size} selected",
+        onClick = onApps,
+    )
+    SettingsRow(
+        title = "Global defaults",
+        subtitle = "${settings.breathSeconds}-second breath · ${scheduleSummary(settings.schedule)}",
+        onClick = onGlobal,
+    )
+    if (settings.apps.isNotEmpty()) {
+        Text("Per-app settings", style = MaterialTheme.typography.titleMedium)
+        settings.apps.keys.sorted().forEach { packageName ->
+            SettingsRow(
+                title = appLabel(LocalContext.current, packageName),
+                subtitle = packageName,
+                onClick = { onApp(packageName) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsRow(title: String, subtitle: String, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        Text(subtitle, style = MaterialTheme.typography.bodySmall)
+    }
+    Divider()
+}
+
+@Composable
+private fun AppPicker(
+    selected: Set<String>,
+    onBack: () -> Unit,
+    onToggle: (LaunchableApp) -> Unit,
+) {
+    val context = LocalContext.current
+    val apps = remember(context) { discoverApps(context) }
+    var query by remember { mutableStateOf("") }
+    BackHandler(onBack = onBack)
+    Column(Modifier.fillMaxSize().safeDrawingPadding()) {
+        PageHeader("Choose apps", onBack)
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            label = { Text("Search apps") },
+            singleLine = true,
+        )
+        Text(
+            "Nothing is selected by default. System and safety-critical apps are unavailable. Selecting a redirect destination clears that redirect configuration rather than leaving it unsafe.",
+            modifier = Modifier.padding(16.dp),
+            style = MaterialTheme.typography.bodySmall,
+        )
+        val filtered = apps.filter {
+            it.label.contains(query, ignoreCase = true) || it.packageName.contains(query, ignoreCase = true)
+        }
+        LazyColumn(Modifier.fillMaxSize()) {
+            items(filtered, key = { it.packageName }) { app ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { onToggle(app) }.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AppIcon(app)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(app.label)
+                        Text(app.packageName, style = MaterialTheme.typography.bodySmall)
+                    }
+                    Checkbox(
+                        checked = app.packageName in selected,
+                        onCheckedChange = { onToggle(app) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GlobalEditor(
+    settings: Settings,
+    onBack: () -> Unit,
+    onBreathChange: (Int) -> Unit,
+    onScheduleChange: (WeeklySchedule?) -> Unit,
+    onRedirects: () -> Unit,
+) = SettingsPage("Global defaults", onBack) {
+    IntSlider(
+        title = "Breath",
+        current = settings.breathSeconds,
+        range = 8..60,
+        suffix = "seconds",
+        onCommit = onBreathChange,
+    )
+    RedirectSummary(settings.redirects, onRedirects)
+    ScheduleEditor(
+        title = "Active schedule",
+        schedule = settings.schedule,
+        isAppOverride = false,
+        onChange = onScheduleChange,
+    )
+}
+
+@Composable
+private fun AppEditor(
+    packageName: String,
+    settings: Settings,
+    onBack: () -> Unit,
+    onPolicy: (AppPolicy) -> Unit,
+    onRedirects: (List<String>) -> Unit,
+) {
+    val policy = settings.apps[packageName] ?: return
+    SettingsPage(appLabel(LocalContext.current, packageName), onBack) {
+        Text("Continuous-use interval", style = MaterialTheme.typography.titleMedium)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = policy.continuousSeconds != null,
+                onCheckedChange = { enabled ->
+                    onPolicy(policy.copy(continuousSeconds = if (enabled) DEFAULT_INTERVAL_SECONDS else null))
+                },
+            )
+            Text(if (policy.continuousSeconds == null) "Off" else "On")
+        }
+        policy.continuousSeconds?.let { seconds ->
+            IntSlider(
+                title = "Repeat after",
+                current = (seconds / 60).coerceIn(1, 120),
+                range = 1..120,
+                suffix = "minutes",
+                onCommit = { onPolicy(policy.copy(continuousSeconds = it * 60)) },
+            )
+        }
+        ScheduleOverride(policy, onPolicy)
+        RedirectOverride(policy, onRedirects, onPolicy)
+    }
+}
+
+@Composable
+private fun IntSlider(
+    title: String,
+    current: Int,
+    range: IntRange,
+    suffix: String,
+    onCommit: (Int) -> Unit,
+) {
+    var draft by remember(current) { mutableFloatStateOf(current.toFloat()) }
+    Text("$title: ${draft.roundToInt()} $suffix", style = MaterialTheme.typography.titleMedium)
+    Slider(
+        value = draft,
+        onValueChange = { draft = it },
+        onValueChangeFinished = { onCommit(draft.roundToInt().coerceIn(range)) },
+        valueRange = range.first.toFloat()..range.last.toFloat(),
+        steps = (range.last - range.first - 1).coerceAtLeast(0),
+    )
+}
+
+@Composable
+private fun RedirectSummary(redirects: List<String>, onEdit: () -> Unit) {
+    Text("Redirect alternatives", style = MaterialTheme.typography.titleMedium)
+    Text(
+        if (redirects.size == 4) "Four alternatives configured." else "No redirects are active. Configure exactly four alternatives.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    OutlinedButton(onClick = onEdit) { Text("Configure redirects") }
+}
+
+@Composable
+private fun ScheduleOverride(policy: AppPolicy, onPolicy: (AppPolicy) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Checkbox(
+            checked = policy.schedule != null,
+            onCheckedChange = { enabled ->
+                onPolicy(policy.copy(schedule = if (enabled) WeeklySchedule() else null))
+            },
+        )
+        Text(if (policy.schedule == null) "Schedule: inherit global" else "Schedule: override global")
+    }
+    policy.schedule?.let { schedule ->
+        ScheduleEditor(
+            title = "Per-app active schedule",
+            schedule = schedule,
+            isAppOverride = true,
+            onChange = { updated -> onPolicy(policy.copy(schedule = updated ?: allDaySchedule())) },
+        )
+    }
+}
+
+@Composable
+private fun RedirectOverride(
+    policy: AppPolicy,
+    onRedirects: (List<String>) -> Unit,
+    onPolicy: (AppPolicy) -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Checkbox(
+            checked = policy.redirects != null,
+            onCheckedChange = { enabled ->
+                onPolicy(policy.copy(redirects = if (enabled) emptyList() else null))
+            },
+        )
+        Text(if (policy.redirects == null) "Redirects: inherit global" else "Redirects: replace global")
+    }
+    policy.redirects?.let { RedirectSummary(it) { onRedirects(it) } }
+}
+
+@Composable
+private fun ScheduleEditor(
+    title: String,
+    schedule: WeeklySchedule?,
+    isAppOverride: Boolean,
+    onChange: (WeeklySchedule?) -> Unit,
+) {
+    Text(title, style = MaterialTheme.typography.titleMedium)
+    if (schedule == null) {
+        Text("Always active.", style = MaterialTheme.typography.bodySmall)
+        OutlinedButton(onClick = { onChange(WeeklySchedule()) }) { Text("Set active days") }
+        return
+    }
+    Text(
+        "One window per day. An end before its start continues overnight.",
+        style = MaterialTheme.typography.bodySmall,
+    )
+    var copySource by remember(schedule.days) { mutableStateOf<Int?>(null) }
+    weekdays.forEachIndexed { index, name ->
+        val day = index + 1
+        val window = schedule.days[day]
+        DayWindowEditor(
+            name = name,
+            window = window,
+            onEnabledChange = { enabled ->
+                val days = schedule.days.toMutableMap()
+                if (enabled) days[day] = DEFAULT_WINDOW else days.remove(day)
+                onChange(WeeklySchedule(days))
+            },
+            onWindowChange = { updated -> onChange(WeeklySchedule(schedule.days + (day to updated))) },
+            onCopy = { copySource = day },
+        )
+    }
+    copySource?.let { sourceDay ->
+        val source = schedule.days[sourceDay] ?: return@let
+        Text("Copy ${weekdays[sourceDay - 1]} window to:", style = MaterialTheme.typography.bodySmall)
+        weekdays.forEachIndexed { index, name ->
+            val targetDay = index + 1
+            if (targetDay != sourceDay) {
+                AssistChip(
+                    onClick = { onChange(WeeklySchedule(schedule.days + (targetDay to source))) },
+                    label = { Text(name) },
+                )
+            }
+        }
+        TextButton(onClick = { copySource = null }) { Text("Done copying") }
+    }
+    if (isAppOverride) {
+        OutlinedButton(onClick = { onChange(allDaySchedule()) }) {
+            Text("Always active for this app")
+        }
+    } else {
+        OutlinedButton(onClick = { onChange(null) }) { Text("Use always active") }
+    }
+}
+
+@Composable
+private fun DayWindowEditor(
+    name: String,
+    window: TimeWindow?,
+    onEnabledChange: (Boolean) -> Unit,
+    onWindowChange: (TimeWindow) -> Unit,
+    onCopy: () -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = window != null, onCheckedChange = onEnabledChange)
+            Text(name, modifier = Modifier.weight(1f))
+            if (window != null) TextButton(onClick = onCopy) { Text("Copy") }
+        }
+        if (window != null) {
+            TimeField(
+                label = "$name start",
+                minute = window.startMinute,
+                allowEndOfDay = false,
+                otherMinute = window.endMinute,
+                onValidMinute = { start ->
+                    if (start != window.endMinute) onWindowChange(window.copy(startMinute = start))
+                },
+            )
+            TimeField(
+                label = "$name end",
+                minute = window.endMinute,
+                allowEndOfDay = true,
+                otherMinute = window.startMinute,
+                onValidMinute = { end ->
+                    if (end != window.startMinute) onWindowChange(window.copy(endMinute = end))
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun TimeField(
+    label: String,
+    minute: Int,
+    allowEndOfDay: Boolean,
+    otherMinute: Int,
+    onValidMinute: (Int) -> Unit,
+) {
+    var draft by remember(label, minute) { mutableStateOf(formatTime(minute)) }
+    val parsed = parseTime(draft, allowEndOfDay)
+    val invalid = draft.isNotBlank() && (parsed == null || parsed == otherMinute)
+    OutlinedTextField(
+        value = draft,
+        onValueChange = { draft = it },
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text(label) },
+        supportingText = {
+            if (draft.isNotBlank() && parsed == null) {
+                Text("Use HH:MM${if (allowEndOfDay) "; 24:00 allowed" else ""}.")
+            } else if (parsed == otherMinute) {
+                Text("Start and end must differ.")
+            }
+        },
+        isError = invalid,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+    )
+    TextButton(
+        enabled = parsed != null && parsed != minute && parsed != otherMinute,
+        onClick = { parsed?.let(onValidMinute) },
+    ) { Text("Apply $label") }
+}
+
+@Composable
+private fun RedirectPickerDialog(request: RedirectRequest, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val apps = remember(context, request.targetPackages) {
+        discoverApps(context).filter { it.packageName !in request.targetPackages }
+    }
+    var draft by remember(request.title, request.selected) { mutableStateOf(request.selected) }
+    var query by remember(request.title) { mutableStateOf("") }
+    val filtered = apps.filter {
+        it.label.contains(query, ignoreCase = true) || it.packageName.contains(query, ignoreCase = true)
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(request.title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Choose exactly four alternatives. Changes apply only when all four are selected.")
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Search apps") },
+                    singleLine = true,
+                )
+                Column(Modifier.height(280.dp).verticalScroll(rememberScrollState())) {
+                    filtered.forEach { app ->
+                        val chosen = app.packageName in draft
+                        FilterChip(
+                            selected = chosen,
+                            onClick = {
+                                draft = when {
+                                    chosen -> draft - app.packageName
+                                    draft.size < 4 -> draft + app.packageName
+                                    else -> draft
+                                }
+                            },
+                            label = { Text(app.label) },
+                        )
+                    }
+                }
+                Text("${draft.size} of 4 selected", style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = draft.size == 4,
+                onClick = { request.apply(draft); onDismiss() },
+            ) { Text("Apply") }
+        },
+        dismissButton = {
+            Row {
+                TextButton(onClick = { request.apply(emptyList()); onDismiss() }) { Text("Clear") }
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+            }
+        },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PageHeader(title: String, onBack: () -> Unit) {
+    CenterAlignedTopAppBar(
+        title = { Text(title) },
+        navigationIcon = {
+            if (title != "Speedbreaker") TextButton(onClick = onBack) { Text("Back") }
+        },
+    )
+}
+
+@Composable
+private fun SettingsPage(
+    title: String,
+    onBack: () -> Unit = {},
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    BackHandler(enabled = title != "Speedbreaker", onBack = onBack)
+    Column(Modifier.fillMaxSize().safeDrawingPadding()) {
+        PageHeader(title, onBack)
+        Column(
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            content = content,
+        )
+    }
+}
+
+private data class LaunchableApp(
+    val packageName: String,
+    val label: String,
+    val icon: Drawable,
+)
+
+private fun discoverApps(context: Context): List<LaunchableApp> {
+    val packageManager = context.packageManager
+    val home = packageManager.resolveActivity(
+        Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME),
+        PackageManager.MATCH_DEFAULT_ONLY,
+    )?.activityInfo?.packageName
+    val defaultInput = AndroidSettings.Secure.getString(
+        context.contentResolver,
+        AndroidSettings.Secure.DEFAULT_INPUT_METHOD,
+    )?.substringBefore('/')
+    val inputPackages = context.getSystemService(InputMethodManager::class.java)
+        ?.enabledInputMethodList
+        ?.map { it.packageName }
+        .orEmpty()
+    val dialer = context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage
+    val excluded = setOfNotNull(context.packageName, home, defaultInput, dialer) + inputPackages + safetyPackages
+    val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+    return packageManager.queryIntentActivities(launcherIntent, PackageManager.MATCH_ALL)
+        .mapNotNull { resolveInfo ->
+            val activity = resolveInfo.activityInfo ?: return@mapNotNull null
+            val packageName = activity.packageName
+            if (packageName in excluded || looksSafetyCritical(packageName)) return@mapNotNull null
+            LaunchableApp(
+                packageName = packageName,
+                label = resolveInfo.loadLabel(packageManager).toString(),
+                icon = resolveInfo.loadIcon(packageManager),
+            )
+        }
+        .distinctBy { it.packageName }
+        .sortedBy { it.label.lowercase(Locale.getDefault()) }
+}
+
+@Composable
+private fun AppIcon(app: LaunchableApp) {
+    val image = remember(app.packageName) { app.icon.toBitmap(96, 96).asImageBitmap() }
+    Image(image, contentDescription = app.label, modifier = Modifier.size(40.dp))
+}
+
+private fun appLabel(context: Context, packageName: String): String = try {
+    val info = context.packageManager.getApplicationInfo(packageName, 0)
+    context.packageManager.getApplicationLabel(info).toString()
+} catch (_: PackageManager.NameNotFoundException) {
+    packageName
+}
+
+private fun openAppDetails(context: Context) {
+    context.startActivity(
+        Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(
+            Uri.fromParts("package", context.packageName, null),
+        ),
+    )
+}
+
+private fun formatTime(minute: Int): String = "%02d:%02d".format(Locale.US, minute / 60, minute % 60)
+
+private fun parseTime(value: String, allowEndOfDay: Boolean): Int? {
+    val match = TIME_PATTERN.matchEntire(value.trim()) ?: return null
+    val hour = match.groupValues[1].toInt()
+    val minute = match.groupValues[2].toInt()
+    if (minute !in 0..59) return null
+    if (hour in 0..23) return hour * 60 + minute
+    return if (allowEndOfDay && hour == 24 && minute == 0) 1440 else null
+}
+
+private fun allDaySchedule(): WeeklySchedule = WeeklySchedule(
+    (1..7).associateWith { TimeWindow(startMinute = 0, endMinute = 1440) },
+)
+
+private fun scheduleSummary(schedule: WeeklySchedule?): String = when {
+    schedule == null -> "always active"
+    schedule.days.isEmpty() -> "no active days"
+    else -> "scheduled"
+}
+
+private fun looksSafetyCritical(packageName: String): Boolean {
+    val normalized = packageName.lowercase(Locale.US)
+    return safetyMarkers.any { it in normalized }
+}
+
+private const val DEFAULT_INTERVAL_SECONDS = 10 * 60
+private val DEFAULT_WINDOW = TimeWindow(startMinute = 9 * 60, endMinute = 17 * 60)
+private val weekdays = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+private val TIME_PATTERN = Regex("^(\\d{1,2}):(\\d{2})$")
+private val safetyPackages = setOf(
+    "com.android.settings",
+    "com.android.systemui",
+    "com.android.permissioncontroller",
+    "com.google.android.permissioncontroller",
+    "com.android.packageinstaller",
+)
+private val safetyMarkers = listOf(
+    "systemui",
+    "permissioncontroller",
+    "packageinstaller",
+    "emergency",
+    "dialer",
+    "incall",
+    "telecom",
+    "inputmethod",
+)
