@@ -9,7 +9,7 @@ private val LightColors = lightColorScheme()
 private val DarkColors = darkColorScheme()
 
 @Composable
-fun SpeedbreakerTheme(
+internal fun SpeedbreakerTheme(
     darkTheme: Boolean = false,
     content: @Composable () -> Unit,
 ) {

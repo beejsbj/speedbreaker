@@ -80,7 +80,7 @@ import kotlin.math.roundToInt
 import java.util.Locale
 
 @Composable
-fun SpeedbreakerApp() {
+internal fun SpeedbreakerApp() {
     SpeedbreakerTheme {
         val context = LocalContext.current
         val repository = remember(context) { SpeedbreakerRepository.get(context) }
