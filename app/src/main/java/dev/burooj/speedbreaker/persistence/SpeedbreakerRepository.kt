@@ -96,6 +96,25 @@ internal class SpeedbreakerRepository private constructor(context: Context) {
         }
     }
 
+    /** Notification fallback when the Accessibility service is disconnected. */
+    suspend fun endPause(packageName: String, nowEpochMs: Long): Boolean = stateMutex.withLock {
+        if (!_ready.value || _error.value != null) return@withLock false
+        val current = _pauses.value[packageName] ?: return@withLock false
+        if (current.untilEpochMs <= nowEpochMs) return@withLock false
+        val updated = _pauses.value + (packageName to current.copy(untilEpochMs = 0))
+        try {
+            withContext(Dispatchers.IO) {
+                database.stateDao().write(StateRecord(PAUSES_KEY, SettingsJson.encodePauses(updated)))
+            }
+            _pauses.value = updated
+            true
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            _error.value = "Speedbreaker couldn’t end this pause."
+            false
+        }
+    }
+
     companion object {
         private const val SETTINGS_KEY = "settings"
         private const val PAUSES_KEY = "pauses"
