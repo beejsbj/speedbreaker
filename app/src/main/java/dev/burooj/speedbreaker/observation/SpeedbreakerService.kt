@@ -27,6 +27,11 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 internal class SpeedbreakerService : AccessibilityService() {
+    private data class PauseWrite(
+        val base: Map<String, PauseState>,
+        val desired: Map<String, PauseState>,
+    )
+
     private val handler = Handler(Looper.getMainLooper())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var repository: SpeedbreakerRepository
@@ -40,7 +45,7 @@ internal class SpeedbreakerService : AccessibilityService() {
     private var enginePauses: Map<String, PauseState> = emptyMap()
     private var lastRepositoryPauses: Map<String, PauseState> = emptyMap()
     private var pauseWriteRunning = false
-    private var pendingPauseWrite: Map<String, PauseState>? = null
+    private var pendingPauseWrite: PauseWrite? = null
     private val ownPauseWriteSnapshots = mutableListOf<Map<String, PauseState>>()
     private var navigationAwayLatched = false
     private val labelCache = mutableMapOf<String, String>()
@@ -185,9 +190,10 @@ internal class SpeedbreakerService : AccessibilityService() {
     }
 
     private fun apply(update: EngineUpdate, settings: Settings, observation: Observation) {
+        val pauseWriteBase = enginePauses
         enginePauses = update.pauses
-        persistPausesIfChanged(update.pauses)
-        notifications.reconcile(update.pauses, observation.epochMs)
+        persistPausesIfChanged(pauseWriteBase, update.pauses)
+        notifications.reconcile(repository.pauses.value, observation.epochMs)
         update.effects.forEach(systemActions::execute)
         val breaker = update.breaker
         if (breaker == null) {
@@ -197,29 +203,79 @@ internal class SpeedbreakerService : AccessibilityService() {
         }
     }
 
-    private fun persistPausesIfChanged(pauses: Map<String, PauseState>) {
+    private fun persistPausesIfChanged(
+        base: Map<String, PauseState>,
+        desired: Map<String, PauseState>,
+    ) {
         if (
-            pauses == repository.pauses.value ||
-            pauses == pendingPauseWrite ||
-            pauses in ownPauseWriteSnapshots
+            desired == repository.pauses.value ||
+            desired == pendingPauseWrite?.desired ||
+            desired in ownPauseWriteSnapshots
         ) return
-        pendingPauseWrite = pauses
+        pendingPauseWrite = PauseWrite(
+            base = pendingPauseWrite?.base ?: base,
+            desired = desired,
+        )
         if (pauseWriteRunning) return
         pauseWriteRunning = true
         scope.launch {
             while (true) {
                 val next = pendingPauseWrite ?: break
                 pendingPauseWrite = null
-                ownPauseWriteSnapshots += next
-                repository.savePauses(next)
+                val persisted = PausePersistenceCoordinator.withLock {
+                    mergePauseDelta(
+                        base = next.base,
+                        desired = next.desired,
+                        current = repository.pauses.value,
+                    ).also { merged ->
+                        if (merged != repository.pauses.value) {
+                            ownPauseWriteSnapshots += merged
+                            repository.savePauses(merged)
+                        }
+                    }
+                }
                 val error = repository.error.value
                 if (error != null) {
                     pauseWriteRunning = false
                     suspendEnforcement(error)
                     return@launch
                 }
+                if (persisted == repository.pauses.value) {
+                    notifications.reconcile(persisted, System.currentTimeMillis())
+                }
             }
             pauseWriteRunning = false
+        }
+    }
+
+    private fun mergePauseDelta(
+        base: Map<String, PauseState>,
+        desired: Map<String, PauseState>,
+        current: Map<String, PauseState>,
+    ): Map<String, PauseState> = current.toMutableMap().apply {
+        (base.keys + desired.keys).forEach { packageName ->
+            val before = base[packageName]
+            val after = desired[packageName]
+            if (before == after) return@forEach
+            when {
+                after == null -> remove(packageName)
+                before == null -> put(packageName, after)
+                else -> {
+                    val latest = current[packageName]
+                    put(
+                        packageName,
+                        PauseState(
+                            day = if (after.day != before.day) after.day else latest?.day ?: after.day,
+                            used = if (after.used != before.used) after.used else latest?.used ?: after.used,
+                            untilEpochMs = if (after.untilEpochMs != before.untilEpochMs) {
+                                after.untilEpochMs
+                            } else {
+                                latest?.untilEpochMs ?: after.untilEpochMs
+                            },
+                        ),
+                    )
+                }
+            }
         }
     }
 
@@ -303,15 +359,9 @@ internal class SpeedbreakerService : AccessibilityService() {
         private const val PAUSES_PER_DAY = 2
         private var activeService = WeakReference<SpeedbreakerService>(null)
 
-        fun requestEndPause(packageName: String): Boolean {
-            val service = activeService.get() ?: return false
-            if (
-                service.engine == null ||
-                !service.repository.ready.value ||
-                service.repository.error.value != null
-            ) return false
+        fun notifyPauseEnded(packageName: String) {
+            val service = activeService.get() ?: return
             service.handler.post { service.handleEndPause(packageName) }
-            return true
         }
     }
 }

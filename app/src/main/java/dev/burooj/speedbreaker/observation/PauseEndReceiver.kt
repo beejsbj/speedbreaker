@@ -15,8 +15,6 @@ internal class PauseEndReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val packageName = intent.getStringExtra(EXTRA_PACKAGE_NAME)?.takeIf { it.isNotBlank() }
             ?: return
-        if (SpeedbreakerService.requestEndPause(packageName)) return
-
         val pending = goAsync()
         val appContext = context.applicationContext
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
@@ -24,9 +22,12 @@ internal class PauseEndReceiver : BroadcastReceiver() {
                 val repository = SpeedbreakerRepository.get(appContext)
                 val ready = withTimeoutOrNull(8_000L) { repository.ready.first { it } } == true
                 if (!ready || repository.error.value != null) return@launch
-                val ended = repository.endPause(packageName, System.currentTimeMillis())
+                val ended = PausePersistenceCoordinator.withLock {
+                    repository.endPause(packageName, System.currentTimeMillis())
+                }
                 if (ended && repository.error.value == null) {
                     PauseNotifications(appContext).cancel(packageName)
+                    SpeedbreakerService.notifyPauseEnded(packageName)
                 }
             } finally {
                 pending.finish()
