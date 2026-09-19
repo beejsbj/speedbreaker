@@ -259,6 +259,63 @@ class EnforcementEngineTest {
     }
 
     @Test
+    fun `end now preserves another targets accumulated continuous session`() {
+        val now = epoch("2026-09-14T12:00:00Z")
+        val sessionTarget = "session.app"
+        val activePause = PauseState("2026-09-14", used = 1, untilEpochMs = now + 60_000)
+        val apps = mapOf(
+            TARGET to AppPolicy(),
+            sessionTarget to AppPolicy(continuousSeconds = 10),
+        )
+        val settings = settings(apps = apps)
+        val engine = EnforcementEngine(mapOf(TARGET to activePause))
+
+        engine.update(
+            settings,
+            observation(visible = setOf(sessionTarget), epochMs = now),
+        )
+        engine.choose(
+            Choice.Continue,
+            settings,
+            observation(visible = setOf(sessionTarget), epochMs = now + 12_000, elapsedMs = 12_000),
+        )
+        engine.update(
+            settings,
+            observation(visible = setOf(sessionTarget), epochMs = now + 17_000, elapsedMs = 17_000),
+        )
+
+        val ended = engine.endPause(
+            TARGET,
+            settings,
+            observation(visible = apps.keys, epochMs = now + 17_000, elapsedMs = 17_000),
+        )
+        assertEquals(TARGET, ended.breaker?.packageName)
+        assertEquals(0, ended.pauses.getValue(TARGET).untilEpochMs)
+
+        engine.choose(
+            Choice.Leave,
+            settings,
+            observation(visible = apps.keys, epochMs = now + 25_000, elapsedMs = 25_000),
+        )
+        engine.update(
+            settings,
+            observation(visible = setOf(sessionTarget), epochMs = now + 25_000, elapsedMs = 25_000),
+        )
+        assertNull(
+            engine.update(
+                settings,
+                observation(visible = setOf(sessionTarget), epochMs = now + 29_999, elapsedMs = 29_999),
+            ).breaker,
+        )
+        val continuous = engine.update(
+            settings,
+            observation(visible = setOf(sessionTarget), epochMs = now + 30_000, elapsedMs = 30_000),
+        )
+        assertEquals(sessionTarget, continuous.breaker?.packageName)
+        assertEquals(Trigger.CONTINUOUS, continuous.breaker?.trigger)
+    }
+
+    @Test
     fun `pause stays disabled after two tokens and choice is revalidated`() {
         val now = epoch("2026-09-14T12:00:00Z")
         val exhausted = PauseState("2026-09-14", used = 2)
