@@ -55,6 +55,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -93,6 +94,7 @@ internal fun SpeedbreakerApp() {
         var route by remember { mutableStateOf<Route>(Route.Home) }
         var resumeTick by remember { mutableIntStateOf(0) }
         var redirectRequest by remember { mutableStateOf<RedirectRequest?>(null) }
+        var notificationRequestAttempted by rememberSaveable { mutableStateOf(false) }
         val notificationPermission = rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission(),
         ) { }
@@ -107,8 +109,8 @@ internal fun SpeedbreakerApp() {
             onDispose { lifecycle.removeObserver(observer) }
         }
 
-        fun save(updated: Settings) {
-            scope.launch { repository.setSettings(updated) }
+        fun update(transform: SettingsTransform) {
+            scope.launch { repository.updateSettings(transform) }
         }
 
         Surface(
@@ -119,7 +121,7 @@ internal fun SpeedbreakerApp() {
                 repositoryError != null -> RepositoryFailure(repositoryError)
                 !ready -> CenterText("Opening your local settings…")
                 !settings.consentAccepted -> DisclosureScreen {
-                    save(settings.copy(consentAccepted = true))
+                    update { current -> current.copy(consentAccepted = true) }
                 }
                 route == Route.Home -> HomeScreen(
                     settings = settings,
@@ -129,39 +131,48 @@ internal fun SpeedbreakerApp() {
                         context.startActivity(Intent(AndroidSettings.ACTION_ACCESSIBILITY_SETTINGS))
                     },
                     onOpenBatterySettings = { openAppDetails(context) },
+                    onOpenNotificationSettings = { openNotificationSettings(context) },
                     onApps = { route = Route.Apps },
                     onGlobal = { route = Route.Global },
                     onApp = { route = Route.App(it) },
-                    onNotifications = {
+                    onRequestNotifications = {
                         if (android.os.Build.VERSION.SDK_INT >= 33) {
+                            notificationRequestAttempted = true
                             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
                     },
+                    showNotificationRequest = android.os.Build.VERSION.SDK_INT >= 33 &&
+                        !notificationRequestAttempted &&
+                        context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED,
                 )
                 route == Route.Apps -> AppPicker(
                     selected = settings.apps.keys,
                     onBack = { route = Route.Home },
-                    onToggle = { app ->
-                        val updatedApps = settings.apps.toMutableMap()
-                        if (app.packageName in updatedApps) {
-                            updatedApps.remove(app.packageName)
-                        } else {
-                            updatedApps[app.packageName] = AppPolicy()
+                    onSetSelected = { app, selected ->
+                        update { current ->
+                            val updatedApps = current.apps.toMutableMap()
+                            if (selected) {
+                                updatedApps.putIfAbsent(app.packageName, AppPolicy())
+                            } else {
+                                updatedApps.remove(app.packageName)
+                            }
+                            current.copy(apps = updatedApps)
                         }
-                        save(settings.copy(apps = updatedApps))
                     },
                 )
                 route == Route.Global -> GlobalEditor(
                     settings = settings,
                     onBack = { route = Route.Home },
-                    onBreathChange = { save(settings.copy(breathSeconds = it)) },
-                    onScheduleChange = { save(settings.copy(schedule = it)) },
+                    onBreathChange = { breath -> update { current -> current.copy(breathSeconds = breath) } },
+                    onScheduleTransform = { transform ->
+                        update { current -> current.copy(schedule = transform(current.schedule)) }
+                    },
                     onRedirects = {
                         redirectRequest = RedirectRequest(
                             title = "Redirect alternatives",
                             selected = settings.redirects,
                             targetPackages = settings.apps.keys,
-                            apply = { value -> save(settings.copy(redirects = value)) },
+                            transformFor = { value -> { current -> current.copy(redirects = value) } },
                         )
                     },
                 )
@@ -171,22 +182,29 @@ internal fun SpeedbreakerApp() {
                         packageName = packageName,
                         settings = settings,
                         onBack = { route = Route.Home },
-                        onPolicy = { policy ->
-                            save(settings.copy(apps = settings.apps + (packageName to policy)))
+                        onPolicyTransform = { transform ->
+                            update { current ->
+                                val policy = current.apps[packageName]
+                                if (policy == null) current else {
+                                    current.copy(apps = current.apps + (packageName to transform(policy)))
+                                }
+                            }
                         },
                         onRedirects = { current ->
                             redirectRequest = RedirectRequest(
                                 title = "Per-app redirect alternatives",
                                 selected = current,
                                 targetPackages = settings.apps.keys,
-                                apply = { value ->
-                                    val policy = settings.apps[packageName]
-                                    if (policy != null) {
-                                        save(
-                                            settings.copy(
-                                                apps = settings.apps + (packageName to policy.copy(redirects = value)),
-                                            ),
-                                        )
+                                transformFor = { value ->
+                                    { current ->
+                                        val policy = current.apps[packageName]
+                                        if (policy == null) {
+                                            current
+                                        } else {
+                                            current.copy(
+                                                apps = current.apps + (packageName to policy.copy(redirects = value)),
+                                            )
+                                        }
                                     }
                                 },
                             )
@@ -198,6 +216,7 @@ internal fun SpeedbreakerApp() {
         redirectRequest?.let { request ->
             RedirectPickerDialog(
                 request = request,
+                onApply = ::update,
                 onDismiss = { redirectRequest = null },
             )
         }
@@ -215,8 +234,12 @@ private data class RedirectRequest(
     val title: String,
     val selected: List<String>,
     val targetPackages: Set<String>,
-    val apply: (List<String>) -> Unit,
+    val transformFor: (List<String>) -> SettingsTransform,
 )
+
+private typealias SettingsTransform = (Settings) -> Settings
+private typealias PolicyTransform = (AppPolicy) -> AppPolicy
+private typealias ScheduleTransform = (WeeklySchedule?) -> WeeklySchedule?
 
 @Composable
 private fun RepositoryFailure(error: String?) {
@@ -264,7 +287,9 @@ private fun HomeScreen(
     onApps: () -> Unit,
     onGlobal: () -> Unit,
     onApp: (String) -> Unit,
-    onNotifications: () -> Unit,
+    onRequestNotifications: () -> Unit,
+    onOpenNotificationSettings: () -> Unit,
+    showNotificationRequest: Boolean,
 ) = SettingsPage("Speedbreaker") {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -291,9 +316,18 @@ private fun HomeScreen(
             OutlinedButton(onClick = onOpenBatterySettings) { Text("Open app settings") }
         }
     }
-    if (android.os.Build.VERSION.SDK_INT >= 33) {
-        OutlinedButton(onClick = onNotifications, modifier = Modifier.fillMaxWidth()) {
-            Text("Allow pause notifications (optional)")
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Pause notifications", style = MaterialTheme.typography.titleMedium)
+            Text("Notifications make Pause and its End now action usable. Breathing protection still works without them.")
+            if (showNotificationRequest) {
+                OutlinedButton(onClick = onRequestNotifications, modifier = Modifier.fillMaxWidth()) {
+                    Text("Allow notifications")
+                }
+            }
+            OutlinedButton(onClick = onOpenNotificationSettings, modifier = Modifier.fillMaxWidth()) {
+                Text("Open notification settings")
+            }
         }
     }
     SettingsRow(
@@ -334,7 +368,7 @@ private fun SettingsRow(title: String, subtitle: String, onClick: () -> Unit) {
 private fun AppPicker(
     selected: Set<String>,
     onBack: () -> Unit,
-    onToggle: (LaunchableApp) -> Unit,
+    onSetSelected: (LaunchableApp, Boolean) -> Unit,
 ) {
     val context = LocalContext.current
     val apps = remember(context) { discoverApps(context) }
@@ -360,7 +394,9 @@ private fun AppPicker(
         LazyColumn(Modifier.fillMaxSize()) {
             items(filtered, key = { it.packageName }) { app ->
                 Row(
-                    modifier = Modifier.fillMaxWidth().clickable { onToggle(app) }.padding(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                        .clickable { onSetSelected(app, app.packageName !in selected) }
+                        .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     AppIcon(app)
@@ -371,7 +407,7 @@ private fun AppPicker(
                     }
                     Checkbox(
                         checked = app.packageName in selected,
-                        onCheckedChange = { onToggle(app) },
+                        onCheckedChange = { enabled -> onSetSelected(app, enabled) },
                     )
                 }
             }
@@ -384,7 +420,7 @@ private fun GlobalEditor(
     settings: Settings,
     onBack: () -> Unit,
     onBreathChange: (Int) -> Unit,
-    onScheduleChange: (WeeklySchedule?) -> Unit,
+    onScheduleTransform: (ScheduleTransform) -> Unit,
     onRedirects: () -> Unit,
 ) = SettingsPage("Global defaults", onBack) {
     IntSlider(
@@ -399,7 +435,7 @@ private fun GlobalEditor(
         title = "Active schedule",
         schedule = settings.schedule,
         isAppOverride = false,
-        onChange = onScheduleChange,
+        onTransform = onScheduleTransform,
     )
 }
 
@@ -408,7 +444,7 @@ private fun AppEditor(
     packageName: String,
     settings: Settings,
     onBack: () -> Unit,
-    onPolicy: (AppPolicy) -> Unit,
+    onPolicyTransform: (PolicyTransform) -> Unit,
     onRedirects: (List<String>) -> Unit,
 ) {
     val policy = settings.apps[packageName] ?: return
@@ -418,7 +454,9 @@ private fun AppEditor(
             Checkbox(
                 checked = policy.continuousSeconds != null,
                 onCheckedChange = { enabled ->
-                    onPolicy(policy.copy(continuousSeconds = if (enabled) DEFAULT_INTERVAL_SECONDS else null))
+                    onPolicyTransform { current ->
+                        current.copy(continuousSeconds = if (enabled) DEFAULT_INTERVAL_SECONDS else null)
+                    }
                 },
             )
             Text(if (policy.continuousSeconds == null) "Off" else "On")
@@ -429,11 +467,13 @@ private fun AppEditor(
                 current = (seconds / 60).coerceIn(1, 120),
                 range = 1..120,
                 suffix = "minutes",
-                onCommit = { onPolicy(policy.copy(continuousSeconds = it * 60)) },
+                onCommit = { minutes ->
+                    onPolicyTransform { current -> current.copy(continuousSeconds = minutes * 60) }
+                },
             )
         }
-        ScheduleOverride(policy, onPolicy)
-        RedirectOverride(policy, onRedirects, onPolicy)
+        ScheduleOverride(policy, onPolicyTransform)
+        RedirectOverride(policy, onRedirects, onPolicyTransform)
     }
 }
 
@@ -467,12 +507,14 @@ private fun RedirectSummary(redirects: List<String>, onEdit: () -> Unit) {
 }
 
 @Composable
-private fun ScheduleOverride(policy: AppPolicy, onPolicy: (AppPolicy) -> Unit) {
+private fun ScheduleOverride(policy: AppPolicy, onPolicyTransform: (PolicyTransform) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Checkbox(
             checked = policy.schedule != null,
             onCheckedChange = { enabled ->
-                onPolicy(policy.copy(schedule = if (enabled) WeeklySchedule() else null))
+                onPolicyTransform { current ->
+                    current.copy(schedule = if (enabled) WeeklySchedule() else null)
+                }
             },
         )
         Text(if (policy.schedule == null) "Schedule: inherit global" else "Schedule: override global")
@@ -482,7 +524,11 @@ private fun ScheduleOverride(policy: AppPolicy, onPolicy: (AppPolicy) -> Unit) {
             title = "Per-app active schedule",
             schedule = schedule,
             isAppOverride = true,
-            onChange = { updated -> onPolicy(policy.copy(schedule = updated ?: allDaySchedule())) },
+            onTransform = { transform ->
+                onPolicyTransform { current ->
+                    current.copy(schedule = transform(current.schedule) ?: allDaySchedule())
+                }
+            },
         )
     }
 }
@@ -491,13 +537,15 @@ private fun ScheduleOverride(policy: AppPolicy, onPolicy: (AppPolicy) -> Unit) {
 private fun RedirectOverride(
     policy: AppPolicy,
     onRedirects: (List<String>) -> Unit,
-    onPolicy: (AppPolicy) -> Unit,
+    onPolicyTransform: (PolicyTransform) -> Unit,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Checkbox(
             checked = policy.redirects != null,
             onCheckedChange = { enabled ->
-                onPolicy(policy.copy(redirects = if (enabled) emptyList() else null))
+                onPolicyTransform { current ->
+                    current.copy(redirects = if (enabled) emptyList() else null)
+                }
             },
         )
         Text(if (policy.redirects == null) "Redirects: inherit global" else "Redirects: replace global")
@@ -510,12 +558,12 @@ private fun ScheduleEditor(
     title: String,
     schedule: WeeklySchedule?,
     isAppOverride: Boolean,
-    onChange: (WeeklySchedule?) -> Unit,
+    onTransform: (ScheduleTransform) -> Unit,
 ) {
     Text(title, style = MaterialTheme.typography.titleMedium)
     if (schedule == null) {
         Text("Always active.", style = MaterialTheme.typography.bodySmall)
-        OutlinedButton(onClick = { onChange(WeeklySchedule()) }) { Text("Set active days") }
+        OutlinedButton(onClick = { onTransform { WeeklySchedule() } }) { Text("Set active days") }
         return
     }
     Text(
@@ -530,22 +578,48 @@ private fun ScheduleEditor(
             name = name,
             window = window,
             onEnabledChange = { enabled ->
-                val days = schedule.days.toMutableMap()
-                if (enabled) days[day] = DEFAULT_WINDOW else days.remove(day)
-                onChange(WeeklySchedule(days))
+                onTransform { current ->
+                    val days = (current ?: WeeklySchedule()).days.toMutableMap()
+                    if (enabled) days.putIfAbsent(day, DEFAULT_WINDOW) else days.remove(day)
+                    WeeklySchedule(days)
+                }
             },
-            onWindowChange = { updated -> onChange(WeeklySchedule(schedule.days + (day to updated))) },
+            onStartChange = { start ->
+                onTransform { current ->
+                    val existing = current?.days?.get(day)
+                    when {
+                        existing == null -> current
+                        start == existing.endMinute -> current
+                        else -> WeeklySchedule(current.days + (day to existing.copy(startMinute = start)))
+                    }
+                }
+            },
+            onEndChange = { end ->
+                onTransform { current ->
+                    val existing = current?.days?.get(day)
+                    when {
+                        existing == null -> current
+                        end == existing.startMinute -> current
+                        else -> WeeklySchedule(current.days + (day to existing.copy(endMinute = end)))
+                    }
+                }
+            },
             onCopy = { copySource = day },
         )
     }
     copySource?.let { sourceDay ->
-        val source = schedule.days[sourceDay] ?: return@let
+        if (schedule.days[sourceDay] == null) return@let
         Text("Copy ${weekdays[sourceDay - 1]} window to:", style = MaterialTheme.typography.bodySmall)
         weekdays.forEachIndexed { index, name ->
             val targetDay = index + 1
             if (targetDay != sourceDay) {
                 AssistChip(
-                    onClick = { onChange(WeeklySchedule(schedule.days + (targetDay to source))) },
+                    onClick = {
+                        onTransform { current ->
+                            val currentSource = current?.days?.get(sourceDay)
+                            if (currentSource == null) current else WeeklySchedule(current.days + (targetDay to currentSource))
+                        }
+                    },
                     label = { Text(name) },
                 )
             }
@@ -553,11 +627,11 @@ private fun ScheduleEditor(
         TextButton(onClick = { copySource = null }) { Text("Done copying") }
     }
     if (isAppOverride) {
-        OutlinedButton(onClick = { onChange(allDaySchedule()) }) {
+        OutlinedButton(onClick = { onTransform { allDaySchedule() } }) {
             Text("Always active for this app")
         }
     } else {
-        OutlinedButton(onClick = { onChange(null) }) { Text("Use always active") }
+        OutlinedButton(onClick = { onTransform { null } }) { Text("Use always active") }
     }
 }
 
@@ -566,7 +640,8 @@ private fun DayWindowEditor(
     name: String,
     window: TimeWindow?,
     onEnabledChange: (Boolean) -> Unit,
-    onWindowChange: (TimeWindow) -> Unit,
+    onStartChange: (Int) -> Unit,
+    onEndChange: (Int) -> Unit,
     onCopy: () -> Unit,
 ) {
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -581,18 +656,14 @@ private fun DayWindowEditor(
                 minute = window.startMinute,
                 allowEndOfDay = false,
                 otherMinute = window.endMinute,
-                onValidMinute = { start ->
-                    if (start != window.endMinute) onWindowChange(window.copy(startMinute = start))
-                },
+                onValidMinute = onStartChange,
             )
             TimeField(
                 label = "$name end",
                 minute = window.endMinute,
                 allowEndOfDay = true,
                 otherMinute = window.startMinute,
-                onValidMinute = { end ->
-                    if (end != window.startMinute) onWindowChange(window.copy(endMinute = end))
-                },
+                onValidMinute = onEndChange,
             )
         }
     }
@@ -632,7 +703,11 @@ private fun TimeField(
 }
 
 @Composable
-private fun RedirectPickerDialog(request: RedirectRequest, onDismiss: () -> Unit) {
+private fun RedirectPickerDialog(
+    request: RedirectRequest,
+    onApply: (SettingsTransform) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val context = LocalContext.current
     val apps = remember(context, request.targetPackages) {
         discoverApps(context).filter { it.packageName !in request.targetPackages }
@@ -677,12 +752,14 @@ private fun RedirectPickerDialog(request: RedirectRequest, onDismiss: () -> Unit
         confirmButton = {
             Button(
                 enabled = draft.size == 4,
-                onClick = { request.apply(draft); onDismiss() },
+                onClick = { onApply(request.transformFor(draft)); onDismiss() },
             ) { Text("Apply") }
         },
         dismissButton = {
             Row {
-                TextButton(onClick = { request.apply(emptyList()); onDismiss() }) { Text("Clear") }
+                TextButton(onClick = { onApply(request.transformFor(emptyList())); onDismiss() }) {
+                    Text("Clear")
+                }
                 TextButton(onClick = onDismiss) { Text("Cancel") }
             }
         },
@@ -773,6 +850,13 @@ private fun openAppDetails(context: Context) {
         Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(
             Uri.fromParts("package", context.packageName, null),
         ),
+    )
+}
+
+private fun openNotificationSettings(context: Context) {
+    context.startActivity(
+        Intent(AndroidSettings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(AndroidSettings.EXTRA_APP_PACKAGE, context.packageName),
     )
 }
 
