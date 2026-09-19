@@ -133,7 +133,6 @@ internal class SpeedbreakerService : AccessibilityService() {
             enginePauses = storedPauses
             lastRepositoryPauses = storedPauses
         } else if (storedPauses != lastRepositoryPauses) {
-            val previousStoredPauses = lastRepositoryPauses
             lastRepositoryPauses = storedPauses
             val acknowledgementIndex = ownPauseWriteSnapshots.indexOf(storedPauses)
             val ownAcknowledgement = acknowledgementIndex >= 0
@@ -142,7 +141,6 @@ internal class SpeedbreakerService : AccessibilityService() {
             }
             val appliedExpectedEnd = if (!ownAcknowledgement) {
                 applyExpectedPauseEnds(
-                    previous = previousStoredPauses,
                     current = storedPauses,
                     settings = settings,
                     observation = currentObservation,
@@ -203,7 +201,6 @@ internal class SpeedbreakerService : AccessibilityService() {
     }
 
     private fun applyExpectedPauseEnds(
-        previous: Map<String, PauseState>,
         current: Map<String, PauseState>,
         settings: Settings,
         observation: Observation,
@@ -211,7 +208,10 @@ internal class SpeedbreakerService : AccessibilityService() {
         val currentEngine = engine ?: return false
         val endedPackages = expectedPauseEnds
             .filter { packageName ->
-                val before = previous[packageName]
+                // The repository may coalesce a newly persisted grant and its End now
+                // transaction before the service observes either snapshot. The engine's
+                // pause generation is the authoritative pre-End state in that case.
+                val before = enginePauses[packageName]
                 val after = current[packageName]
                 before != null &&
                     after != null &&
