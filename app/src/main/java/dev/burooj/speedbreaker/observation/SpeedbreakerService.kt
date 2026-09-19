@@ -140,7 +140,17 @@ internal class SpeedbreakerService : AccessibilityService() {
         }
 
         val observation = observation(navigationAway, forceSafetyYield)
-        val update = engine?.update(settings, observation) ?: return null
+        val currentEngine = engine ?: return null
+        var update = currentEngine.update(settings, observation)
+        if (!notifications.isAvailable()) {
+            update.pauses
+                .filterValues { it.untilEpochMs > observation.epochMs }
+                .keys
+                .sorted()
+                .forEach { packageName ->
+                    update = currentEngine.endPause(packageName, settings, observation)
+                }
+        }
         apply(update, settings, observation)
         if (update.breaker == null) navigationAwayLatched = false
         return update
@@ -152,6 +162,7 @@ internal class SpeedbreakerService : AccessibilityService() {
             suspendEnforcement(repository.error.value)
             return
         }
+        if (choice == Choice.Pause && !notifications.isAvailable()) return
         val settings = safetyPolicy.filter(repository.settings.value)
         val observation = observation(navigationAway = false, forceSafetyYield = false)
         apply(currentEngine.choose(choice, settings, observation), settings, observation)
@@ -233,6 +244,7 @@ internal class SpeedbreakerService : AccessibilityService() {
             nowElapsedMs = observation.elapsedMs,
             pauseTokensLeft = (PAUSES_PER_DAY - used).coerceIn(0, PAUSES_PER_DAY),
             pauseResetLabel = "resets tomorrow",
+            pauseAvailable = notifications.isAvailable(),
             redirects = redirectPackages.map { packageName ->
                 RedirectDestination(packageName, appLabel(packageName))
             },

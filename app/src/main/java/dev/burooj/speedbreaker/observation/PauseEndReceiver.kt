@@ -24,12 +24,8 @@ internal class PauseEndReceiver : BroadcastReceiver() {
                 val repository = SpeedbreakerRepository.get(appContext)
                 val ready = withTimeoutOrNull(8_000L) { repository.ready.first { it } } == true
                 if (!ready || repository.error.value != null) return@launch
-                val current = repository.pauses.value[packageName] ?: return@launch
-                if (current.untilEpochMs <= System.currentTimeMillis()) return@launch
-                repository.savePauses(
-                    repository.pauses.value + (packageName to current.copy(untilEpochMs = 0L)),
-                )
-                if (repository.error.value == null) {
+                val ended = repository.endPause(packageName, System.currentTimeMillis())
+                if (ended && repository.error.value == null) {
                     PauseNotifications(appContext).cancel(packageName)
                 }
             } finally {

@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import dev.burooj.speedbreaker.R
 import dev.burooj.speedbreaker.model.PauseState
@@ -42,6 +43,18 @@ internal class PauseNotifications(context: Context) {
         }
     }
 
+    fun isAvailable(): Boolean {
+        if (
+            android.os.Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(appContext, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) return false
+        if (!NotificationManagerCompat.from(appContext).areNotificationsEnabled()) return false
+        val notificationManager = manager ?: return false
+        val channel = notificationManager.getNotificationChannel(CHANNEL_ID) ?: return false
+        return channel.importance != NotificationManager.IMPORTANCE_NONE
+    }
+
     fun cancel(packageName: String) {
         manager?.cancel(notificationId(packageName))
         shown.remove(packageName)
@@ -52,13 +65,7 @@ internal class PauseNotifications(context: Context) {
     }
 
     private fun show(packageName: String, pause: PauseState, nowEpochMs: Long): Boolean {
-        if (
-            android.os.Build.VERSION.SDK_INT >= 33 &&
-            ContextCompat.checkSelfPermission(appContext, Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            return false
-        }
+        if (!isAvailable()) return false
         val label = runCatching {
             val info = appContext.packageManager.getApplicationInfo(packageName, 0)
             appContext.packageManager.getApplicationLabel(info).toString()

@@ -64,6 +64,7 @@ internal fun BreakerOverlay(
     nowElapsedMs: Long,
     pauseTokensLeft: Int,
     pauseResetLabel: String,
+    pauseAvailable: Boolean,
     redirects: List<RedirectDestination>,
     motionEnabled: Boolean,
     onChoice: (Choice) -> Unit,
@@ -112,6 +113,7 @@ internal fun BreakerOverlay(
                         continueEnabled = continueEnabled,
                         pauseTokensLeft = pauseTokensLeft,
                         pauseResetLabel = pauseResetLabel,
+                        pauseAvailable = pauseAvailable,
                         redirects = redirects.takeIf { it.size == 4 }.orEmpty(),
                         ringSize = ringSize,
                         compact = compact,
@@ -166,6 +168,7 @@ private fun ChoiceStage(
     continueEnabled: Boolean,
     pauseTokensLeft: Int,
     pauseResetLabel: String,
+    pauseAvailable: Boolean,
     redirects: List<RedirectDestination>,
     ringSize: androidx.compose.ui.unit.Dp,
     compact: Boolean,
@@ -177,14 +180,16 @@ private fun ChoiceStage(
     Box(modifier.fillMaxSize()) {
         TextButton(
             onClick = { onChoice(Choice.Pause) },
-            enabled = pauseTokensLeft > 0,
+            enabled = pauseTokensLeft > 0 && pauseAvailable,
             modifier = Modifier.align(Alignment.TopEnd),
         ) {
             Text(
-                text = if (pauseTokensLeft > 0) {
-                    "Pause 15m · $pauseTokensLeft left"
-                } else {
+                text = if (pauseTokensLeft <= 0) {
                     "Pause · $pauseResetLabel"
+                } else if (!pauseAvailable) {
+                    "Enable notifications for Pause"
+                } else {
+                    "Pause 15m · $pauseTokensLeft left"
                 },
                 maxLines = 2,
                 textAlign = TextAlign.End,

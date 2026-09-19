@@ -7,4 +7,5 @@
     <string name="pause_notification_title">%1$s is paused</string>
     <string name="pause_notification_until">Speedbreaker resumes at %1$s</string>
     <string name="pause_notification_end_now">End now</string>
+    <string name="redirect_unavailable">That app is unavailable</string>
 </resources>

@@ -31,6 +31,7 @@ internal data class OverlayState(
     val nowElapsedMs: Long,
     val pauseTokensLeft: Int,
     val pauseResetLabel: String,
+    val pauseAvailable: Boolean,
     val redirects: List<RedirectDestination>,
 )
 
@@ -110,6 +111,7 @@ internal class AccessibilityOverlayHost(
                     nowElapsedMs = current.nowElapsedMs,
                     pauseTokensLeft = current.pauseTokensLeft,
                     pauseResetLabel = current.pauseResetLabel,
+                    pauseAvailable = current.pauseAvailable,
                     redirects = current.redirects,
                     motionEnabled = ValueAnimator.areAnimatorsEnabled(),
                     onChoice = onChoice,
