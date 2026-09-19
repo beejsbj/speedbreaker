@@ -18,7 +18,7 @@ internal data class AppPolicy(
 /** ISO weekday (Monday=1), one local-time window per selected day. Null means always. */
 internal data class WeeklySchedule(val days: Map<Int, TimeWindow> = emptyMap())
 
-/** End earlier than start crosses midnight; equal endpoints are invalid. */
+/** Start 0..1439; end 0..1440 (24:00). End before start crosses midnight; equal is invalid. */
 internal data class TimeWindow(val startMinute: Int, val endMinute: Int)
 
 /** No pause history is retained. An active pause may extend beyond its token day. */

@@ -12,7 +12,10 @@ One `:app` Gradle module, package `dev.burooj.speedbreaker`.
 `model/Settings.kt` contains shared immutable preferences. `Settings.apps` keys
 are selected target package names. Null app schedule inherits global schedule;
 null global schedule means always active. Null app redirects inherits global;
-configured redirect lists have exactly four distinct non-target packages.
+configured redirect lists have exactly four distinct non-target packages. Schedule
+startMinute is 0..1439 and endMinute is 0..1440; 1440 means 24:00. An explicit
+per-app always-active override uses every weekday with TimeWindow(0, 1440), while
+null per-app schedule continues to mean inherit global.
 
 `persistence.SpeedbreakerRepository.get(context)` is a process singleton:
 
