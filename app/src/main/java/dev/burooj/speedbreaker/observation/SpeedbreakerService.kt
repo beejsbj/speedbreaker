@@ -47,6 +47,7 @@ internal class SpeedbreakerService : AccessibilityService() {
     private var pauseWriteRunning = false
     private var pendingPauseWrite: PauseWrite? = null
     private val ownPauseWriteSnapshots = mutableListOf<Map<String, PauseState>>()
+    private val expectedPauseEnds = mutableSetOf<String>()
     private var navigationAwayLatched = false
     private val labelCache = mutableMapOf<String, String>()
 
@@ -125,38 +126,49 @@ internal class SpeedbreakerService : AccessibilityService() {
             return null
         }
 
+        val currentObservation = observation(navigationAway, forceSafetyYield)
         val storedPauses = repository.pauses.value
         if (engine == null) {
             engine = EnforcementEngine(storedPauses)
             enginePauses = storedPauses
             lastRepositoryPauses = storedPauses
         } else if (storedPauses != lastRepositoryPauses) {
+            val previousStoredPauses = lastRepositoryPauses
             lastRepositoryPauses = storedPauses
             val acknowledgementIndex = ownPauseWriteSnapshots.indexOf(storedPauses)
             val ownAcknowledgement = acknowledgementIndex >= 0
             if (ownAcknowledgement) {
                 repeat(acknowledgementIndex + 1) { ownPauseWriteSnapshots.removeAt(0) }
             }
-            if (!ownAcknowledgement && storedPauses != enginePauses) {
+            val appliedExpectedEnd = if (!ownAcknowledgement) {
+                applyExpectedPauseEnds(
+                    previous = previousStoredPauses,
+                    current = storedPauses,
+                    settings = settings,
+                    observation = currentObservation,
+                )
+            } else {
+                false
+            }
+            if (!ownAcknowledgement && !appliedExpectedEnd && storedPauses != enginePauses) {
                 engine = EnforcementEngine(storedPauses)
                 enginePauses = storedPauses
                 overlay.dismiss()
             }
         }
 
-        val observation = observation(navigationAway, forceSafetyYield)
         val currentEngine = engine ?: return null
-        var update = currentEngine.update(settings, observation)
+        var update = currentEngine.update(settings, currentObservation)
         if (!notifications.isAvailable()) {
             update.pauses
-                .filterValues { it.untilEpochMs > observation.epochMs }
+                .filterValues { it.untilEpochMs > currentObservation.epochMs }
                 .keys
                 .sorted()
                 .forEach { packageName ->
-                    update = currentEngine.endPause(packageName, settings, observation)
+                    update = currentEngine.endPause(packageName, settings, currentObservation)
                 }
         }
-        apply(update, settings, observation)
+        apply(update, settings, currentObservation)
         if (update.breaker == null) navigationAwayLatched = false
         return update
     }
@@ -182,11 +194,40 @@ internal class SpeedbreakerService : AccessibilityService() {
     }
 
     private fun handleEndPause(packageName: String) {
+        expectedPauseEnds -= packageName
         val currentEngine = engine ?: return
         if (!repository.ready.value || repository.error.value != null) return
         val settings = safetyPolicy.filter(repository.settings.value)
         val observation = observation(navigationAway = false, forceSafetyYield = false)
         apply(currentEngine.endPause(packageName, settings, observation), settings, observation)
+    }
+
+    private fun applyExpectedPauseEnds(
+        previous: Map<String, PauseState>,
+        current: Map<String, PauseState>,
+        settings: Settings,
+        observation: Observation,
+    ): Boolean {
+        val currentEngine = engine ?: return false
+        val endedPackages = expectedPauseEnds
+            .filter { packageName ->
+                val before = previous[packageName]
+                val after = current[packageName]
+                before != null &&
+                    after != null &&
+                    before.day == after.day &&
+                    before.used == after.used &&
+                    before.untilEpochMs > 0L &&
+                    after.untilEpochMs == 0L
+            }
+            .sorted()
+        if (endedPackages.isEmpty()) return false
+        endedPackages.forEach { packageName ->
+            val update = currentEngine.endPause(packageName, settings, observation)
+            enginePauses = update.pauses
+            expectedPauseEnds -= packageName
+        }
+        return true
     }
 
     private fun apply(update: EngineUpdate, settings: Settings, observation: Observation) {
@@ -336,6 +377,7 @@ internal class SpeedbreakerService : AccessibilityService() {
         enginePauses = emptyMap()
         pendingPauseWrite = null
         ownPauseWriteSnapshots.clear()
+        expectedPauseEnds.clear()
         navigationAwayLatched = false
         overlay.dismiss()
         repository.pauses.value.keys.forEach(notifications::cancel)
@@ -348,6 +390,7 @@ internal class SpeedbreakerService : AccessibilityService() {
         if (::overlay.isInitialized) overlay.dismiss()
         engine = null
         enginePauses = emptyMap()
+        expectedPauseEnds.clear()
         navigationAwayLatched = false
         if (activeService.get() === this) activeService.clear()
         ServiceStatus.setConnected(false)
@@ -362,6 +405,15 @@ internal class SpeedbreakerService : AccessibilityService() {
         fun notifyPauseEnded(packageName: String) {
             val service = activeService.get() ?: return
             service.handler.post { service.handleEndPause(packageName) }
+        }
+
+        fun expectPauseEnd(packageName: String) {
+            activeService.get()?.expectedPauseEnds?.add(packageName)
+        }
+
+        fun cancelExpectedPauseEnd(packageName: String) {
+            val service = activeService.get() ?: return
+            service.handler.post { service.expectedPauseEnds -= packageName }
         }
     }
 }
