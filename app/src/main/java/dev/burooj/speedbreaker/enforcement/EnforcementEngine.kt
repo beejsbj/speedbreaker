@@ -334,7 +334,9 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
         }
 
         rememberActivity(reconciliation.activeNow)
-        if (breaker != null) return
+        // A navigation event must yield the surface before another queued
+        // split-screen target can be presented from the same stale window set.
+        if (breaker != null || observation.navigationAway) return
 
         val next = pendingTriggers.entries
             .sortedWith(compareBy<Map.Entry<String, Trigger>> { it.value != Trigger.OPENING }.thenBy { it.key })

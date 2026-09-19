@@ -511,6 +511,31 @@ class EnforcementEngineTest {
         )
     }
 
+    @Test
+    fun `navigation yield does not open another visible target in the same update`() {
+        val apps = mapOf("z.app" to AppPolicy(), "a.app" to AppPolicy())
+        val settings = settings(breathSeconds = 8, apps = apps)
+        val engine = EnforcementEngine()
+        engine.update(settings, observation(visible = apps.keys))
+
+        assertNull(
+            engine.update(
+                settings,
+                observation(
+                    visible = apps.keys,
+                    navigationAway = true,
+                    elapsedMs = 8_000,
+                ),
+            ).breaker,
+        )
+        assertNull(
+            engine.update(
+                settings,
+                observation(visible = emptySet(), elapsedMs = 8_001),
+            ).breaker,
+        )
+    }
+
     private fun continuedEngine(settings: Settings, continuedAtMs: Long): EnforcementEngine =
         EnforcementEngine().also { engine ->
             engine.update(settings, observation(elapsedMs = 0))
