@@ -263,8 +263,8 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
             }
             session.continuousEnabled = continuousEnabled
 
-            val usable = activeNow[packageName] == true && !overlayShowing
-            if (usable) {
+            val activelyVisible = activeNow[packageName] == true
+            if (activelyVisible) {
                 val absence = session.absentSinceElapsedMs?.let {
                     nonNegativeDelta(observation.elapsedMs, it)
                 }
@@ -272,7 +272,7 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
                     sessions.remove(packageName)
                     continue
                 }
-                if (session.wasActivelyVisible) {
+                if (session.wasActivelyVisible && !overlayShowing) {
                     session.activeMs = safeAdd(
                         session.activeMs,
                         nonNegativeDelta(observation.elapsedMs, session.lastElapsedMs),

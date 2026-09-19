@@ -569,6 +569,72 @@ class EnforcementEngineTest {
     }
 
     @Test
+    fun `visible target keeps its accumulated session through another targets long overlay`() {
+        val other = "other.app"
+        val apps = mapOf(TARGET to AppPolicy(), other to AppPolicy(continuousSeconds = 10))
+        val settings = settings(breathSeconds = 8, apps = apps)
+        val engine = EnforcementEngine()
+
+        engine.update(settings, observation(visible = setOf(other), elapsedMs = 0))
+        engine.choose(
+            Choice.Continue,
+            settings,
+            observation(visible = setOf(other), elapsedMs = 8_000),
+        )
+        engine.update(settings, observation(visible = setOf(other), elapsedMs = 13_000))
+        assertEquals(
+            TARGET,
+            engine.update(settings, observation(visible = apps.keys, elapsedMs = 13_000)).breaker?.packageName,
+        )
+
+        engine.update(settings, observation(visible = apps.keys, elapsedMs = 80_000))
+        engine.choose(
+            Choice.Continue,
+            settings,
+            observation(visible = apps.keys, elapsedMs = 80_000),
+        )
+        assertNull(engine.update(settings, observation(visible = apps.keys, elapsedMs = 84_999)).breaker)
+        val continuous = engine.update(
+            settings,
+            observation(visible = apps.keys, elapsedMs = 85_000),
+        )
+        assertEquals(other, continuous.breaker?.packageName)
+        assertEquals(Trigger.CONTINUOUS, continuous.breaker?.trigger)
+    }
+
+    @Test
+    fun `actual long absence during another targets overlay creates a fresh opening`() {
+        val other = "other.app"
+        val apps = mapOf(TARGET to AppPolicy(), other to AppPolicy(continuousSeconds = 10))
+        val settings = settings(breathSeconds = 8, apps = apps)
+        val engine = EnforcementEngine()
+
+        engine.update(settings, observation(visible = setOf(other), elapsedMs = 0))
+        engine.choose(
+            Choice.Continue,
+            settings,
+            observation(visible = setOf(other), elapsedMs = 8_000),
+        )
+        engine.update(settings, observation(visible = setOf(other), elapsedMs = 13_000))
+        engine.update(settings, observation(visible = apps.keys, elapsedMs = 13_000))
+        engine.update(settings, observation(visible = setOf(TARGET), elapsedMs = 14_000))
+        engine.update(settings, observation(visible = setOf(TARGET), elapsedMs = 74_001))
+        engine.update(settings, observation(visible = apps.keys, elapsedMs = 75_000))
+        engine.choose(
+            Choice.Continue,
+            settings,
+            observation(visible = apps.keys, elapsedMs = 75_000),
+        )
+
+        val reopened = engine.update(
+            settings,
+            observation(visible = apps.keys, elapsedMs = 75_001),
+        )
+        assertEquals(other, reopened.breaker?.packageName)
+        assertEquals(Trigger.OPENING, reopened.breaker?.trigger)
+    }
+
+    @Test
     fun `navigation yield does not open another visible target in the same update`() {
         val apps = mapOf("z.app" to AppPolicy(), "a.app" to AppPolicy())
         val settings = settings(breathSeconds = 8, apps = apps)
