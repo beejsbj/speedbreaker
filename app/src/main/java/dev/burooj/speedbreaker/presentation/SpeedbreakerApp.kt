@@ -130,7 +130,7 @@ internal fun SpeedbreakerApp() {
                     onEnableAccessibility = {
                         context.startActivity(Intent(AndroidSettings.ACTION_ACCESSIBILITY_SETTINGS))
                     },
-                    onOpenBatterySettings = { openAppDetails(context) },
+                    onOpenAppSettings = { openAppDetails(context) },
                     onOpenNotificationSettings = { openNotificationSettings(context) },
                     onApps = { route = Route.Apps },
                     onGlobal = { route = Route.Global },
@@ -283,7 +283,7 @@ private fun HomeScreen(
     protected: Boolean,
     runtimeError: String?,
     onEnableAccessibility: () -> Unit,
-    onOpenBatterySettings: () -> Unit,
+    onOpenAppSettings: () -> Unit,
     onApps: () -> Unit,
     onGlobal: () -> Unit,
     onApp: (String) -> Unit,
@@ -306,6 +306,8 @@ private fun HomeScreen(
             )
             if (!protected) {
                 Button(onClick = onEnableAccessibility) { Text("Enable Accessibility") }
+                Text("If Android says access is restricted, open Speedbreaker’s app info, choose More options → Allow restricted settings, and verify your identity. Then return to Accessibility to enable Speedbreaker attention pauses.")
+                OutlinedButton(onClick = onOpenAppSettings) { Text("Open Speedbreaker app info") }
             }
         }
     }
@@ -313,7 +315,7 @@ private fun HomeScreen(
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Samsung battery guidance", style = MaterialTheme.typography.titleMedium)
             Text("For reliable pauses, allow Speedbreaker to run in the background and avoid putting it to sleep in Samsung battery settings.")
-            OutlinedButton(onClick = onOpenBatterySettings) { Text("Open app settings") }
+            OutlinedButton(onClick = onOpenAppSettings) { Text("Open app settings") }
         }
     }
     Card(Modifier.fillMaxWidth()) {

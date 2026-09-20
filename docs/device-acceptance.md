@@ -12,6 +12,40 @@ Keep the Accessibility settings route available. Begin with no selected apps;
 enable consent and Accessibility through the real onboarding flow, then select
 the test target. Do not place an emergency call.
 
+### Sideloaded installation on Samsung
+
+Android may show **Controlled by Restricted Setting** for the newly installed
+Accessibility service. Open **Settings → Apps → Speedbreaker → More options →
+Allow restricted settings**, complete the phone's identity check, then return to
+**Accessibility → Installed apps → Speedbreaker attention pauses** to enable it.
+This is a per-app approval; do not disable Play Protect or broader device
+protections. The identity check must be completed by the phone owner.
+
+### Independent test resets and navigation evidence
+
+Before each independent opening/navigation case, go Home, open Speedbreaker,
+turn Calculator off in Selected apps, wait until its checkbox clears and at
+least one second passes, turn it back on, wait until it is visibly selected,
+then go Home before launching Calculator. A quick Home/return after Continue
+preserves the session for up to 60 seconds and is not a fresh opening test.
+Removing the target also resets its pause state, so do not use this reset
+between the first, second, and exhausted-token checks.
+
+Check Home and Recents at approximately three seconds and again in separate
+runs at nine seconds with the default 12-second breath. An early navigation
+request must leave the overlay in place until eight seconds, then release it;
+a request after eight seconds must release immediately. Check Back with an
+actual edge gesture or navigation button. MCP's global Back action can exercise
+underlying navigation without the overlay's key listener and does not prove
+the user's Back path. A consumed early Back may require a second Back after
+eight seconds.
+
+For End now, first wait until the ongoing pause notification appears: that
+confirms the pause grant was persisted. Test End now with Calculator visible
+under the notification shade and separately while Calculator is absent.
+The visible case must intervene on return from the shade without relaunching
+Calculator; the absent case must wait until its next opening.
+
 | Scenario | Required observation |
 | --- | --- |
 | Initial setup | Clear consent, no preselected targets, searchable eligible apps; system safety apps absent. |
