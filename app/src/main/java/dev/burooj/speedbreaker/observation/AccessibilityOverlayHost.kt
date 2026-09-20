@@ -58,6 +58,8 @@ internal class AccessibilityOverlayHost(
     private var choicesHapticSent = false
     private var breakerIdentity: Pair<String, Long>? = null
     private val touchDiagnostic = TouchDiagnostic(service) // DEBUG-SB-TOUCH
+    // DEBUG-SB-OHO: bounded Calculator experiment; remove before daily use.
+    private val ohoExperiment = if (Build.VERSION.SDK_INT >= 34) OhoShieldExperiment(service) else null
 
     val isShowing: Boolean get() = composeView != null
 
@@ -81,10 +83,14 @@ internal class AccessibilityOverlayHost(
             choicesHapticSent = true
             composeView?.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
         }
+        if (Build.VERSION.SDK_INT >= 34) {
+            composeView?.let { ohoExperiment?.update(it, value) }
+        }
     }
 
     fun dismiss() {
         val view = composeView ?: return
+        if (Build.VERSION.SDK_INT >= 34) ohoExperiment?.close(view)
         val lifecycleOwner = owner
         composeView = null
         owner = null
@@ -142,7 +148,9 @@ internal class AccessibilityOverlayHost(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                // DEBUG-SB-OHO: a modal window ignores custom touch-region holes.
+                (if (ohoExperiment != null) WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL else 0),
             PixelFormat.OPAQUE,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
