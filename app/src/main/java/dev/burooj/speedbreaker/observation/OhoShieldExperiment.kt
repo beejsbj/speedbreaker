@@ -33,6 +33,11 @@ import dev.burooj.speedbreaker.R
  */
 @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
+    private enum class Phase(val wire: String) {
+        PREATTACH("preattach"), ATTACHING("attaching"), HARD_LOCK("hard-lock"),
+        PROBE("probe"), PROBE_PASS("probe-pass"), OHO("oho"), FAILED("failed"), CLOSED("closed")
+    }
+
     private data class WindowSample(
         val id: Int,
         val type: Int,
@@ -55,6 +60,7 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
         val leftHandle: WindowSample,
         val allOho: List<WindowSample>,
         val requiredHole: Region,
+        val otherBaseline: Map<Int, String>,
     ) {
         val signature: String
             get() = buildString {
@@ -70,7 +76,12 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
     private data class Shield(
         val targetId: Int,
         val targetRegion: Region,
+        val targetLayer: Int,
+        val targetDisplayId: Int,
+        val topId: Int,
+        val leftRegion: Region,
         val ohoBaseline: Map<Int, String>,
+        val otherBaseline: Map<Int, String>,
         val host: SurfaceControlViewHost,
         val surfacePackage: SurfaceControlViewHost.SurfacePackage,
         val surface: SurfaceControl,
@@ -80,7 +91,7 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
 
     private class ShieldView(
         service: SpeedbreakerService,
-        private val onTrace: (String) -> Unit,
+        private val onTrace: (String, Boolean) -> Unit,
     ) : View(service) {
         private var downs = 0
         private var moves = 0
@@ -115,10 +126,13 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
                 MotionEvent.ACTION_MOVE -> moves++
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     ups++
-                    onTrace(
-                        "shield D=$downs M=$moves U=$ups start=$start " +
+                    val trace = "shield D=$downs M=$moves U=$ups start=$start " +
                             "end=${event.rawX.toInt()},${event.rawY.toInt()} " +
-                            "action=${event.actionMasked}",
+                            "action=${event.actionMasked}"
+                    onTrace(
+                        trace,
+                        downs == 1 && moves > 0 && ups == 1 &&
+                            start == "65,1500" && event.actionMasked == MotionEvent.ACTION_UP,
                     )
                 }
             }
@@ -130,6 +144,7 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
     private val notificationManager = service.getSystemService(NotificationManager::class.java)
 
     private var shield: Shield? = null
+    private var phase = Phase.PREATTACH
     private var stableSignature: String? = null
     private var stableSamples = 0
     private var holesOpen = false
@@ -164,7 +179,10 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
             return
         }
 
-        val sceneResult = runCatching { readScene() }
+        val currentShield = shield
+        val sceneResult = runCatching {
+            if (currentShield == null) readScene() else readAttachedScene(currentShield)
+        }
         val scene = sceneResult.getOrElse {
             val reason = it.message ?: it.javaClass.simpleName
             // Window publication and launch animation can lag addView. No hole exists yet.
@@ -180,20 +198,19 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
         }
         lastSceneSummary = sceneSummary(scene)
 
-        val currentShield = shield
         if (currentShield == null) {
             setTopFull(top)
+            if (scene.signature == stableSignature) {
+                stableSamples = (stableSamples + 1).coerceAtMost(REQUIRED_STABLE_SAMPLES)
+            } else {
+                stableSignature = scene.signature
+                stableSamples = 1
+            }
+            if (stableSamples < REQUIRED_STABLE_SAMPLES) {
+                publish("preattach stability $stableSamples/$REQUIRED_STABLE_SAMPLES")
+                return
+            }
             attachShield(scene, top)
-            return
-        }
-        if (currentShield.targetId != scene.target.id ||
-            currentShield.targetRegion != scene.target.region
-        ) {
-            failClosed(top, "target window or bounds changed")
-            return
-        }
-        if (scene.allOho.associate { it.id to it.geometrySignature } != currentShield.ohoBaseline) {
-            failClosed(top, "OHO panel/window change detected")
             return
         }
 
@@ -233,28 +250,44 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
             return
         }
 
-        val verificationSignature = "${scene.signature}|shield=${shieldWindow.signature}"
-        if (verificationSignature == stableSignature) {
-            stableSamples = (stableSamples + 1).coerceAtMost(REQUIRED_STABLE_SAMPLES)
-        } else {
-            stableSignature = verificationSignature
-            stableSamples = 1
-            setTopFull(top)
-        }
-        if (stableSamples < REQUIRED_STABLE_SAMPLES) {
-            setTopFull(top)
-            publish("shield observed; stability $stableSamples/$REQUIRED_STABLE_SAMPLES")
-            return
+        if (phase == Phase.ATTACHING) {
+            val verificationSignature = "${scene.signature}|shield=${shieldWindow.signature}"
+            if (verificationSignature == stableSignature) {
+                stableSamples = (stableSamples + 1).coerceAtMost(REQUIRED_STABLE_SAMPLES)
+            } else {
+                stableSignature = verificationSignature
+                stableSamples = 1
+                setTopFull(top)
+            }
+            if (stableSamples < REQUIRED_STABLE_SAMPLES) {
+                setTopFull(top)
+                publish("shield observed; stability $stableSamples/$REQUIRED_STABLE_SAMPLES")
+                return
+            }
+            phase = Phase.HARD_LOCK
         }
 
         val elapsedMs = value.nowElapsedMs - value.breaker.startedElapsedMs
-        if (elapsedMs < HARD_LOCK_MS) {
+        if (phase == Phase.HARD_LOCK && elapsedMs < HARD_LOCK_MS) {
             setTopFull(top)
             publish("verified; hard lock")
             return
         }
 
-        val topRegion = topTouchableRegionWithout(top, scene.requiredHole)
+        if (phase == Phase.PROBE) {
+            publish("awaiting shield probe drag")
+            return
+        }
+        val hole = when (phase) {
+            Phase.HARD_LOCK -> Region(PROBE_STRIP)
+            Phase.PROBE_PASS -> Region(scene.leftHandle.region)
+            Phase.OHO -> {
+                publish("awaiting bounded OHO gesture")
+                return
+            }
+            else -> return
+        }
+        val topRegion = topTouchableRegionWithout(top, hole)
         if (topRegion == null) {
             failClosed(top, "top geometry no longer matches")
             return
@@ -265,7 +298,8 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
         }.onSuccess {
             holesOpen = true
             lastFailure = null
-            publish("verified; left OHO + probe holes open")
+            phase = if (phase == Phase.HARD_LOCK) Phase.PROBE else Phase.OHO
+            publish(if (phase == Phase.PROBE) "probe strip open" else "left OHO handle open")
         }.onFailure {
             failClosed(top, "opening holes failed: ${it.javaClass.simpleName}")
         }
@@ -276,11 +310,11 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
             "DEBUG-SB-OHO must close on the service main thread"
         }
         val restored = setTopFull(top)
-        if (restored) detachShield()
         stableSignature = null
         stableSamples = 0
-        publish(if (restored) "closed" else "restore failed; shield retained")
-        failedForThisOverlay = !restored
+        phase = Phase.CLOSED
+        publish(if (restored) "closed; shield retained until top removal" else "restore failed; shield retained")
+        failedForThisOverlay = true
         firstUpdateMs = 0L
     }
 
@@ -290,6 +324,7 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
         holesOpen = false
         detachShield()
         failedForThisOverlay = false
+        phase = Phase.PREATTACH
         firstUpdateMs = 0L
     }
 
@@ -346,7 +381,87 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
         }
         require(!imeIntersects) { "IME intersects hole" }
 
-        return Scene(target, top, leftHandle, allOho, requiredHole)
+        val excluded = buildSet {
+            add(target.id)
+            add(top.id)
+            allOho.forEach { add(it.id) }
+        }
+        val otherBaseline = windows.filter { it.id !in excluded }.associate { it.id to it.signature }
+        return Scene(target, top, leftHandle, allOho, requiredHole, otherBaseline)
+    }
+
+    private fun readAttachedScene(cached: Shield): Scene {
+        val windows = service.windows.map(::sample)
+        lastSceneSummary = windows.joinToString("; ") {
+            "id=${it.id} type=${it.type} layer=${it.layer} pkg=${it.packageName} focus=${it.focused} region=${it.region}"
+        }
+        require(windows.none { it.id == cached.targetId || it.packageName == CALCULATOR_PACKAGE }) {
+            "cached target still published"
+        }
+        require(windows.none {
+            it.type == AccessibilityWindowInfo.TYPE_APPLICATION && it.packageName != service.packageName
+        }) { "foreign application appeared" }
+        require(windows.none { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD }) { "IME present" }
+
+        val topCandidates = windows.filter {
+            it.id == cached.topId && it.packageName == service.packageName &&
+                it.description != SHIELD_DESCRIPTION && it.region.bounds == EXPECTED_CONTENT_BOUNDS
+        }
+        require(topCandidates.size == 1) { "top SB window changed" }
+        val top = topCandidates.single()
+        require(top.focused) { "top lost focus" }
+
+        val allOho = windows.filter { it.packageName == OHO_PACKAGE }
+        require(allOho.associate { it.id to it.geometrySignature } == cached.ohoBaseline) {
+            "OHO panel/window change detected"
+        }
+        val leftCandidates = allOho.filter {
+            it.region == cached.leftRegion && it.region.contains(1, 1500)
+        }
+        require(leftCandidates.size == 1) { "left OHO handle changed" }
+        val left = leftCandidates.single()
+
+        val shieldCandidates = windows.filter {
+            it.packageName == service.packageName && it.description == SHIELD_DESCRIPTION
+        }
+        require(shieldCandidates.size == 1) { "observed shields=${shieldCandidates.size}" }
+        val observed = shieldCandidates.single()
+        require(!observed.focused && observed.displayId == cached.targetDisplayId) {
+            "shield focus/display changed"
+        }
+        require(observed.layer == TARGET_LAYER && observed.layer == cached.targetLayer) {
+            "shield layer=${observed.layer} cached=${cached.targetLayer}"
+        }
+        require(observed.region == cached.targetRegion) {
+            "shield region=${observed.region} cached=${cached.targetRegion}"
+        }
+        require(top.layer > left.layer && left.layer > observed.layer) { "unsafe attached layers" }
+
+        val missing = Region(cached.leftRegion).apply {
+            op(PROBE_STRIP, Region.Op.UNION)
+            op(observed.region, Region.Op.DIFFERENCE)
+        }
+        require(missing.isEmpty) { "shield misses candidate holes=$missing" }
+        val excluded = buildSet {
+            add(top.id)
+            add(observed.id)
+            allOho.forEach { add(it.id) }
+        }
+        val others = windows.filter { it.id !in excluded }.associate { it.id to it.signature }
+        require(others == cached.otherBaseline) { "foreign/unknown window transition" }
+
+        val cachedTarget = WindowSample(
+            cached.targetId,
+            AccessibilityWindowInfo.TYPE_APPLICATION,
+            cached.targetLayer,
+            cached.targetDisplayId,
+            CALCULATOR_PACKAGE,
+            Region(cached.targetRegion),
+            null,
+            false,
+        )
+        val required = Region(cached.leftRegion).apply { op(PROBE_STRIP, Region.Op.UNION) }
+        return Scene(cachedTarget, top, left, allOho, required, cached.otherBaseline)
     }
 
     private fun sample(window: AccessibilityWindowInfo): WindowSample {
@@ -386,9 +501,14 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
         var surface: SurfaceControl? = null
         runCatching {
             val context = service.createDisplayContext(display)
-            val view = ShieldView(service) { trace ->
+            val view = ShieldView(service) { trace, provesProbe ->
                 lastTouchTrace = trace
-                publish("shield touch received")
+                if (phase == Phase.PROBE && provesProbe) {
+                    phase = Phase.PROBE_PASS
+                    publish("probe touch complete")
+                } else {
+                    publish("shield touch did not prove probe")
+                }
             }
             host = SurfaceControlViewHost(context, display, Binder())
             host!!.setView(view, scene.target.region.bounds.width(), scene.target.region.bounds.height())
@@ -401,7 +521,12 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
             shield = Shield(
                 targetId = scene.target.id,
                 targetRegion = Region(scene.target.region),
+                targetLayer = scene.target.layer,
+                targetDisplayId = scene.target.displayId,
+                topId = scene.top.id,
+                leftRegion = Region(scene.leftHandle.region),
                 ohoBaseline = scene.allOho.associate { it.id to it.geometrySignature },
+                otherBaseline = scene.otherBaseline,
                 host = host!!,
                 surfacePackage = surfacePackage!!,
                 surface = surface!!,
@@ -410,6 +535,7 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
             )
             stableSignature = null
             stableSamples = 0
+            phase = Phase.ATTACHING
             publish("shield attach requested; top remains full")
         }.onFailure {
             runCatching { surface?.release() }
@@ -464,11 +590,11 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
 
     private fun failClosed(top: ComposeView, reason: String) {
         val restored = setTopFull(top)
-        if (restored) detachShield()
         stableSignature = null
         stableSamples = 0
         lastFailure = reason
         failedForThisOverlay = true
+        phase = Phase.FAILED
         publish(if (restored) "FAILED CLOSED: $reason" else "restore failed; shield retained: $reason")
     }
 
@@ -501,8 +627,8 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
 
     private fun publish(status: String) {
         val text = buildString {
-            append(status)
-            append("\nholes=").append(holesOpen)
+            append("phase=").append(phase.wire).append(" holes=").append(holesOpen)
+            append(" status=").append(status)
             append(" stable=").append(stableSamples).append('/').append(REQUIRED_STABLE_SAMPLES)
             lastFailure?.let { append("\nlastFailure=").append(it) }
             append('\n').append(lastTouchTrace)
@@ -527,8 +653,8 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
                 NOTIFICATION_ID,
                 NotificationCompat.Builder(service, CHANNEL)
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
-                    .setContentTitle("Speedbreaker OHO shield")
-                    .setContentText(status)
+                    .setContentTitle("Speedbreaker OHO shield5")
+                    .setContentText("phase=${phase.wire} holes=$holesOpen")
                     .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                     .setSilent(true)
                     .setOnlyAlertOnce(true)
