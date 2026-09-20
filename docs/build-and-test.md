@@ -24,3 +24,11 @@ are under `app/build/reports/`. Generated APKs and Kotlin caches stay untracked.
 Phone validation follows `device-acceptance.md`. A successful build and test
 suite do not establish that Samsung's windows, gestures, calls, or background
 management behave as expected.
+
+For repeated phone MCP calls, reuse the initialized session within a sequence
+and send authenticated `DELETE /mcp` with its `Mcp-Session-Id` when finished,
+including error exits. Closing an HTTP connection alone does not release the
+MCP session. The phone server's [v1.11.1 transport](https://github.com/danielealbano/android-remote-control-mcp/blob/v1.11.1/app/src/main/kotlin/com/danielealbano/androidremotecontrolmcp/mcp/McpStreamableHttpExtension.kt)
+caps sessions at 100 and retains idle sessions for seven days. Omitting cleanup
+exhausted that limit during September 20 testing and required an owner-operated
+server restart. The task-scoped Python helper now closes sessions on exit.
