@@ -12,7 +12,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "0.1.0-oho-shield5" // DEBUG-SB-OHO: identifies this temporary phone experiment
+        versionName = "0.1.0"
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments["room.schemaLocation"] = "$projectDir/schemas"

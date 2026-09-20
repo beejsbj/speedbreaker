@@ -11,11 +11,6 @@ import android.window.OnBackInvokedCallback
 import android.window.OnBackInvokedDispatcher
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.motionEventSpy
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.Lifecycle
@@ -57,9 +52,6 @@ internal class AccessibilityOverlayHost(
     private var backRegistration: BackRegistration? = null
     private var choicesHapticSent = false
     private var breakerIdentity: Pair<String, Long>? = null
-    private val touchDiagnostic = TouchDiagnostic(service) // DEBUG-SB-TOUCH
-    // DEBUG-SB-OHO: bounded Calculator experiment; remove before daily use.
-    private val ohoExperiment = if (Build.VERSION.SDK_INT >= 34) OhoShieldExperiment(service) else null
 
     val isShowing: Boolean get() = composeView != null
 
@@ -83,14 +75,10 @@ internal class AccessibilityOverlayHost(
             choicesHapticSent = true
             composeView?.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
         }
-        if (Build.VERSION.SDK_INT >= 34) {
-            composeView?.let { ohoExperiment?.update(it, value) }
-        }
     }
 
     fun dismiss() {
         val view = composeView ?: return
-        if (Build.VERSION.SDK_INT >= 34) ohoExperiment?.close(view)
         val lifecycleOwner = owner
         composeView = null
         owner = null
@@ -101,12 +89,10 @@ internal class AccessibilityOverlayHost(
         unregisterBackCallback()
         lifecycleOwner?.destroy()
         runCatching { windowManager.removeViewImmediate(view) }
-        if (Build.VERSION.SDK_INT >= 34) ohoExperiment?.releaseAfterTopRemoved(view)
         view.disposeComposition()
         lifecycleOwner?.viewModelStore?.clear()
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     private fun show() {
         if (composeView != null) return
         val lifecycleOwner = OverlayOwner().also { it.restore() }
@@ -127,8 +113,6 @@ internal class AccessibilityOverlayHost(
         view.setViewTreeViewModelStoreOwner(lifecycleOwner)
         view.setViewTreeSavedStateRegistryOwner(lifecycleOwner)
         view.setContent {
-            // DEBUG-SB-TOUCH: observe without consuming or changing window input flags.
-            Box(Modifier.fillMaxSize().motionEventSpy(touchDiagnostic::observe)) {
             state.value?.let { current ->
                 BreakerOverlay(
                     breaker = current.breaker,
@@ -142,16 +126,13 @@ internal class AccessibilityOverlayHost(
                     onChoice = onChoice,
                 )
             }
-            }
         }
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                // DEBUG-SB-OHO: a modal window ignores custom touch-region holes.
-                (if (ohoExperiment != null) WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL else 0),
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.OPAQUE,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
