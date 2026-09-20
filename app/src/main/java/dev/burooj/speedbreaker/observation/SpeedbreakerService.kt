@@ -89,6 +89,8 @@ internal class SpeedbreakerService : AccessibilityService() {
             service = this,
             onChoice = ::handleChoice,
             onBack = ::handleBack,
+            // DEBUG-SB-TIMER: temporary Compose/draw/Back diagnostic wiring.
+            diagnostic = timerDiagnostic,
         )
         activeService = WeakReference(this)
         ServiceStatus.setConnected(true)

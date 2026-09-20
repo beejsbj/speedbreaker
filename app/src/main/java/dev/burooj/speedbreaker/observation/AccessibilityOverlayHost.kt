@@ -3,13 +3,17 @@ package dev.burooj.speedbreaker.observation
 import android.animation.ValueAnimator
 import android.graphics.PixelFormat
 import android.os.Build
+import android.os.SystemClock
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
+import android.view.View
+import android.view.ViewTreeObserver
 import android.view.WindowManager
 import android.window.OnBackInvokedCallback
 import android.window.OnBackInvokedDispatcher
 import androidx.annotation.RequiresApi
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -44,12 +48,16 @@ internal class AccessibilityOverlayHost(
     private val service: SpeedbreakerService,
     private val onChoice: (Choice) -> Unit,
     private val onBack: () -> Unit,
+    // DEBUG-SB-TIMER: temporary render/back diagnostic sink.
+    private val diagnostic: OverlayDiagnosticSink?,
 ) {
     private val windowManager = service.getSystemService(WindowManager::class.java)
     private val state = mutableStateOf<OverlayState?>(null)
     private var composeView: ComposeView? = null
     private var owner: OverlayOwner? = null
     private var backRegistration: BackRegistration? = null
+    // DEBUG-SB-TIMER: temporary draw boundary probe.
+    private var drawListener: ViewTreeObserver.OnDrawListener? = null
     private var choicesHapticSent = false
     private var breakerIdentity: Pair<String, Long>? = null
 
@@ -66,6 +74,8 @@ internal class AccessibilityOverlayHost(
         state.value = value
         if (!wasShowing) show()
         else if (isNewBreaker) composeView?.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+        // DEBUG-SB-TIMER: capture View state on main after every healthy publication.
+        publishViewState()
 
         val choicesUnlocked = value.nowElapsedMs - value.breaker.startedElapsedMs >= HARD_LOCK_MS
         if (choicesUnlocked && !choicesHapticSent) {
@@ -84,6 +94,7 @@ internal class AccessibilityOverlayHost(
         breakerIdentity = null
 
         unregisterBackCallback()
+        removeDrawListener(view)
         lifecycleOwner?.destroy()
         runCatching { windowManager.removeViewImmediate(view) }
         view.disposeComposition()
@@ -93,6 +104,8 @@ internal class AccessibilityOverlayHost(
     private fun show() {
         if (composeView != null) return
         val lifecycleOwner = OverlayOwner().also { it.restore() }
+        // DEBUG-SB-TIMER: reset per-overlay render and Back counters.
+        diagnostic?.onOverlayStarted()
         val view = ComposeView(service).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             isFocusable = true
@@ -122,8 +135,27 @@ internal class AccessibilityOverlayHost(
                     motionEnabled = ValueAnimator.areAnimatorsEnabled(),
                     onChoice = onChoice,
                 )
+                // DEBUG-SB-TIMER: successful Compose apply boundary with breaker-relative time.
+                SideEffect {
+                    diagnostic?.onComposeSideEffect(
+                        nowElapsedMs = SystemClock.elapsedRealtime(),
+                        overlayElapsedMs = (current.nowElapsedMs - current.breaker.startedElapsedMs)
+                            .coerceAtLeast(0L),
+                        viewState = diagnosticViewState(view, lifecycleOwner),
+                    )
+                }
             }
         }
+
+        // DEBUG-SB-TIMER: actual Android draw boundary; does not invalidate or request frames.
+        val nextDrawListener = ViewTreeObserver.OnDrawListener {
+            diagnostic?.onDraw(
+                nowElapsedMs = SystemClock.elapsedRealtime(),
+                viewState = diagnosticViewState(view, lifecycleOwner),
+            )
+        }
+        view.viewTreeObserver.addOnDrawListener(nextDrawListener)
+        drawListener = nextDrawListener
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -142,13 +174,20 @@ internal class AccessibilityOverlayHost(
             owner = lifecycleOwner
             lifecycleOwner.start()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                backRegistration = BackRegistration.create(view, onBack)
+                backRegistration = BackRegistration.create(view) {
+                    // DEBUG-SB-TIMER: distinguish platform callback delivery from touch redraw.
+                    diagnostic?.onBackInvoked()
+                    onBack()
+                }
             }
+            // DEBUG-SB-TIMER: registration success is published without querying View off-main.
+            diagnostic?.onBackRegistrationChanged(backRegistration != null)
             ServiceStatus.reportError(null)
             view.requestFocus()
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
         } catch (error: RuntimeException) {
             unregisterBackCallback()
+            removeDrawListener(view)
             composeView = null
             owner = null
             lifecycleOwner.destroy()
@@ -164,7 +203,43 @@ internal class AccessibilityOverlayHost(
             runCatching { backRegistration?.unregister() }
         }
         backRegistration = null
+        // DEBUG-SB-TIMER: reflect cleanup in the temporary watchdog snapshot.
+        diagnostic?.onBackRegistrationChanged(false)
     }
+
+    // DEBUG-SB-TIMER: main-thread snapshot of the attached accessibility-overlay View.
+    private fun publishViewState() {
+        val view = composeView ?: return
+        val lifecycleOwner = owner ?: return
+        diagnostic?.onViewState(
+            nowElapsedMs = SystemClock.elapsedRealtime(),
+            viewState = diagnosticViewState(view, lifecycleOwner),
+        )
+    }
+
+    // DEBUG-SB-TIMER: detach the temporary draw observer before removing its View.
+    private fun removeDrawListener(view: View) {
+        val listener = drawListener ?: return
+        val observer = view.viewTreeObserver
+        if (observer.isAlive) observer.removeOnDrawListener(listener)
+        drawListener = null
+    }
+
+    // DEBUG-SB-TIMER: called only from main-thread overlay callbacks/publication.
+    private fun diagnosticViewState(
+        view: View,
+        lifecycleOwner: OverlayOwner,
+    ): OverlayViewDiagnosticState = OverlayViewDiagnosticState(
+        lifecycle = lifecycleOwner.lifecycle.currentState.name,
+        attached = view.isAttachedToWindow,
+        windowVisibility = when (view.windowVisibility) {
+            View.VISIBLE -> "visible"
+            View.INVISIBLE -> "invisible"
+            View.GONE -> "gone"
+            else -> view.windowVisibility.toString()
+        },
+        hardwareAccelerated = view.isHardwareAccelerated,
+    )
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private class BackRegistration private constructor(
