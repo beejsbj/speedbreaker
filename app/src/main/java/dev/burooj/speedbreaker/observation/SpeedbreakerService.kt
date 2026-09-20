@@ -40,8 +40,6 @@ internal class SpeedbreakerService : AccessibilityService() {
     private lateinit var overlay: AccessibilityOverlayHost
     private lateinit var notifications: PauseNotifications
     private lateinit var systemActions: SystemActionController
-    // DEBUG-SB-TIMER: temporary watchdog; removed after physical timer diagnosis.
-    private var timerDiagnostic: TimerDiagnosticWatchdog? = null
 
     private var engine: EnforcementEngine? = null
     private var enginePauses: Map<String, PauseState> = emptyMap()
@@ -55,11 +53,7 @@ internal class SpeedbreakerService : AccessibilityService() {
 
     private val ticker = object : Runnable {
         override fun run() {
-            // DEBUG-SB-TIMER: timestamp entry before any main-thread enforcement work.
-            timerDiagnostic?.tickStarted(SystemClock.elapsedRealtime())
             reconcile()
-            // DEBUG-SB-TIMER: timestamp only after the full reconciliation returns.
-            timerDiagnostic?.tickCompleted(SystemClock.elapsedRealtime())
             handler.postDelayed(this, TICK_MS)
         }
     }
@@ -76,21 +70,13 @@ internal class SpeedbreakerService : AccessibilityService() {
         }
         repository = SpeedbreakerRepository.get(this)
         safetyPolicy = SafetyPolicy(this)
-        // DEBUG-SB-TIMER: publish diagnostics before the first enforcement tick.
-        timerDiagnostic?.stop()
-        timerDiagnostic = TimerDiagnosticWatchdog(this).also { it.start() }
-        windowReader = WindowObservationReader(this) { phase ->
-            // DEBUG-SB-TIMER: operational phase only; no app/window identity leaves memory.
-            timerDiagnostic?.phase(phase)
-        }
+        windowReader = WindowObservationReader(this)
         notifications = PauseNotifications(this)
         systemActions = SystemActionController(this)
         overlay = AccessibilityOverlayHost(
             service = this,
             onChoice = ::handleChoice,
             onBack = ::handleBack,
-            // DEBUG-SB-TIMER: temporary Compose/draw/Back diagnostic wiring.
-            diagnostic = timerDiagnostic,
         )
         activeService = WeakReference(this)
         ServiceStatus.setConnected(true)
@@ -101,6 +87,11 @@ internal class SpeedbreakerService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null || !::repository.isInitialized) return
         val packageName = event.packageName?.toString()
+        // Our countdown semantics do not change which apps are visible. The ticker already
+        // advances deadlines; feeding these events back into it causes redundant frame work.
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED &&
+            packageName == this.packageName
+        ) return
         val windowTransition = event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             event.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
         if (overlay.isShowing && windowTransition && safetyPolicy.isNavigationPackage(packageName)) {
@@ -141,8 +132,6 @@ internal class SpeedbreakerService : AccessibilityService() {
         }
 
         val currentObservation = observation(navigationAway, forceSafetyYield)
-        // DEBUG-SB-TIMER: window reads returned; remaining work is engine/application work.
-        timerDiagnostic?.phase(TimerDiagnosticWatchdog.PHASE_APPLY)
         val storedPauses = repository.pauses.value
         if (engine == null) {
             engine = EnforcementEngine(storedPauses)
@@ -254,17 +243,9 @@ internal class SpeedbreakerService : AccessibilityService() {
         update.effects.forEach(systemActions::execute)
         val breaker = update.breaker
         if (breaker == null) {
-            // DEBUG-SB-TIMER: report that there is no live overlay publication.
-            timerDiagnostic?.overlayDismissed()
             overlay.dismiss()
         } else {
             overlay.showOrUpdate(overlayState(breaker, settings, update.pauses, observation))
-            // DEBUG-SB-TIMER: publication age and breaker-relative elapsed sent to Compose.
-            timerDiagnostic?.overlayPublished(
-                publishedAtElapsedMs = SystemClock.elapsedRealtime(),
-                overlayElapsedMs = (observation.elapsedMs - breaker.startedElapsedMs)
-                    .coerceAtLeast(0L),
-            )
         }
     }
 
@@ -411,9 +392,6 @@ internal class SpeedbreakerService : AccessibilityService() {
 
     private fun tearDownConnection() {
         handler.removeCallbacks(ticker)
-        // DEBUG-SB-TIMER: prevent duplicate workers and remove the temporary notification.
-        timerDiagnostic?.stop()
-        timerDiagnostic = null
         if (::overlay.isInitialized) overlay.dismiss()
         engine = null
         enginePauses = emptyMap()
