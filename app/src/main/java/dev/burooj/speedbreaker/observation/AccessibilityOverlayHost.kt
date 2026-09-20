@@ -2,10 +2,14 @@ package dev.burooj.speedbreaker.observation
 
 import android.animation.ValueAnimator
 import android.graphics.PixelFormat
+import android.os.Build
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import android.view.WindowManager
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -45,6 +49,7 @@ internal class AccessibilityOverlayHost(
     private val state = mutableStateOf<OverlayState?>(null)
     private var composeView: ComposeView? = null
     private var owner: OverlayOwner? = null
+    private var backRegistration: BackRegistration? = null
     private var choicesHapticSent = false
     private var breakerIdentity: Pair<String, Long>? = null
 
@@ -78,6 +83,8 @@ internal class AccessibilityOverlayHost(
         choicesHapticSent = false
         breakerIdentity = null
 
+        runCatching { backRegistration?.unregister() }
+        backRegistration = null
         lifecycleOwner?.destroy()
         runCatching { windowManager.removeViewImmediate(view) }
         view.disposeComposition()
@@ -135,14 +142,44 @@ internal class AccessibilityOverlayHost(
             composeView = view
             owner = lifecycleOwner
             lifecycleOwner.start()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                backRegistration = BackRegistration.create(view, onBack)
+            }
             ServiceStatus.reportError(null)
             view.requestFocus()
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
         } catch (error: RuntimeException) {
+            runCatching { backRegistration?.unregister() }
+            backRegistration = null
+            composeView = null
+            owner = null
             lifecycleOwner.destroy()
+            runCatching { windowManager.removeViewImmediate(view) }
             view.disposeComposition()
             lifecycleOwner.viewModelStore.clear()
             ServiceStatus.reportError("Unable to show Speedbreaker: ${error.javaClass.simpleName}")
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private class BackRegistration private constructor(
+        private val dispatcher: OnBackInvokedDispatcher,
+        private val callback: OnBackInvokedCallback,
+    ) {
+        fun unregister() {
+            dispatcher.unregisterOnBackInvokedCallback(callback)
+        }
+
+        companion object {
+            fun create(view: ComposeView, onBack: () -> Unit): BackRegistration? {
+                val dispatcher = view.findOnBackInvokedDispatcher() ?: return null
+                val callback = OnBackInvokedCallback { onBack() }
+                dispatcher.registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_OVERLAY,
+                    callback,
+                )
+                return BackRegistration(dispatcher, callback)
+            }
         }
     }
 
