@@ -11,6 +11,11 @@ import android.window.OnBackInvokedCallback
 import android.window.OnBackInvokedDispatcher
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.motionEventSpy
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.lifecycle.Lifecycle
@@ -52,6 +57,7 @@ internal class AccessibilityOverlayHost(
     private var backRegistration: BackRegistration? = null
     private var choicesHapticSent = false
     private var breakerIdentity: Pair<String, Long>? = null
+    private val touchDiagnostic = TouchDiagnostic(service) // DEBUG-SB-TOUCH
 
     val isShowing: Boolean get() = composeView != null
 
@@ -93,6 +99,7 @@ internal class AccessibilityOverlayHost(
         lifecycleOwner?.viewModelStore?.clear()
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
     private fun show() {
         if (composeView != null) return
         val lifecycleOwner = OverlayOwner().also { it.restore() }
@@ -113,6 +120,8 @@ internal class AccessibilityOverlayHost(
         view.setViewTreeViewModelStoreOwner(lifecycleOwner)
         view.setViewTreeSavedStateRegistryOwner(lifecycleOwner)
         view.setContent {
+            // DEBUG-SB-TOUCH: observe without consuming or changing window input flags.
+            Box(Modifier.fillMaxSize().motionEventSpy(touchDiagnostic::observe)) {
             state.value?.let { current ->
                 BreakerOverlay(
                     breaker = current.breaker,
@@ -125,6 +134,7 @@ internal class AccessibilityOverlayHost(
                     motionEnabled = ValueAnimator.areAnimatorsEnabled(),
                     onChoice = onChoice,
                 )
+            }
             }
         }
 
