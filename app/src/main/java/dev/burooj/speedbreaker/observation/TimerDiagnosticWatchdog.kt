@@ -113,7 +113,7 @@ internal class TimerDiagnosticWatchdog(context: Context) : OverlayDiagnosticSink
             append(" a").append(render.attached.asDigit())
             append(" v").append(render.windowVisibility)
             append(" h").append(render.hardwareAccelerated.asDigit())
-            append(" back=").append(render.backRegistered.asDigit())
+            append(" backAttempt=").append(render.backRegistered.asDigit())
             append("/").append(render.backInvokedCount)
             if (stale) {
                 append("\nmain=").append(mainStack())
