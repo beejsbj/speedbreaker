@@ -167,10 +167,9 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
         val sceneResult = runCatching { readScene() }
         val scene = sceneResult.getOrElse {
             val reason = it.message ?: it.javaClass.simpleName
-            // Window publication can lag addView and the first traversal. No hole exists yet.
+            // Window publication and launch animation can lag addView. No hole exists yet.
             if (shield == null && !holesOpen &&
-                SystemClock.elapsedRealtime() - firstUpdateMs < ATTACH_TIMEOUT_MS &&
-                reason in setOf("top SB window absent", "top lost focus", "foreign application windows=0")
+                SystemClock.elapsedRealtime() - firstUpdateMs < ATTACH_TIMEOUT_MS
             ) {
                 setTopFull(top)
                 publish("waiting for top window: $reason")
