@@ -74,6 +74,9 @@ internal class AccessibilityOverlayHost(
         state.value = value
         if (!wasShowing) show()
         else if (isNewBreaker) composeView?.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+        // A recreated service window on the S23+ can leave a pending Compose frame asleep
+        // until pointer movement. Request a window traversal alongside state publication.
+        if (wasShowing) composeView?.invalidate()
         // DEBUG-SB-TIMER: capture View state on main after every healthy publication.
         publishViewState()
 
