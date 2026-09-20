@@ -101,6 +101,7 @@ internal class AccessibilityOverlayHost(
         unregisterBackCallback()
         lifecycleOwner?.destroy()
         runCatching { windowManager.removeViewImmediate(view) }
+        if (Build.VERSION.SDK_INT >= 34) ohoExperiment?.releaseAfterTopRemoved(view)
         view.disposeComposition()
         lifecycleOwner?.viewModelStore?.clear()
     }

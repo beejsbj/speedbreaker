@@ -134,6 +134,7 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
     private var stableSamples = 0
     private var holesOpen = false
     private var failedForThisOverlay = false
+    private var firstUpdateMs = 0L
     private var lastFailure: String? = null
     private var lastNotificationText: String? = null
     private var lastSceneSummary = "scene=none"
@@ -145,6 +146,7 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
         }
 
         if (failedForThisOverlay) return
+        if (firstUpdateMs == 0L) firstUpdateMs = SystemClock.elapsedRealtime()
         if (!ensureTopIsNonModal(top)) {
             failClosed(top, "top could not become non-modal")
             return
@@ -164,7 +166,17 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
 
         val sceneResult = runCatching { readScene() }
         val scene = sceneResult.getOrElse {
-            failClosed(top, "scene rejected: ${it.message ?: it.javaClass.simpleName}")
+            val reason = it.message ?: it.javaClass.simpleName
+            // Window publication can lag addView and the first traversal. No hole exists yet.
+            if (shield == null && !holesOpen &&
+                SystemClock.elapsedRealtime() - firstUpdateMs < ATTACH_TIMEOUT_MS &&
+                reason in setOf("top SB window absent", "top lost focus", "foreign application windows=0")
+            ) {
+                setTopFull(top)
+                publish("waiting for top window: $reason")
+                return
+            }
+            failClosed(top, "scene rejected: $reason")
             return
         }
         lastSceneSummary = sceneSummary(scene)
@@ -264,12 +276,22 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
         check(Looper.myLooper() == Looper.getMainLooper()) {
             "DEBUG-SB-OHO must close on the service main thread"
         }
-        setTopFull(top)
-        detachShield()
+        val restored = setTopFull(top)
+        if (restored) detachShield()
         stableSignature = null
         stableSamples = 0
-        publish("closed")
+        publish(if (restored) "closed" else "restore failed; shield retained")
+        failedForThisOverlay = !restored
+        firstUpdateMs = 0L
+    }
+
+    fun releaseAfterTopRemoved(top: ComposeView) {
+        // The host calls this only after removeViewImmediate. If removal failed, keep the sink.
+        if (top.isAttachedToWindow) return
+        holesOpen = false
+        detachShield()
         failedForThisOverlay = false
+        firstUpdateMs = 0L
     }
 
     private fun readScene(): Scene {
@@ -422,22 +444,29 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
             .isSuccess
     }
 
-    private fun setTopFull(top: ComposeView) {
-        holesOpen = false
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            runCatching { top.rootSurfaceControl?.setTouchableRegion(null) }
-                .onFailure { lastFailure = "restore full failed: ${it.javaClass.simpleName}" }
+    private fun setTopFull(top: ComposeView): Boolean {
+        return runCatching {
+            val control = top.rootSurfaceControl
+            if (control == null && top.isAttachedToWindow && holesOpen) {
+                error("missing root while holes are open")
+            }
+            control?.setTouchableRegion(null)
+            holesOpen = false
+            true
+        }.getOrElse {
+            lastFailure = "restore full failed: ${it.javaClass.simpleName}"
+            false
         }
     }
 
     private fun failClosed(top: ComposeView, reason: String) {
-        setTopFull(top)
-        detachShield()
+        val restored = setTopFull(top)
+        if (restored) detachShield()
         stableSignature = null
         stableSamples = 0
         lastFailure = reason
         failedForThisOverlay = true
-        publish("FAILED CLOSED: $reason")
+        publish(if (restored) "FAILED CLOSED: $reason" else "restore failed; shield retained: $reason")
     }
 
     private fun detachShield() {
