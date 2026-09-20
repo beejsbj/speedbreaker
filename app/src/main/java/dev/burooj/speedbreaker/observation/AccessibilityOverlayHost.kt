@@ -83,8 +83,7 @@ internal class AccessibilityOverlayHost(
         choicesHapticSent = false
         breakerIdentity = null
 
-        runCatching { backRegistration?.unregister() }
-        backRegistration = null
+        unregisterBackCallback()
         lifecycleOwner?.destroy()
         runCatching { windowManager.removeViewImmediate(view) }
         view.disposeComposition()
@@ -149,8 +148,7 @@ internal class AccessibilityOverlayHost(
             view.requestFocus()
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
         } catch (error: RuntimeException) {
-            runCatching { backRegistration?.unregister() }
-            backRegistration = null
+            unregisterBackCallback()
             composeView = null
             owner = null
             lifecycleOwner.destroy()
@@ -159,6 +157,13 @@ internal class AccessibilityOverlayHost(
             lifecycleOwner.viewModelStore.clear()
             ServiceStatus.reportError("Unable to show Speedbreaker: ${error.javaClass.simpleName}")
         }
+    }
+
+    private fun unregisterBackCallback() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            runCatching { backRegistration?.unregister() }
+        }
+        backRegistration = null
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
