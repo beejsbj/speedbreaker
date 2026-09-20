@@ -168,8 +168,8 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
         val scene = sceneResult.getOrElse {
             val reason = it.message ?: it.javaClass.simpleName
             // Window publication and launch animation can lag addView. No hole exists yet.
-            if (shield == null && !holesOpen &&
-                SystemClock.elapsedRealtime() - firstUpdateMs < ATTACH_TIMEOUT_MS
+            if (!holesOpen &&
+                SystemClock.elapsedRealtime() - (shield?.attachedElapsedMs ?: firstUpdateMs) < ATTACH_TIMEOUT_MS
             ) {
                 setTopFull(top)
                 publish("waiting for top window: $reason")
@@ -295,6 +295,10 @@ internal class OhoShieldExperiment(private val service: SpeedbreakerService) {
 
     private fun readScene(): Scene {
         val windows = service.windows.map(::sample)
+        // DEBUG-SB-OHO: metadata only, retained when a newly attached root is unavailable.
+        lastSceneSummary = windows.joinToString("; ") {
+            "id=${it.id} type=${it.type} layer=${it.layer} pkg=${it.packageName} focus=${it.focused} region=${it.region}"
+        }
         val foreignApplications = windows.filter {
             it.type == AccessibilityWindowInfo.TYPE_APPLICATION &&
                 it.packageName != service.packageName
