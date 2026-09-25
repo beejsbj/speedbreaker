@@ -1,39 +1,29 @@
 package dev.burooj.speedbreaker.presentation
 
-import androidx.compose.foundation.background
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
-/**
- * Headless screenshot harness using Robolectric + Roborazzi.
- * Renders Compose UI to PNG files without an emulator or device.
- */
+/** Renders every [Gallery] entry to docs/design/screenshots for review. */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [35], qualifiers = "w412dp-h915dp-xxhdpi")
-class ScreenshotHarnessTest {
+class GalleryScreenshotTest {
 
     @Test
-    fun captureHarnessScreenshot() {
-        captureScreen("_harness") {
-            MaterialTheme {
-                Surface(
-                    modifier = Modifier.background(Color.White),
-                ) {
-                    Text("harness")
-                }
-            }
+    fun renderGallery() {
+        Gallery.forEach { spec ->
+            val size = if (spec.landscape) "w915dp-h412dp-land" else "w412dp-h915dp-port"
+            val night = if (spec.dark) "night" else "notnight"
+            RuntimeEnvironment.setQualifiers("$size-$night-xxhdpi")
+            RuntimeEnvironment.setFontScale(spec.fontScale)
+            captureScreen(spec.name, spec.content)
         }
     }
 }
