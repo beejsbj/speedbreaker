@@ -20,7 +20,8 @@ internal fun formatMinute(minute: Int, use24Hour: Boolean): String {
         minute % 60 == 0 -> "h a"
         else -> "h:mm a"
     }
-    return time.format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault()))
+    // Keep "9 AM" on one line wherever it wraps.
+    return time.format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault())).replace(' ', '\u00A0')
 }
 
 internal fun daysSummary(days: Set<Int>): String = when (days) {

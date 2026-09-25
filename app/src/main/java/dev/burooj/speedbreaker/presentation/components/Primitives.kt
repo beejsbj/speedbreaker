@@ -402,6 +402,21 @@ internal object Glyphs {
         line("Close") { moveTo(6f, 6f); lineTo(18f, 18f); moveTo(18f, 6f); lineTo(6f, 18f) }
     }
 
+    val Clock: ImageVector by lazy {
+        line("Clock") {
+            moveTo(12f, 3.5f)
+            arcTo(8.5f, 8.5f, 0f, true, true, 11.99f, 3.5f)
+            moveTo(12f, 7.5f); lineTo(12f, 12f); lineTo(15f, 14f)
+        }
+    }
+    val Keyboard: ImageVector by lazy {
+        line("Keyboard") {
+            moveTo(4f, 6.5f); lineTo(20f, 6.5f); lineTo(20f, 17.5f); lineTo(4f, 17.5f); close()
+            moveTo(7.5f, 10f); lineTo(8f, 10f); moveTo(11.75f, 10f); lineTo(12.25f, 10f)
+            moveTo(16f, 10f); lineTo(16.5f, 10f); moveTo(8.5f, 14f); lineTo(15.5f, 14f)
+        }
+    }
+
     private fun line(
         name: String,
         block: androidx.compose.ui.graphics.vector.PathBuilder.() -> Unit,
