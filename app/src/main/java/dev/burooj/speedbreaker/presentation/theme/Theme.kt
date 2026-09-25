@@ -1,6 +1,5 @@
 package dev.burooj.speedbreaker.presentation.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -152,9 +151,10 @@ private val SpeedbreakerShapes = Shapes(
     extraLarge = RoundedCornerShape(36.dp),
 )
 
+/** Dark by default, whatever the system says; the ivory scheme is kept for a later choice. */
 @Composable
 internal fun SpeedbreakerTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     MaterialTheme(
