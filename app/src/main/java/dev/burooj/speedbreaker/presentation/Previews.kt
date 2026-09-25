@@ -1,6 +1,15 @@
 package dev.burooj.speedbreaker.presentation
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import dev.burooj.speedbreaker.presentation.components.Section
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -41,7 +50,6 @@ internal val Gallery: List<GallerySpec> = listOf(
             pauseTokensLeft = 0,
         )
     },
-    GallerySpec("overlay-05-dark", dark = true) { OverlaySample(elapsedMs = 11_000, breathSeconds = 20) },
     GallerySpec("overlay-06-landscape", landscape = true) { OverlaySample(elapsedMs = 11_000, breathSeconds = 20) },
     GallerySpec("overlay-07-large-text", fontScale = 1.6f) { OverlaySample(elapsedMs = 14_000) },
     GallerySpec("overlay-08-reduced-motion-breath") { OverlaySample(elapsedMs = 3_000, motionEnabled = false) },
@@ -90,11 +98,33 @@ internal val Gallery: List<GallerySpec> = listOf(
             )
         }
     },
-    GallerySpec("settings-06-home-dark", dark = true) { Screen { HomeSample(Protection.On, SampleSettings) } },
+    GallerySpec("settings-08-schedule-hours") {
+        Screen {
+            Column(Modifier.safeDrawingPadding().padding(20.dp)) {
+                Section(title = "Schedule") { WeekEditor(SplitWeek, onTransform = {}) }
+            }
+        }
+    },
+    GallerySpec("settings-09-time-picker") { Screen { TimePickerSample(typing = false) } },
+    GallerySpec("settings-10-time-typed") { Screen { TimePickerSample(typing = true) } },
     GallerySpec("settings-07-home-large-text", fontScale = 1.6f) { Screen { HomeSample(Protection.On, SampleSettings) } },
 )
 
 /* ---------- Samples ---------- */
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimePickerSample(typing: Boolean) {
+    val state = rememberTimePickerState(initialHour = 18, initialMinute = 0, is24Hour = false)
+    Column(Modifier.safeDrawingPadding().padding(20.dp)) {
+        Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainerLow) {
+            Column(Modifier.padding(24.dp)) {
+                Text("Until", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(bottom = 16.dp))
+                TimePickerPanel(state, typing = typing, clashes = false, isEnd = true)
+            }
+        }
+    }
+}
 
 @Composable
 private fun OverlaySample(
@@ -184,6 +214,10 @@ private val SampleRedirects = listOf(
     RedirectDestination(MAPS, "Maps"),
 )
 
+private val SplitWeek = WeeklySchedule(
+    (1..5).associateWith { TimeWindow(9 * 60, 17 * 60) } + (6 to TimeWindow(10 * 60, 1440)) + (7 to TimeWindow(10 * 60, 1440)),
+)
+
 private val Weekdays9to5 = WeeklySchedule((1..5).associateWith { TimeWindow(9 * 60, 17 * 60) })
 
 private val SampleSettings = Settings(
@@ -205,42 +239,45 @@ private val SampleSettings = Settings(
 
 /* ---------- Android Studio previews ---------- */
 
+@Composable
+private fun gallery(name: String) = Gallery.first { it.name == name }.content()
+
 @Preview(name = "Overlay · breath", widthDp = 412, heightDp = 915, showBackground = true)
 @Composable
-private fun PreviewOverlayBreath() = Gallery[0].content()
+private fun PreviewOverlayBreath() = gallery("overlay-01-breath")
 
 @Preview(name = "Overlay · choices", widthDp = 412, heightDp = 915, showBackground = true)
 @Composable
-private fun PreviewOverlayChoices() = Gallery[1].content()
+private fun PreviewOverlayChoices() = gallery("overlay-02-choices-waiting")
 
 @Preview(name = "Overlay · landscape", widthDp = 915, heightDp = 412, showBackground = true)
 @Composable
-private fun PreviewOverlayLandscape() = Gallery[5].content()
+private fun PreviewOverlayLandscape() = gallery("overlay-06-landscape")
 
 @Preview(name = "Overlay · large text", widthDp = 412, heightDp = 915, fontScale = 1.6f, showBackground = true)
 @Composable
-private fun PreviewOverlayLargeText() = Gallery[6].content()
+private fun PreviewOverlayLargeText() = gallery("overlay-07-large-text")
 
 @Preview(name = "Welcome", widthDp = 412, heightDp = 915, showBackground = true)
 @Composable
-private fun PreviewWelcome() = Gallery[8].content()
+private fun PreviewWelcome() = gallery("setup-01-welcome")
 
 @Preview(name = "Home · on", widthDp = 412, heightDp = 915, showBackground = true)
 @Composable
-private fun PreviewHomeOn() = Gallery[12].content()
+private fun PreviewHomeOn() = gallery("settings-01-home-on")
 
 @Preview(name = "Home · off", widthDp = 412, heightDp = 915, showBackground = true)
 @Composable
-private fun PreviewHomeOff() = Gallery[9].content()
+private fun PreviewHomeOff() = gallery("setup-02-home-off")
 
 @Preview(name = "Defaults", widthDp = 412, heightDp = 915, showBackground = true)
 @Composable
-private fun PreviewDefaults() = Gallery[14].content()
+private fun PreviewDefaults() = gallery("settings-03-defaults")
 
 @Preview(name = "App", widthDp = 412, heightDp = 915, showBackground = true)
 @Composable
-private fun PreviewApp() = Gallery[15].content()
+private fun PreviewApp() = gallery("settings-04-app")
 
 @Preview(name = "Redirect picker", widthDp = 412, heightDp = 915, showBackground = true)
 @Composable
-private fun PreviewRedirectPicker() = Gallery[16].content()
+private fun PreviewRedirectPicker() = gallery("settings-05-redirect-picker")
