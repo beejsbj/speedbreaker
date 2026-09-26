@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import dev.burooj.speedbreaker.model.AppPolicy
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.presentation.components.AppGlyph
+import dev.burooj.speedbreaker.presentation.components.ConnectedChoice
 import dev.burooj.speedbreaker.presentation.components.NavRow
 import dev.burooj.speedbreaker.presentation.components.Page
 import dev.burooj.speedbreaker.presentation.components.QuietAction
@@ -264,28 +265,10 @@ private fun ValueSlider(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** A mode choice as an Expressive connected button group. */
 @Composable
 private fun ModeSwitch(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(16.dp)) {
-        options.forEachIndexed { index, option ->
-            SegmentedButton(
-                selected = index == selected,
-                onClick = { if (index != selected) onSelect(index) },
-                shape = SegmentedButtonDefaults.itemShape(index, options.size),
-                icon = {},
-                colors = SegmentedButtonDefaults.colors(
-                    activeContainerColor = MaterialTheme.colorScheme.primary,
-                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
-                    activeBorderColor = MaterialTheme.colorScheme.primary,
-                    inactiveContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    inactiveBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                ),
-            ) {
-                Text(option, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-    }
+    ConnectedChoice(options, selected, onSelect, Modifier.padding(16.dp))
 }
 
 /**

@@ -1,4 +1,5 @@
 [versions]
+graphicsShapes = "1.0.1"
 agp = "9.3.0"
 kotlin = "2.3.20"
 coreKtx = "1.16.0"
@@ -10,6 +11,7 @@ robolectric = "4.14"
 roborazzi = "1.7.0"
 
 [libraries]
+androidx-graphics-shapes = { group = "androidx.graphics", name = "graphics-shapes", version.ref = "graphicsShapes" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }

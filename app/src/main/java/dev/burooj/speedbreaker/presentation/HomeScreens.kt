@@ -35,6 +35,7 @@ import dev.burooj.speedbreaker.presentation.components.AppGlyph
 import dev.burooj.speedbreaker.presentation.components.ContentMaxWidth
 import dev.burooj.speedbreaker.presentation.components.Eyebrow
 import dev.burooj.speedbreaker.presentation.components.Glyphs
+import dev.burooj.speedbreaker.presentation.components.MorphingLoader
 import dev.burooj.speedbreaker.presentation.components.NavRow
 import dev.burooj.speedbreaker.presentation.components.Page
 import dev.burooj.speedbreaker.presentation.components.PrimaryAction
@@ -125,8 +126,8 @@ internal fun BreathMark(modifier: Modifier = Modifier) {
 internal fun LoadingScreen() {
     Box(Modifier.fillMaxSize().safeDrawingPadding(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            BreathMark(Modifier.size(56.dp))
-            Spacer(Modifier.height(20.dp))
+            MorphingLoader(size = 56.dp, still = LocalStillBreath.current)
+            Spacer(Modifier.height(24.dp))
             Text(
                 "Opening your settings…",
                 style = MaterialTheme.typography.bodyMedium,
