@@ -73,6 +73,34 @@ These are presentation-level, but they change what a tap does:
 Unchanged and deliberately out of scope: the choice-acknowledgment toast,
 haptics, One Hand Operation compatibility.
 
+## Material 3 Expressive, restrained
+
+Four Expressive behaviors, chosen because they act on feel rather than look:
+
+- **Spring motion** — the standard scheme's springs (`theme/Motion.kt`)
+  replace timed curves for the unlock: the orb draws back on a slow spatial
+  spring, the choices' block springs open, and each idea fades in on an
+  effects spring. Stagger is kept by holding each target back briefly. The
+  bouncier *expressive* scheme is not used. The breath itself stays on its
+  eased 4-second rhythm: it is a breathing pace, not a UI transition.
+- **Press shape morph** — Continue, Leave, Pause, redirect tiles, and the
+  shared actions square off slightly under the finger and spring back.
+  Continue and Leave morph identically.
+- **Connected button groups** replace segmented buttons for mode choices.
+- **Shape-morphing loading indicator** on "Opening your settings…", slow and
+  in ink.
+
+Left out on purpose: morphing the breath orb, a wavy breath ring, dynamic
+color, and hero-scale shapes — each would compete with the breath.
+
+These are built on stable Compose (material3 1.4.0, the version even the
+2026.09 BOM pins). The real Expressive components ship only in material3
+1.5.0-alpha, which would move the whole Compose stack to 1.13.0-alpha01,
+including the overlay that passed phone acceptance. Spring values are
+the published `StandardMotionTokens`. When 1.5 is stable, `MotionScheme`,
+`ButtonGroup`, button `shapes`, and `LoadingIndicator` can replace
+`Expressive.kt` and `Motion.kt` directly.
+
 ## Screenshots
 
 Rendered headlessly from `Previews.kt` by `GalleryScreenshotTest` (Robolectric
@@ -97,6 +125,7 @@ export ANDROID_SDK_ROOT=/usr/lib/android-sdk JAVA_HOME=/usr/lib/jvm/java-17-open
 
 | Setup | |
 |---|---|
+| ![](screenshots/setup-00-loading.png) Loading, mid-morph | |
 | ![](screenshots/setup-01-welcome.png) Welcome | ![](screenshots/setup-02-home-off.png) Accessibility off |
 | ![](screenshots/setup-03-home-ready-no-apps.png) Connected, no apps | ![](screenshots/setup-04-app-picker.png) Choose apps |
 
