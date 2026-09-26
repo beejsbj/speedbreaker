@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -268,7 +269,7 @@ internal fun ToggleRow(
     leading: (@Composable () -> Unit)? = null,
 ) {
     RowFrame(
-        modifier.clickable(role = Role.Switch) { onCheckedChange(!checked) },
+        modifier.toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
         leading,
     ) {
         RowText(title, summary, Modifier.weight(1f))
