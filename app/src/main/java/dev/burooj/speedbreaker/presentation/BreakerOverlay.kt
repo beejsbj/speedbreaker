@@ -21,7 +21,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -47,6 +47,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -69,7 +70,11 @@ import dev.burooj.speedbreaker.enforcement.Choice
 import dev.burooj.speedbreaker.enforcement.Trigger
 import dev.burooj.speedbreaker.presentation.components.AppGlyph
 import dev.burooj.speedbreaker.presentation.components.Eyebrow
+import dev.burooj.speedbreaker.presentation.components.pressShape
+import dev.burooj.speedbreaker.presentation.components.pressShapeDp
+import dev.burooj.speedbreaker.presentation.theme.Motion
 import dev.burooj.speedbreaker.presentation.theme.SpeedbreakerTheme
+import kotlinx.coroutines.delay
 import kotlin.math.ceil
 
 internal data class RedirectDestination(
@@ -269,8 +274,12 @@ private fun PausePill(
         !available -> "Pause needs notifications"
         else -> "Pause 15 min · $tokensLeft left"
     }
+    val interaction = remember { MutableInteractionSource() }
     Surface(
-        shape = CircleShape,
+        onClick = onPause,
+        enabled = enabled,
+        shape = pressShape(interaction),
+        interactionSource = interaction,
         color = if (enabled) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.background,
         contentColor = if (enabled) {
             MaterialTheme.colorScheme.onSurface
@@ -280,8 +289,7 @@ private fun PausePill(
         modifier = Modifier
             .padding(start = 12.dp)
             .widthIn(max = 220.dp)
-            .heightIn(min = 40.dp)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onPause),
+            .heightIn(min = 40.dp),
     ) {
         Box(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), contentAlignment = Alignment.Center) {
             Text(
@@ -300,7 +308,7 @@ private fun PausePill(
 private fun BreathColumn(moment: BreathMoment, layout: OverlayLayout, motionEnabled: Boolean) {
     val orbSize by animateDpAsState(
         targetValue = if (moment.unlocked) layout.openOrb else layout.lockedOrb,
-        animationSpec = if (motionEnabled) tween(900, easing = BreathEasing) else snap(),
+        animationSpec = Motion.orSnap(motionEnabled, Motion.spatialSlow()),
         label = "orb size",
     )
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -336,7 +344,7 @@ private fun BreathCue(moment: BreathMoment, motionEnabled: Boolean) {
     }
     Crossfade(
         targetState = cue,
-        animationSpec = if (motionEnabled) tween(700) else snap(),
+        animationSpec = Motion.orSnap(motionEnabled, Motion.effectsSlow()),
         label = "breath cue",
     ) { text ->
         Text(
@@ -383,7 +391,7 @@ private fun BreathOrb(
     )
     val arcAlpha by animateFloatAsState(
         targetValue = if (breathComplete) 0f else 1f,
-        animationSpec = if (motionEnabled) tween(1_200) else snap(),
+        animationSpec = Motion.orSnap(motionEnabled, Motion.effectsSlow()),
         label = "arc fade",
     )
     val ink = MaterialTheme.colorScheme.onBackground
@@ -439,14 +447,14 @@ private fun Choices(
     motionEnabled: Boolean,
     onChoice: (Choice) -> Unit,
 ) {
-    // The block's height eases open so the orb glides up instead of jumping;
+    // The block's height springs open so the orb glides up instead of jumping;
     // inside it, each idea fades in after the one before.
     val block = remember { MutableTransitionState(moment.unlocked) }
     block.targetState = moment.unlocked
     AnimatedVisibility(
         visibleState = block,
         enter = if (motionEnabled) {
-            expandVertically(tween(900, easing = BreathEasing), expandFrom = Alignment.Top)
+            expandVertically(Motion.spatialSlow(), expandFrom = Alignment.Top)
         } else {
             EnterTransition.None
         },
@@ -517,11 +525,13 @@ private fun ChoiceButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interaction = remember { MutableInteractionSource() }
     Button(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.heightIn(min = 60.dp),
-        shape = CircleShape,
+        shape = pressShape(interaction),
+        interactionSource = interaction,
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
         elevation = null,
         colors = ButtonDefaults.buttonColors(
@@ -546,12 +556,14 @@ private fun RedirectTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interaction = remember { MutableInteractionSource() }
     Surface(
-        shape = MaterialTheme.shapes.medium,
+        onClick = onClick,
+        shape = pressShapeDp(interaction, rest = 20.dp, pressed = 12.dp),
+        interactionSource = interaction,
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = modifier
-            .heightIn(min = 92.dp)
-            .clickable(role = Role.Button, onClickLabel = "Open ${destination.label}", onClick = onClick),
+            .heightIn(min = 92.dp),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 14.dp),
@@ -571,7 +583,10 @@ private fun RedirectTile(
     }
 }
 
-/** Fades (and, with motion on, gently rises) content in after [delayMs]. */
+/**
+ * Fades (and, with motion on, gently rises) content in after [delayMs].
+ * Springs have no built-in delay, so the stagger holds the target back instead.
+ */
 @Composable
 private fun Reveal(
     visible: Boolean,
@@ -582,14 +597,17 @@ private fun Reveal(
     content: @Composable AnimatedVisibilityScope.() -> Unit,
 ) {
     val state = remember { MutableTransitionState(initiallyVisible) }
-    state.targetState = visible
+    val stagger = motionEnabled && !LocalStillBreath.current
+    LaunchedEffect(visible) {
+        if (visible && stagger && !state.currentState) delay(delayMs.toLong())
+        state.targetState = visible
+    }
     val enter = if (!motionEnabled) {
-        fadeIn(tween(200))
+        fadeIn(Motion.effectsFast())
     } else if (rise) {
-        fadeIn(tween(700, delayMs, BreathEasing)) +
-            slideInVertically(tween(700, delayMs, BreathEasing)) { it / 5 }
+        fadeIn(Motion.effectsSlow()) + slideInVertically(Motion.spatial()) { it / 5 }
     } else {
-        fadeIn(tween(700, delayMs, BreathEasing))
+        fadeIn(Motion.effectsSlow())
     }
     AnimatedVisibility(visibleState = state, enter = enter, content = content)
 }
