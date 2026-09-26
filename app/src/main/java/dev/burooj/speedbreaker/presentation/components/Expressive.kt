@@ -115,7 +115,7 @@ internal fun ConnectedChoice(
             val pressed by interaction.collectIsPressedAsState()
             val outer = 50f
             val inner = when {
-                pressed -> 16f
+                pressed -> 8f
                 chosen -> 50f
                 else -> 12f
             }

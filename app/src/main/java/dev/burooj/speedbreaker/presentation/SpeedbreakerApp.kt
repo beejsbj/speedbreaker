@@ -20,11 +20,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.burooj.speedbreaker.observation.PauseNotifications
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.observation.ServiceStatus
 import dev.burooj.speedbreaker.persistence.SpeedbreakerRepository
@@ -52,7 +52,8 @@ internal fun SpeedbreakerApp() {
         ) { resumeTick++ }
         val accessibilityEnabled = remember(resumeTick) { ServiceStatus.isEnabled(context) }
         val notificationsAllowed = remember(resumeTick) {
-            NotificationManagerCompat.from(context).areNotificationsEnabled()
+            // Same test the service uses, so a muted Pause channel isn't reported as allowed.
+            PauseNotifications(context).isAvailable()
         }
         val launchableApps = remember(context, route, redirectRequest) {
             if (route == Route.Apps || redirectRequest != null) discoverApps(context) else emptyList()

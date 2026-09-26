@@ -2,6 +2,7 @@ package dev.burooj.speedbreaker.presentation
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -263,7 +264,7 @@ private fun LazyListScope.appRows(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(enabled = enabled, role = Role.Checkbox) { onToggle(app) }
+                .toggleable(value = checked, enabled = enabled, role = Role.Checkbox) { onToggle(app) }
                 .heightIn(min = 64.dp)
                 .padding(horizontal = 24.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,

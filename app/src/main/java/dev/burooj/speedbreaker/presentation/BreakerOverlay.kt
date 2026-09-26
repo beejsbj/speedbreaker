@@ -49,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -99,7 +100,7 @@ internal fun BreakerOverlay(
     redirects: List<RedirectDestination>,
     motionEnabled: Boolean,
     onChoice: (Choice) -> Unit,
-) {
+) = key(breaker.packageName, breaker.startedElapsedMs) {
     val elapsedMs = (nowElapsedMs - breaker.startedElapsedMs).coerceAtLeast(0L)
     val breathTotalMs = breaker.breathSeconds * 1_000L
     val moment = BreathMoment(
