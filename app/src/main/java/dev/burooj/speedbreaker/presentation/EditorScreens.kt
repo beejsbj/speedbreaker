@@ -165,7 +165,7 @@ internal fun AppSettingsScreen(
                                 0 -> null
                                 1 -> allDaySchedule()
                                 else -> current.schedule?.takeUnless(::isAllDay)
-                                    ?: settings.schedule
+                                    ?: settings.schedule?.takeUnless(::isAllDay)
                                     ?: startingSchedule()
                             },
                         )
