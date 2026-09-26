@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -563,7 +564,8 @@ private fun RedirectTile(
         interactionSource = interaction,
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = modifier
-            .heightIn(min = 92.dp),
+            .heightIn(min = 92.dp)
+            .semantics { onClick(label = "Open ${destination.label}") { onClick(); true } },
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 14.dp),
