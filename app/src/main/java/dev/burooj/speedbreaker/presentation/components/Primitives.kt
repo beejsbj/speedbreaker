@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -331,11 +332,13 @@ internal fun PrimaryAction(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val interaction = remember { MutableInteractionSource() }
     Button(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.heightIn(min = 56.dp),
-        shape = CircleShape,
+        shape = pressShape(interaction),
+        interactionSource = interaction,
         contentPadding = PaddingValues(horizontal = 28.dp, vertical = 14.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
@@ -356,11 +359,13 @@ internal fun QuietAction(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val interaction = remember { MutableInteractionSource() }
     Button(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.heightIn(min = 48.dp),
-        shape = CircleShape,
+        shape = pressShape(interaction),
+        interactionSource = interaction,
         contentPadding = PaddingValues(horizontal = 22.dp, vertical = 12.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
