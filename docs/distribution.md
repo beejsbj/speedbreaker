@@ -7,7 +7,7 @@ work; the native iOS feasibility prototype remains saved.
 
 See [the current evidence and blockers](store/status.md),
 [Google Play submission packet](store/google-play.md),
-[F-Droid inclusion record](store/fdroid.md), and [native iOS prototype](../ios/README.md).
+[F-Droid inclusion record](store/fdroid.md), and [retained native iOS prototype](https://github.com/beejsbj/speedbreaker/tree/release/ios-feasibility/ios).
 The deployed [privacy policy](https://beejsbj.github.io/speedbreaker/privacy.html)
 and [support page](https://beejsbj.github.io/speedbreaker/support.html) are public.
 
