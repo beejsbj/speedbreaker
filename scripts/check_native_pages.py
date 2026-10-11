@@ -25,6 +25,14 @@ def require(condition, message):
         raise RuntimeError(message)
 
 
+def zip_data_offset(apk_path, entry):
+    with apk_path.open('rb') as source:
+        source.seek(entry.header_offset)
+        local = source.read(30)
+    name_size, extra_size = struct.unpack_from('<HH', local, 26)
+    return entry.header_offset + 30 + name_size + extra_size
+
+
 class Audit:
     def __init__(self, args):
         self.args = args
@@ -90,11 +98,7 @@ class Audit:
                 abi = entry.filename.split('/')[1]
                 loads = [s for s in segments if s['type'] == 'LOAD']
                 load_pass = bool(loads) and all(int(s['alignment'], 16) >= 16384 for s in loads)
-                with self.args.apk.open('rb') as source:
-                    source.seek(entry.header_offset)
-                    local = source.read(30)
-                name_size, extra_size = struct.unpack_from('<HH', local, 26)
-                zip_offset = entry.header_offset + 30 + name_size + extra_size
+                zip_offset = zip_data_offset(self.args.apk, entry)
                 target = self.output / 'elf' / entry.filename
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(data)
@@ -151,7 +155,11 @@ class Audit:
         self.adb('install', '-r', str(self.args.apk))
         self.adb('install', '-r', str(self.args.fixture))
         self.adb('shell', 'pm', 'clear', PACKAGE)
+        with zipfile.ZipFile(self.args.apk) as apk:
+            native_offset = zip_data_offset(self.args.apk, apk.getinfo('lib/x86_64/' + LIBRARY))
+        self.report['native_zip_offset'] = native_offset
         instrumentation = self.adb('shell', 'am', 'instrument', '-w', '-r',
+                                   '-e', 'native_zip_offset', str(native_offset),
                                    'dev.burooj.speedbreaker.fixture/.PageSizeRegression', timeout=180)
         (self.output / 'instrumentation.txt').write_text(instrumentation + '\n')
         # Collect Java failure evidence before interpreting am's result (its exit code is insufficient).
@@ -165,7 +173,16 @@ class Audit:
         self.report['instrumentation'] = evidence
         require(evidence['result'] == 'PASS' and evidence['page_size'] == 16384
                 and evidence['native_library_mapped'], 'Incomplete native evidence')
-        require(LIBRARY in maps and ('/data/app/' in maps), 'Missing target APK library mapping')
+        mapped = False
+        for line in maps.splitlines():
+            columns = line.split(maxsplit=5)
+            if len(columns) != 6 or 'x' not in columns[1]:
+                continue
+            if ((columns[5] == evidence['source_apk'] and int(columns[2], 16) == native_offset)
+                    or columns[5] == evidence['native_library_dir'] + '/' + LIBRARY):
+                mapped = True
+        require(mapped and evidence['native_zip_offset'] == native_offset,
+                'Missing executable target-library mapping at audited APK offset')
         for key in ('public_iterator', 'native_conic_iterator'):
             require(evidence[key]['segments'] > 0 and evidence[key]['cubics'] > 0
                     and evidence[key]['finite_coordinates'], 'Missing finite cubic iteration')

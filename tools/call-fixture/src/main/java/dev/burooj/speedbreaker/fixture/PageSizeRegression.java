@@ -19,8 +19,10 @@ import java.util.Arrays;
 
 /** Runs inside the product process using its APK classes and native libraries. */
 public final class PageSizeRegression extends Instrumentation {
+    private long nativeZipOffset;
     @Override public void onCreate(Bundle arguments) {
         super.onCreate(arguments);
+        nativeZipOffset = Long.parseLong(arguments.getString("native_zip_offset", "-1"));
         start();
     }
 
@@ -33,6 +35,9 @@ public final class PageSizeRegression extends Instrumentation {
             long pageSize = Os.sysconf(OsConstants._SC_PAGESIZE);
             evidence.put("page_size", pageSize).put("pid", Process.myPid())
                     .put("source_apk", getTargetContext().getApplicationInfo().sourceDir);
+            require(nativeZipOffset >= 0, "Missing audited native ZIP offset");
+            evidence.put("native_zip_offset", nativeZipOffset)
+                    .put("native_library_dir", getTargetContext().getApplicationInfo().nativeLibraryDir);
             require(pageSize == 16384, "Target process is not on 16 KB pages");
             ClassLoader loader = getTargetContext().getClassLoader();
             Class<?> iteratorClass = loader.loadClass("androidx.graphics.path.PathIterator");
@@ -58,7 +63,23 @@ public final class PageSizeRegression extends Instrumentation {
                     StandardCharsets.UTF_8);
             Files.write(new File(directory, "native-pages-maps.txt").toPath(),
                     maps.getBytes(StandardCharsets.UTF_8));
-            require(maps.contains("libandroidx.graphics.path.so"), "Target native library not mapped");
+            // Direct APK mappings name base.apk, not its embedded .so. Match the
+            // audited ZIP data offset plus target source APK and executable permissions.
+            String sourceApk = getTargetContext().getApplicationInfo().sourceDir;
+            String extracted = getTargetContext().getApplicationInfo().nativeLibraryDir
+                    + "/libandroidx.graphics.path.so";
+            boolean mapped = false;
+            for (String line : maps.split("\n")) {
+                String[] columns = line.trim().split("\\s+", 6);
+                if (columns.length != 6 || !columns[1].contains("x")) continue;
+                if ((columns[5].equals(sourceApk)
+                        && Long.parseLong(columns[2], 16) == nativeZipOffset)
+                        || columns[5].equals(extracted)) {
+                    mapped = true;
+                    evidence.put("native_executable_mapping", line);
+                }
+            }
+            require(mapped, "Target native library not mapped at audited APK offset");
             evidence.put("native_library_mapped", true);
             evidence.put("public_iterator", iterate(raw, iteratorClass, true));
             evidence.put("stage", "native_conic_conversion")
