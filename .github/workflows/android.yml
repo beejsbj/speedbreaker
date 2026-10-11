@@ -77,13 +77,12 @@ jobs:
       - name: Collect POM licenses and verify final APK manifest
         env:
           CHANNEL: ${{ matrix.channel }}
-          AAPT: ${{ env.ANDROID_HOME }}/build-tools/36.0.0/aapt
         run: |
           python3 scripts/store_inventory.py collect --dependencies "app/build/store-inventory/$CHANNEL/dependencies.json" --output "app/build/store-inventory/$CHANNEL"
           if [ "$CHANNEL" = play ]; then
-            python3 scripts/store_inventory.py verify --channel "$CHANNEL" --apk "app/build/outputs/apk/$CHANNEL/release/app-$CHANNEL-release-unsigned.apk" --aab app/build/outputs/bundle/playRelease/app-play-release.aab --aapt "$AAPT" --output "app/build/store-inventory/$CHANNEL"
+            python3 scripts/store_inventory.py verify --channel "$CHANNEL" --apk "app/build/outputs/apk/$CHANNEL/release/app-$CHANNEL-release-unsigned.apk" --aab app/build/outputs/bundle/playRelease/app-play-release.aab --aapt "$ANDROID_HOME/build-tools/36.0.0/aapt" --output "app/build/store-inventory/$CHANNEL"
           else
-            python3 scripts/store_inventory.py verify --channel "$CHANNEL" --apk "app/build/outputs/apk/$CHANNEL/release/app-$CHANNEL-release-unsigned.apk" --aapt "$AAPT" --output "app/build/store-inventory/$CHANNEL"
+            python3 scripts/store_inventory.py verify --channel "$CHANNEL" --apk "app/build/outputs/apk/$CHANNEL/release/app-$CHANNEL-release-unsigned.apk" --aapt "$ANDROID_HOME/build-tools/36.0.0/aapt" --output "app/build/store-inventory/$CHANNEL"
           fi
       - name: Preserve inventory and manifest evidence
         if: always()
