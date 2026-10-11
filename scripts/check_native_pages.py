@@ -157,9 +157,13 @@ class Audit:
         require(evidence['result'] == 'PASS' and evidence['page_size'] == 16384
                 and evidence['native_library_mapped'], 'Incomplete native evidence')
         require(LIBRARY in maps and ('/data/app/' in maps), 'Missing target APK library mapping')
-        for key in ('public_iterator', 'forced_jni_iterator'):
+        for key in ('public_iterator', 'native_conic_iterator'):
             require(evidence[key]['segments'] > 0 and evidence[key]['cubics'] > 0
                     and evidence[key]['finite_coordinates'], 'Missing finite cubic iteration')
+        require(evidence['public_iterator']['conics'] > 0
+                and evidence['native_conic_iterator']['conics'] == 0
+                and evidence['native_conic_iterator']['quadratics'] > 0,
+                'Supported JNI conic conversion was not exercised')
         self.adb('shell', 'am', 'force-stop', PACKAGE)
         launch = self.adb('shell', 'am', 'start', '-W', '-n', PACKAGE + '/.MainActivity')
         require('Status: ok' in launch, 'App launch failed')
