@@ -34,6 +34,10 @@ internal class PlayTipsModel(application: Application) : AndroidViewModel(applic
     private val billing = PlayTipBilling(application,
         onPurchases = { code, purchases ->
             viewModelScope.launch {
+                // A replayed old success callback must not release a newer checkout's lock.
+                if (code == BillingResponseCode.OK && purchases.isNotEmpty() &&
+                    purchases.all { ledger.alreadyHandled(it.purchaseToken) }
+                ) return@launch
                 ledger.billingReturned()
                 when (code) {
                     BillingResponseCode.OK -> process(purchases)

@@ -28,6 +28,8 @@ internal class TipLedger {
         if (awaitingPlayReturn) checkoutReturned()
     }
 
+    fun alreadyHandled(token: String): Boolean = token in handled
+
     fun pending(token: String) { unresolved.add(token) }
 
     fun beginConsume(token: String): Boolean {
