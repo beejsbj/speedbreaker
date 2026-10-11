@@ -1,9 +1,27 @@
 name: Android 16 KB native pages
 
 on:
-  # Isolated registration/test trigger. Root may add PR/main path filters on integration.
   push:
-    branches: [release/native-pages]
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - 'gradlew*'
+      - 'scripts/check_native_pages.py'
+      - 'tools/call-fixture/**'
+      - '.github/workflows/android-pages.yml'
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - 'gradlew*'
+      - 'scripts/check_native_pages.py'
+      - 'tools/call-fixture/**'
+      - '.github/workflows/android-pages.yml'
   workflow_dispatch:
 
 permissions:
