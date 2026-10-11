@@ -80,3 +80,10 @@ Owner retains Android8 on F-Droid and waits for valid-key-rotation support; no
 signing replacement. Owner abandoned Apple Developer/App Store path; preserve
 compiled native prototype without promising iOS parity. GooglePlay account
 enrollment/publicmailbox/external-tipdestination/signing/Testtrack prerequisites pending.
+
+On October 11 the owner supplied a Play Console registration-success screenshot:
+developer account created and registration payment completed. This clears
+enrollment/payment; it does not establish identity approval, app submission or
+agent Console access. Keep the personal receipt email out of public store
+contact fields unless the owner explicitly chooses it. Private screenshot is
+not a public artifact.

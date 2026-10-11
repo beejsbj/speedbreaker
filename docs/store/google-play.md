@@ -144,9 +144,7 @@ A CI run does not start this clock or replace real testers.
 
 ## Exact access dependencies
 
-Burooj must enroll at https://play.google.com/console/signup (US$25 once), supply
-identity/payment facts in Google's UI, and provide authenticated Console access.
-No account was found. Then create the app, supply the public email and actual legal/audience facts,
+Burooj supplied a Google Play registration-success screenshot on October 11: developer account created and registration payment completed. This is owner-provided account evidence, not an app submission or verification approval. Authenticated Console access is being checked; account type and outstanding verification/testing requirements are unverified. Then create the app, supply the public email and actual legal/audience facts,
 and complete declarations and signing with the account. The separate external
 tip provider needs its own payment/legal setup and verified public destination;
 no Play merchant product catalog or licensing key is required for this build. All technical preparation remains authorized; no new
