@@ -242,7 +242,9 @@ class Demo:
             # untouchable cutout/edge area on hosted API 35.
             self.shell("input", "swipe", "300", "90", "300", "1650", "350")
         elif direction == "expand_shade":
-            self.shell("input", "swipe", "530", "380", "530", "1650", "350")
+            # The first pull exposes QS tiles at y=128..465. Starting the
+            # second pull inside a tile leaves the partial shade unchanged.
+            self.shell("input", "swipe", "300", "90", "300", "1650", "350")
         else:
             raise ValueError(direction)
         time.sleep(.35)
