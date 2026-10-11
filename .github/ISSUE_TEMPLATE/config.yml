@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Setup and troubleshooting
+    url: https://github.com/beejsbj/speedbreaker/blob/main/docs/getting-started.md
+    about: Installation, Accessibility, notifications, schedules, and recovery.
+  - name: Report a security vulnerability privately
+    url: https://github.com/beejsbj/speedbreaker/security/advisories/new
+    about: Use private reporting for vulnerabilities or exposed credentials.

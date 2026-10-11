@@ -1,46 +1,101 @@
-# Build and verify on bjslab
+# Build and test
 
-Use Java 17 and the shared Android SDK. Run these commands sequentially from
-the production worktree; never run multiple Gradle processes concurrently.
+The production Android app is in `app/`. Use the Gradle wrapper at the repository
+root; `reference/ai-studio/` contains an older prototype, not the production build.
+
+## Prerequisites
+
+- **Git** to clone the repository.
+- **Java 17**, with `JAVA_HOME` pointing to your JDK installation.
+- **Android SDK Platform 35**, plus Android SDK Build Tools and Platform Tools.
+- The repository's **Gradle wrapper** (`./gradlew`, or `gradlew.bat` on Windows).
+- Network access for the first dependency download.
+
+Clone the repository and enter its root:
 
 ```sh
-export ANDROID_SDK_ROOT=/usr/lib/android-sdk
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-./gradlew assembleDebug testDebugUnitTest --no-daemon --no-configuration-cache --max-workers=1
+git clone https://github.com/beejsbj/speedbreaker.git
+cd speedbreaker
+```
+
+Set `ANDROID_SDK_ROOT` to your local Android SDK directory, or let Android Studio
+write `sdk.dir` into an untracked `local.properties`. Select JDK 17 as the Gradle
+JDK when using Android Studio. SDK paths vary by machine; do not commit yours.
+The app compiles against and targets API 35, with a minimum device API of 26
+(Android 8.0).
+
+## Debug build, tests, and lint
+
+Run these commands **one at a time** from the repository root. The single-worker
+setting limits resource contention. Compilation, tests, and lint are separate
+processes because combined runs previously caused substantial memory pressure.
+
+```sh
+./gradlew assembleDebug --no-daemon --no-configuration-cache --max-workers=1
+./gradlew testDebugUnitTest --no-daemon --no-configuration-cache --max-workers=1
 ./gradlew lintDebug --no-daemon --no-configuration-cache --max-workers=1 \
   '-Dorg.gradle.jvmargs=-Xmx1g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8'
 ```
 
-Run lint in its own process. Combining compilation, tests, and lint retained
-enough compiler classes to exhaust the 512 MiB metaspace budget during the
-September 19 validation and contributed to host memory pressure. The separate
-lint invocation passed in 2 minutes 20 seconds with a 1 GiB heap.
+The project configures a 2 GiB Gradle heap and a separate test JVM with up to
+2 GiB. Allow additional memory for the Android toolchain and operating system.
+Avoid concurrent Gradle builds on a resource-constrained machine.
 
-The APK is `app/build/outputs/apk/debug/app-debug.apk`. Before transferring it,
-verify its signature with the SDK's `apksigner verify` and record its SHA-256.
-Unit reports are under `app/build/test-results/testDebugUnitTest`; lint reports
-are under `app/build/reports/`. Generated APKs and Kotlin caches stay untracked.
+| Output | Location |
+| --- | --- |
+| Debug APK | `app/build/outputs/apk/debug/app-debug.apk` |
+| Unit test results | `app/build/test-results/testDebugUnitTest/` |
+| Test HTML report | `app/build/reports/tests/testDebugUnitTest/index.html` |
+| Lint reports | `app/build/reports/` |
 
-Phone validation follows `device-acceptance.md`. A successful build and test
-suite do not establish that Samsung's windows, gestures, calls, or background
-management behave as expected.
+The tests include pure enforcement and persistence tests and Robolectric/Compose
+UI checks; this command does not require a physical phone. **The gallery test
+renders directly into tracked `docs/design/screenshots/` files.** Review
+`git status` after tests and keep only intentional screenshot changes.
 
-For repeated phone MCP calls, reuse the initialized session within a sequence
-and send authenticated `DELETE /mcp` with its `Mcp-Session-Id` when finished,
-including error exits. Closing an HTTP connection alone does not release the
-MCP session. The phone server's [v1.11.1 transport](https://github.com/danielealbano/android-remote-control-mcp/blob/v1.11.1/app/src/main/kotlin/com/danielealbano/androidremotecontrolmcp/mcp/McpStreamableHttpExtension.kt)
-caps sessions at 100 and retains idle sessions for seven days. Omitting cleanup
-exhausted that limit during September 20 testing and required an owner-operated
-server restart. The task-scoped Python helper now closes sessions on exit.
+For a focused engine check:
 
-## Release builds on the shared host
+```sh
+./gradlew testDebugUnitTest --tests '*EnforcementEngineTest*' \
+  --no-daemon --no-configuration-cache --max-workers=1
+```
 
-Build `assembleRelease` and run `testDebugUnitTest` in separate Gradle
-processes. The first release DEX compilation retained enough compiler state
-to make the combined release/test run take 29 minutes under host memory
-pressure on October 11. The suite ultimately passed, but this is avoidable
-resource contention. Keep the same single-worker/1 GiB heap limits and run
-`lintRelease` separately. Do not launch concurrent Gradle processes.
+To regenerate the gallery deliberately:
 
-Package the resulting release using [release signing](release.md). The
-non-debuggable release does not include Compose's debug tooling.
+```sh
+./gradlew testDebugUnitTest --tests '*GalleryScreenshotTest*' \
+  --no-daemon --no-configuration-cache --max-workers=1
+```
+
+The gallery uses sample settings and monogram app icons. See the
+[UI notes](design/calm-ui.md#screenshots) for its capture setup.
+
+## Try a development build
+
+Open the debug APK on a test phone or install it through Android Studio. Follow
+[Getting started](getting-started.md) to enable Accessibility and choose a
+harmless test target, such as Calculator. The package ID is
+`dev.burooj.speedbreaker` for both debug and release builds.
+
+Your local debug signing key may differ from the published release's signing
+identity. Android may therefore refuse an in-place update between them. Use a
+test device or emulator with no existing installation where practical;
+uninstalling an existing copy removes its local data.
+
+Automated tests do not verify a manufacturer's navigation, incoming calls,
+reboot recovery, or battery management. The [device acceptance matrix](device-acceptance.md)
+is a historical test checklist; report which cases you actually checked on your
+build. The [October 11 release record](reviews/2026-10-11-release.md) identifies
+what was verified on 1.0.0. Older observations are not evidence for a new build.
+
+## Release builds
+
+For release validation, run `assembleRelease` and `lintRelease` separately,
+using the same process and worker flags above, and run `testDebugUnitTest` in
+its own invocation. The release variant excludes Compose debug tooling.
+
+The repository does not contain private release keys. An `assembleRelease`
+output alone is not the signed APK distributed to users. Maintainer packaging
+and signing are documented in [release.md](release.md); contributors do not need
+those credentials to build and test the debug app. Generated APKs, local SDK
+configuration, dependency caches, and signing credentials should stay untracked.
