@@ -95,9 +95,10 @@ Access, or separate “display over other apps” permission. Android backup and
 device transfer of app data are disabled in its configuration.
 [Read the full privacy details](docs/privacy.md).
 
-The 1.0.1 candidate was checked on a Samsung Galaxy S23+: opening pauses,
+Version 1.0.1 was checked on a Samsung Galaxy S23+: opening pauses,
 Phone permission setup, a silent incoming call during the initial lock, and
-ending a pause after swiping away its notification. Android API 35 emulator
+ending a pause after swiping away its notification, real redirect icons, and
+opening the optional support link. Android API 35 emulator
 checks also cover audible/silent calls, touching Answer, ordinary navigation,
 and a fresh breath after the call ends. See the
 [verification record](docs/reviews/2026-10-11-1.0.1.md) for precise scope.

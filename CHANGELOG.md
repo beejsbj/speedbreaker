@@ -19,8 +19,8 @@ Version code: **5**.
 - Add an optional Buy Me a Coffee link at the bottom of Home. Support does not
   unlock features, and no payment SDK or Internet permission is added.
 
-The candidate passed 71 automated tests and release lint (zero errors, 31
-warnings), plus real API 35 emulator call/navigation checks. On a Samsung Galaxy
+The final build passed 71 automated tests and release lint (zero errors, 32
+warnings). The call fix also passed real API 35 emulator call/navigation checks. On a Samsung Galaxy
 S23+, a silent incoming call interrupted the opening lock and the in-app End now
 control worked after the pause notification was swiped away. See the
 [1.0.1 verification record](docs/reviews/2026-10-11-1.0.1.md).
