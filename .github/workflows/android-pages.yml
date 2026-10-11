@@ -26,10 +26,15 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
+      - name: Install emulator shared library on hosted runner
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpulse0
       - name: Install build and explicit 16 KB emulator SDK
         run: |
           mkdir -p build/native-pages
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "platforms;android-36" "build-tools;36.0.0" "emulator" "system-images;android-36;google_apis_ps16k;x86_64" 2>&1 | tee build/native-pages/sdk-install.txt
+          "$ANDROID_HOME/emulator/emulator" -version > build/native-pages/emulator-version.txt 2>&1
       - name: Build Play debug app and opt-in fixture with shared debug key
         run: ./gradlew -PcallFixture=true :app:assemblePlayDebug :call-fixture:assembleDebug --no-daemon --no-configuration-cache --max-workers=2
       - name: Record static ELF, literal RELRO formula, and APK ZIP alignment
@@ -45,7 +50,6 @@ jobs:
           mkdir -p "$ANDROID_AVD_HOME"
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd --force --name native-pages-ci --path "$ANDROID_AVD_HOME/native-pages-ci.avd" --package 'system-images;android-36;google_apis_ps16k;x86_64' --device pixel_6
           cat "$ANDROID_AVD_HOME/native-pages-ci.avd/config.ini" > build/native-pages/avd-config.ini
-          "$ANDROID_HOME/emulator/emulator" -version > build/native-pages/emulator-version.txt 2>&1
           nohup "$ANDROID_HOME/emulator/emulator" -avd native-pages-ci -port 5554 -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none > build/native-pages/emulator.txt 2>&1 &
           timeout 90 "$ANDROID_HOME/platform-tools/adb" -s emulator-5554 wait-for-device
           for attempt in $(seq 1 120); do
