@@ -50,3 +50,11 @@ Burooj accepts One Hand Operation+ being unavailable while the overlay is
 visible. He configures his own targets and alternatives. The October 11 delivery
 is a signed, shareable release; a personal full-day verdict is subsequent use.
 Linear is the workflow record; device evidence lives in docs/reviews/.
+
+The subsequent public-review pass published the same APK as a **testing
+prerelease**, not stable. Incoming-call handling [GitHub #6](https://github.com/beejsbj/speedbreaker/issues/6)
+blocks stable release; [#4](https://github.com/beejsbj/speedbreaker/issues/4) and
+[#5](https://github.com/beejsbj/speedbreaker/issues/5) track settings cancellation
+and pause notification defects. These GitHub issues own the review follow-up.
+See [the publication receipt](docs/reviews/2026-10-11-publication.md) and
+[distribution guide](docs/distribution.md) before continuing release work.

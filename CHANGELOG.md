@@ -1,10 +1,16 @@
 # Changelog
 
-## 1.0.0 — initial sideload release build
+## 1.0.0 — testing prerelease
 
 Version code: **3**. Installed-release verification: **October 11, 2026**.
 Public APK availability is listed on
 [GitHub Releases](https://github.com/beejsbj/speedbreaker/releases).
+
+Independent publication review identified [incoming-call handling #6](https://github.com/beejsbj/speedbreaker/issues/6)
+as a stable-release blocker, plus [settings cancellation #4](https://github.com/beejsbj/speedbreaker/issues/4)
+and [pause notification dismissal #5](https://github.com/beejsbj/speedbreaker/issues/5).
+These findings remain open in this APK. See the
+[publication review](docs/reviews/2026-10-11-publication.md).
 
 ### Included
 
@@ -23,7 +29,7 @@ Public APK availability is listed on
 - Local settings and pause state, without accounts, analytics, usage history,
   or cloud sync.
 
-### Final release corrections
+### Corrections included in this build
 
 - Choice controls become usable at eight seconds without an extra entrance
   animation delay.
