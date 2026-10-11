@@ -3,6 +3,7 @@ package dev.burooj.speedbreaker.presentation
 import android.Manifest
 import android.app.NotificationManager
 import android.content.Intent
+import android.os.Looper
 import android.text.format.DateFormat
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -36,11 +38,13 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.annotation.LooperMode
 import java.time.LocalDate
 import java.util.Date
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
+@LooperMode(LooperMode.Mode.PAUSED)
 @Config(sdk = [34], qualifiers = "w412dp-h915dp-xxhdpi")
 class PauseControlsTest {
     @get:Rule val compose = createComposeRule()
@@ -81,7 +85,7 @@ class PauseControlsTest {
             .assertIsDisplayed()
         compose.onNodeWithContentDescription("End pause for First app")
             .assertIsDisplayed().assertIsEnabled().performClick()
-        compose.waitUntil(10_000) { repository.pauses.value[firstApp]?.untilEpochMs == 0L }
+        awaitPauseEnded(repository, firstApp)
         compose.onNodeWithContentDescription("End pause for First app").assertDoesNotExist()
         compose.onNodeWithText("ACTIVE PAUSES").assertDoesNotExist()
         assertEquals(pause.copy(untilEpochMs = 0), repository.pauses.value[firstApp])
@@ -104,13 +108,13 @@ class PauseControlsTest {
             .performScrollTo().assertIsDisplayed().assertIsEnabled()
         compose.onNodeWithContentDescription("End pause for First app")
             .performScrollTo().performClick()
-        compose.waitUntil(10_000) { repository.pauses.value[firstApp]?.untilEpochMs == 0L }
+        awaitPauseEnded(repository, firstApp)
         assertEquals(first.copy(untilEpochMs = 0), repository.pauses.value[firstApp])
         assertEquals(second, repository.pauses.value[secondApp])
         compose.onNodeWithContentDescription("End pause for First app").assertDoesNotExist()
         compose.onNodeWithContentDescription("End pause for Second app")
             .performScrollTo().assertIsDisplayed().performClick()
-        compose.waitUntil(10_000) { repository.pauses.value[secondApp]?.untilEpochMs == 0L }
+        awaitPauseEnded(repository, secondApp)
         assertEquals(second.copy(untilEpochMs = 0), repository.pauses.value[secondApp])
         compose.onNodeWithText("ACTIVE PAUSES").assertDoesNotExist()
     }
@@ -163,6 +167,17 @@ class PauseControlsTest {
         // A genuinely new pause can post its own notification.
         notifications.reconcile(mapOf(firstApp to pause.copy(untilEpochMs = pause.untilEpochMs + 900_000)), pause.untilEpochMs)
         assertEquals(1, manager.activeNotifications.size)
+    }
+
+    private fun awaitPauseEnded(repository: SpeedbreakerRepository, packageName: String) {
+        compose.waitUntil(10_000) {
+            // sendBroadcast queues the real manifest receiver on Android's main looper.
+            // Compose's waitUntil advances its own clock, not this paused looper. Drain
+            // ready work without advancing wall time, then let the receiver's IO write finish.
+            shadowOf(Looper.getMainLooper()).idle()
+            assertNull("Ending $packageName failed to persist", repository.error.value)
+            repository.pauses.value[packageName]?.untilEpochMs == 0L
+        }
     }
 
     private fun seed(pauses: Map<String, PauseState>): SpeedbreakerRepository {
