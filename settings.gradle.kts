@@ -27,3 +27,9 @@ dependencyResolutionManagement {
 rootProject.name = "speedbreaker"
 
 include(":app")
+
+// Opt-in emulator regression fixture; never part of the product/release build.
+if (providers.gradleProperty("callFixture").orNull == "true") {
+    include(":call-fixture")
+    project(":call-fixture").projectDir = file("tools/call-fixture")
+}
