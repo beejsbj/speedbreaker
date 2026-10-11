@@ -517,7 +517,9 @@ class Demo:
         self.require(self.visible("Always on"), "all-hours default displayed")
         self.screenshot("defaults.png")
         self.listing_jpeg("03-defaults.jpg")
-        self.tap("Back")
+        self.shell("input", "keyevent", "KEYCODE_BACK")
+        self.find("Speedbreaker test target")
+        self.mark("defaults_returned_home_via_back")
 
     def exercise_overlay(self):
         self.wait_service_bound()
