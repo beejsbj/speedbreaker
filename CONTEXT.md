@@ -78,8 +78,10 @@ Stable1.0.1 remains unchanged. Public privacy/support Pages deployed. Historical
 APK signature-copy reproduction passed hostedCI38157458089, not F-Droid server.
 Owner retains Android8 on F-Droid and waits for valid-key-rotation support; no
 signing replacement. Owner abandoned Apple Developer/App Store path; preserve
-compiled native prototype without promising iOS parity. GooglePlay account
-enrollment/publicmailbox/external-tipdestination/signing/Testtrack prerequisites pending.
+compiled native prototype without promising iOS parity. Google Play public
+mailbox, external-tip destination, signing and test-track prerequisites remain
+pending. Enrollment and payment are complete; authenticated Mac Chrome shows
+identity verification pending and app creation disabled.
 
 On October 11 the owner supplied a Play Console registration-success screenshot:
 developer account created and registration payment completed. This clears

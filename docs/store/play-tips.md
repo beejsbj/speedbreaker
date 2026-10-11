@@ -54,4 +54,25 @@ No verified Ko-fi/Stripe/PayPal tip destination was supplied. The owner must
 create/configure the payment profile and supply the public URL, currency and
 legal/payment facts in the provider's UI. No password or private key belongs in
 chat, source, CI or artifacts. The dedicated public support email is also pending.
-Google Play enrollment remains required for actual submission and support access.
+The Google Play account is enrolled and paid. Identity verification is pending;
+app creation is currently disabled. Actual support-case access and submission
+still need the authenticated account's available controls.
+
+## Prepared policy clarification request
+
+This is a draft for the authenticated developer support form, **not sent**:
+
+> Speedbreaker is a free attention aid. All features are free, with no ads,
+> subscription, paid content, rewards or digital benefits. We would like to open
+> an optional external one-time tip page in the user's browser. The provider
+> charges no platform commission; PayPal or Stripe still deducts its ordinary
+> payment-processing fee. The app receives no purchase information and includes
+> no payment SDK. Does this qualify for your direct-tip exception requiring 100%
+> of the contribution to reach the creator, or do processing deductions make it
+> ineligible? If ineligible, does a checkout where the sender separately covers
+> the processor fee qualify, provided the declared tip reaches the creator in
+> full and grants no digital benefit?
+
+Attach the actual configured checkout and fee receipts when they exist. Record
+the case ID and Google's answer before claiming eligibility. Do not treat this
+draft, an unsent message or a provider's zero-commission page as approval.

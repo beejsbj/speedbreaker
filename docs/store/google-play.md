@@ -135,6 +135,29 @@ choice and configured app-signing certificate must be recorded and compared with
 the public fingerprints before the first distribution. A new app account is not
 proof this compatibility is solved.
 
+### Prepared signing support question
+
+**Draft, not sent.** The current [official signing guide](https://support.google.com/googleplay/android-developer/answer/9842756?hl=en),
+checked October 11, defaults new apps to Google-generated signing keys. It offers
+an existing-key change before open testing or production. It does not establish
+that Speedbreaker's existing Android 8 / Android 9+ signing split can be imported.
+Resolve that specific compatibility question before distributing a Play APK:
+
+> Our Apache-2.0 app has already shipped outside Play as
+> `dev.burooj.speedbreaker`. Its valid public signing lineage uses the original
+> certificate on API 26–27 and the rotated release certificate on API 28+.
+> We are creating its first Play listing and need installed users to update
+> without uninstalling or losing local settings. Which Console enrollment route
+> imports both existing keys and their lineage, preserving those SDK-specific
+> installed signatures? Can Play's device-specific APKs preserve that split
+> beginning at API 28, rather than a later rotation cutoff? If supported, which
+> encrypted key exports and public lineage inputs are required?
+
+Supply the public fingerprints from [release.md](../release.md) and the immutable
+1.0.1 APK link, never private keystores. Record the support case and actual Console
+configuration when available. No key export, upload-key creation or signing
+account mutation has occurred during this preparation.
+
 First use internal testing for installation, consent, Phone permission, target
 selection, safety escapes, local retention and update compatibility. Verify any
 external tip checkout separately before enabling its link. This newly created
