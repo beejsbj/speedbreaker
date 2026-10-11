@@ -105,12 +105,13 @@ class Demo:
         time.sleep(.35)
 
     def seek(self, phrase, tries=5):
-        for _ in range(tries):
-            root = self.dump()
-            for node in root.iter("node"):
-                if phrase.casefold() in self.label(node).casefold():
-                    return node
-            self.swipe()
+        for direction in ("up", "down"):
+            for _ in range(tries):
+                root = self.dump()
+                for node in root.iter("node"):
+                    if phrase.casefold() in self.label(node).casefold():
+                        return node
+                self.swipe(direction)
         (self.out / "last-ui.xml").write_bytes(ET.tostring(self.dump()))
         raise AssertionError(f"Could not find {phrase!r} after scrolling")
 
@@ -197,8 +198,8 @@ class Demo:
         self.shell("am", "start", "-W", "-n", PRODUCT + "/.MainActivity")
 
     def grant_phone(self):
-        self.seek("Allow call-state access")
-        self.tap("Allow call-state access")
+        self.tap_node(self.seek("Allow call-state access"))
+        self.mark("tap", "Allow call-state access")
         self.tap("Allow", timeout=10, exact=True)
         package = ""
         for _ in range(10):
@@ -249,20 +250,38 @@ class Demo:
         continue_button, _ = self.find("Continue", timeout=7, exact=True)
         self.require(continue_button.get("enabled") == "true",
                      "Continue enabled after 12 second breath")
-        # Start a second protected launch to test the SystemUI escape within hard lock.
+        # Preflight the native shade on this exact AVD profile. The timed second
+        # launch uses its observed gear bounds without expensive XML dumps.
         self.tap("Leave")
+        self.swipe("down")
+        self.swipe("down")
+        shade = self.dump()
+        gear = next((node for node in shade.iter("node")
+                     if self.label(node) in ("Settings", "Open settings")
+                     and node.get("bounds")), None)
+        if gear is None:
+            (self.out / "preflight-shade.xml").write_bytes(ET.tostring(shade))
+            raise AssertionError("Native SystemUI Settings gear not found in preflight shade")
+        gear_bounds = gear.get("bounds")
+        self.mark("systemui_gear_preflight", {"label": self.label(gear),
+                                               "bounds": gear_bounds,
+                                               "ui_sha256": hashlib.sha256(ET.tostring(shade)).hexdigest()})
+        self.screenshot("systemui-preflight.png")
+        self.shell("input", "keyevent", "KEYCODE_HOME")
+        self.require(not self.visible("Quick Settings"), "preflight shade closed")
+        # Start a second protected launch to test the SystemUI escape within hard lock.
         second_launch = time.monotonic()
         self.shell("am", "start", "-W", "-n", FIXTURE + "/.TargetActivity")
         self.find("Breathe", timeout=12)
         self.swipe("down")
         self.swipe("down")
         self.screenshot("systemui-during-lock.png")
-        # Native shade Settings gear; never adb am start Settings.
-        if self.visible("Settings"):
-            self.tap("Settings")
-        else:
-            self.tap("Open settings")
-        self.require(time.monotonic() - second_launch < 8,
+        # Tap the Settings gear seen on the same native shade in preflight.
+        self.tap_node(gear)
+        gear_elapsed = time.monotonic() - second_launch
+        self.mark("tap_native_systemui_settings", {"bounds": gear_bounds,
+                                                     "seconds_after_target_launch": round(gear_elapsed, 2)})
+        self.require(gear_elapsed < 8,
                      "SystemUI Settings tapped within initial eight-second lock")
         self.find("Settings", timeout=12)
         foreground = self.shell("dumpsys", "activity", "activities")
@@ -320,6 +339,8 @@ class Demo:
             self.select_target()
             self.verify_defaults()
             self.exercise_overlay()
+            self.require(time.monotonic() - self.started < 180,
+                         "full demo completed within screen recording limit")
             self.mark("demo_complete")
         except Exception as error:
             self.mark("failure", str(error))
