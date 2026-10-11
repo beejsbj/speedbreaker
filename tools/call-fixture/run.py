@@ -2,6 +2,7 @@
 """Destructive only to the two test packages on an explicitly selected disposable emulator."""
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import queue
@@ -133,13 +134,14 @@ class Harness:
         reader.start()
         transcript = []
         host_events = []
-        deadline = time.monotonic() + 60
+        deadline = time.monotonic() + 150
         injected = False
+        warm_injected = False
         try:
             while True:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
-                    raise TimeoutError("Instrumentation exceeded 60 seconds")
+                    raise TimeoutError("Instrumentation exceeded 150 seconds including warmup")
                 try:
                     line = lines.get(timeout=min(remaining, 1))
                 except queue.Empty:
@@ -148,7 +150,14 @@ class Harness:
                     break
                 transcript.append(line)
                 print(line, end="", flush=True)
-                if line.strip() == "SB_CALL_READY":
+                if line.strip() == "SB_WARM_CALL_READY":
+                    if warm_injected:
+                        raise RuntimeError("Duplicate warmup call request")
+                    self.gsm("call")
+                    warm_injected = True
+                elif line.strip() == "SB_WARM_CANCEL_READY":
+                    self.gsm("cancel")
+                elif line.strip() == "SB_CALL_READY":
                     if injected:
                         raise RuntimeError("Duplicate call injection request")
                     host_events.append({"event": "gsm_call_sent", "monotonic": time.monotonic()})
@@ -171,7 +180,7 @@ class Harness:
             (directory / "instrumentation.txt").write_text("".join(transcript))
             (directory / "host-events.json").write_text(json.dumps(host_events, indent=2))
             self.collect(directory)
-            if injected:
+            if injected or warm_injected:
                 self.command("emu", "gsm", "cancel", NUMBER, check=False)
 
     def run(self):
@@ -183,6 +192,9 @@ class Harness:
             "serial": self.args.serial,
             "fingerprint": self.shell("getprop", "ro.build.fingerprint"),
             "baseline_without_phone_permission": self.args.baseline_without_phone_permission,
+            "app_commit": self.args.app_commit,
+            "app_sha256": hashlib.sha256(self.args.app_apk.read_bytes()).hexdigest(),
+            "fixture_sha256": hashlib.sha256(self.args.fixture_apk.read_bytes()).hexdigest(),
         }
         (self.output / "environment.json").write_text(json.dumps(metadata, indent=2))
         try:
@@ -209,6 +221,7 @@ def main():
     parser.add_argument("--reset-test-packages", action="store_true",
                         help="Confirm this is a disposable emulator; clears both packages and accessibility settings")
     parser.add_argument("--app-apk", type=Path, default=ROOT / "app/build/outputs/apk/debug/app-debug.apk")
+    parser.add_argument("--app-commit", help="Source commit of a separately built app APK, recorded with its SHA-256")
     parser.add_argument("--fixture-apk", type=Path,
                         default=ROOT / "tools/call-fixture/build/outputs/apk/debug/call-fixture-debug.apk")
     parser.add_argument("--output", type=Path, default=ROOT / "build/device-regression")

@@ -3,6 +3,7 @@ package dev.burooj.speedbreaker.fixture;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.Activity;
 import android.app.Instrumentation;
+import android.app.NotificationManager;
 import android.app.UiAutomation;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -42,6 +43,7 @@ public final class CallRegression extends Instrumentation {
     private long firstLaunchAt;
     private long readyAt;
     private long yieldedAt;
+    private String stage = "warmup";
 
     @Override public void onCreate(Bundle arguments) {
         super.onCreate(arguments);
@@ -68,12 +70,23 @@ public final class CallRegression extends Instrumentation {
             require(telecom != null && telephony != null && audio != null, "Missing phone services");
             require(!telecom.isInCall(), "Emulator already has a call");
             originalRinger = audio.getRingerMode();
+            // Silent mode can enable DND. Permit the call's visual controls explicitly;
+            // otherwise a missing heads-up would test Android's DND policy, not Speedbreaker.
+            NotificationManager notifications = getTargetContext().getSystemService(NotificationManager.class);
+            notifications.setNotificationPolicy(new NotificationManager.Policy(
+                    NotificationManager.Policy.PRIORITY_CATEGORY_CALLS,
+                    NotificationManager.Policy.PRIORITY_SENDERS_ANY,
+                    NotificationManager.Policy.PRIORITY_SENDERS_ANY, 0));
+            audio.setRingerMode(AudioManager.RINGER_MODE_NORMAL);
+            warmUp();
             audio.setRingerMode(scenario.equals("silent")
                     ? AudioManager.RINGER_MODE_SILENT : AudioManager.RINGER_MODE_NORMAL);
             if (scenario.equals("silent")) {
                 require(audio.getRingerMode() == AudioManager.RINGER_MODE_SILENT,
                         "Silent scenario did not enter silent mode");
             }
+            stage = "test";
+            firstLaunchAt = 0;
             launchTarget();
             awaitOverlay(true, launchedAt + 4_000);
             screenshot("locked.png");
@@ -98,6 +111,37 @@ public final class CallRegression extends Instrumentation {
             if (trace != null) trace.close();
         }
         finish(Activity.RESULT_OK, result); // Host checks explicit PASS, not am's process exit code.
+    }
+
+    private void warmUp() throws Exception {
+        // A fresh CI AVD has cold Compose, ART and dialer initialization. Warm those outside
+        // the timed assertion, then require a genuinely new target entry for the actual test.
+        launchTarget();
+        awaitOverlay(true, SystemClock.elapsedRealtime() + 25_000);
+        sendKey(KeyEvent.KEYCODE_HOME);
+        awaitOverlay(false, SystemClock.elapsedRealtime() + 15_000);
+        if (!scenario.equals("navigation")) {
+            phase("SB_WARM_CALL_READY");
+            long deadline = SystemClock.elapsedRealtime() + 25_000;
+            boolean controls = false;
+            while (SystemClock.elapsedRealtime() < deadline) {
+                Snapshot state = snapshot();
+                if (state.inCall && state.callState == TelephonyManager.CALL_STATE_RINGING
+                        && state.answer != null) {
+                    controls = true;
+                    break;
+                }
+                SystemClock.sleep(100);
+            }
+            require(controls, "Emulator warmup never produced SystemUI incoming-call controls");
+            phase("SB_WARM_CANCEL_READY");
+            deadline = SystemClock.elapsedRealtime() + 10_000;
+            while (telecom.isInCall() && SystemClock.elapsedRealtime() < deadline) SystemClock.sleep(100);
+            require(!telecom.isInCall(), "Warmup call did not end");
+        }
+        sendKey(KeyEvent.KEYCODE_HOME);
+        SystemClock.sleep(1_500);
+        require(!snapshot().overlay, "Warmup did not leave target session");
     }
 
     private void launchTarget() {
@@ -227,6 +271,7 @@ public final class CallRegression extends Instrumentation {
             window.recycle();
         }
         trace.println(new JSONObject().put("elapsed_ms", SystemClock.elapsedRealtime())
+                .put("stage", stage)
                 .put("overlay", result.overlay).put("in_call", result.inCall)
                 .put("call_state", result.callState).put("audio_mode", audio.getMode())
                 .put("ringer_mode", audio.getRingerMode()).put("apps", result.apps.toString())
