@@ -1,0 +1,66 @@
+# Distribution automation
+
+CI prepares and verifies reviewable inputs. Signing stays on the established
+private signing host. Store status still requires actual host evidence.
+
+| Workflow | Trigger / result |
+| --- | --- |
+| `android.yml` | App PR/main changes or manual dispatch. Community/Play unsigned APKs, Play AAB, unit/UI tests, release lint, resolved dependency/license inventory, final manifest assertions, exact-source artifact hashes. |
+| `android-device.yml` | App/fixture PR/main changes or manual dispatch. API 35/36 real Telecom/SystemUI/navigation regression and separate fresh-install consent/demo captures on disposable emulators. Historical negative controls use the old variant and skip the new demo. |
+| `store-metadata.yml` | Listing/artwork PR/main changes. Character/image limits, deterministic committed-export freshness, generated 512px icon and 1024×500 feature graphic artifacts. |
+| `reproducible.yml` | Manual published-APK check. Immutable 1.0.1 clean source rebuild and actual signature-copy verification, with pinned historical padding/tool inputs. |
+| `pages.yml` | Public-document changes or dispatch. Render privacy/help and deploy GitHub Pages. |
+
+Actions and build/export tools are pinned. No private signing key, store account
+credential, payment information or personal-device evidence is uploaded. CI's
+unsigned artifacts are not installable store releases and do not prove approval.
+
+## Recover verified CI inputs
+
+After the current commit's Android checks finish successfully, on the existing
+signing/orchestration host:
+
+```sh
+python3 scripts/fetch_store_artifacts.py --run-id RUN_ID
+```
+
+The helper requires a successful canonical Android workflow for local HEAD,
+checks GitHub's SHA-256 archive digests before extraction, rejects unsafe paths,
+checks the exact source tree (including public PR merge checkout), and compares
+APK/AAB hashes against the hosted provenance receipt. It downloads into a fresh
+`build/store-inputs/RUN_ID/`, including dependency, license and manifest evidence.
+Use `--commit FULL_COMMIT` only to inspect another known candidate; the signing
+script still requires the current committed source. Failed, stale, missing or
+expired inputs are rejected rather than relabelled as the current build.
+
+Do not restore keys on a build worker. To sign the community APK, use its
+`.apk.input.json` receipt with the established packaging flow:
+
+```sh
+python3 scripts/package_release.py --skip-build \
+  --unsigned-apk build/store-inputs/RUN_ID/community/apk/app-community-release-unsigned.apk \
+  --build-receipt build/store-inputs/RUN_ID/community/apk/app-community-release-unsigned.apk.input.json \
+  --output-dir dist/CANDIDATE
+```
+
+The script refuses receipt/source/hash mismatches, a non-community input,
+debuggable APKs and an existing output, then signs with the original legacy and
+release keys plus public rotation lineage. It verifies SDK 26–27 and SDK 28–36,
+and emits signed SHA-256 and source/build receipts. Its password is read through
+the existing credential flow or prompt; never pass a password in the command.
+Heavy compilation occurs on hosted CI or the Mac, not the signing host.
+
+The Play bundle is unsigned. After account setup, configure existing-key Play
+App Signing and an upload identity before signing/uploading it. Do not mistake
+upload-key certification for installed update compatibility. No automated
+production upload is configured while Console identity, API access and signing
+configuration are absent. The prepared packet in [google-play.md](google-play.md)
+lets authenticated Console work continue without recreating assets/declarations.
+
+## Publishing evidence
+
+Record actual release/track/submission IDs, source and installed certificate,
+URLs, timestamps and host states in [status.md](status.md). Never derive
+submitted/approved/live from an artifact upload or a green check. F-Droid remains
+blocked on rotation support with Android 8 retained. Apple publication was
+stopped by the owner; its prototype is retained on `release/ios-feasibility`.

@@ -100,7 +100,7 @@ For release validation, run `assembleCommunityRelease` and `lintCommunityRelease
 using the same process and worker flags above, and run `testCommunityDebugUnitTest` in
 its own invocation. The release variant excludes Compose debug tooling.
 
-The repository does not contain private release keys. An `assembleRelease`
+The repository does not contain private release keys. An `assembleCommunityRelease`
 output alone is not the signed APK distributed to users. Maintainer packaging
 and signing are documented in [release.md](release.md); contributors do not need
 those credentials to build and test the debug app. Generated APKs, local SDK
