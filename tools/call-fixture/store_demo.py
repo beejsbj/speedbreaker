@@ -112,6 +112,8 @@ class Demo:
             self.shell("input", "swipe", "530", "500", "530", "1750", "450")
         elif direction == "shade":
             self.shell("input", "swipe", "530", "30", "530", "1650", "350")
+        elif direction == "expand_shade":
+            self.shell("input", "swipe", "530", "380", "530", "1650", "350")
         else:
             raise ValueError(direction)
         time.sleep(.35)
@@ -303,19 +305,26 @@ class Demo:
         # launch uses its observed gear bounds without expensive XML dumps.
         self.shell("input", "keyevent", "KEYCODE_HOME")
         self.wait_overlay(False, timeout=5)
+        gestures = ["shade"]
         self.swipe("shade")
-        self.swipe("shade")
-        shade = self.dump()
-        gear = next((node for node in shade.iter("node")
-                     if node.get("package") == "com.android.systemui"
-                     and self.label(node).rstrip(".").casefold() in ("settings", "open settings")
-                     and node.get("bounds")), None)
+        gear = None
+        for _ in range(3):
+            gestures.append("expand_shade")
+            self.swipe("expand_shade")
+            shade = self.dump()
+            gear = next((node for node in shade.iter("node")
+                         if node.get("package") == "com.android.systemui"
+                         and self.label(node).rstrip(".").casefold() in ("settings", "open settings")
+                         and node.get("bounds")), None)
+            if gear is not None:
+                break
         if gear is None:
             (self.out / "preflight-shade.xml").write_bytes(ET.tostring(shade))
             raise AssertionError("Native SystemUI Settings gear not found in preflight shade")
         gear_bounds = gear.get("bounds")
         self.mark("systemui_gear_preflight", {"label": self.label(gear),
                                                "bounds": gear_bounds,
+                                               "gestures": gestures,
                                                "ui_sha256": hashlib.sha256(ET.tostring(shade)).hexdigest()})
         self.screenshot("systemui-preflight.png")
         self.shell("input", "keyevent", "KEYCODE_HOME")
@@ -325,8 +334,8 @@ class Demo:
         second_launch = time.monotonic()
         self.shell("am", "start", "-W", "-n", FIXTURE + "/.TargetActivity")
         self.wait_overlay(True, timeout=5)
-        self.swipe("shade")
-        self.swipe("shade")
+        for gesture in gestures:
+            self.swipe(gesture)
         self.screenshot("systemui-during-lock.png")
         # Tap the Settings gear seen on the same native shade in preflight.
         self.tap_node(gear)
