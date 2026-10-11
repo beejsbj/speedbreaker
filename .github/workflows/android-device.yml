@@ -2,7 +2,11 @@ name: Android device regression
 
 on:
   push:
-    branches: [release/store-demo]
+    branches: [main, release/store-demo]
+    paths:
+      - 'app/**'
+      - 'tools/call-fixture/**'
+      - '.github/workflows/android-device.yml'
   pull_request:
     paths:
       - 'app/**'
@@ -52,7 +56,7 @@ jobs:
         working-directory: source-app
         run: |
           if grep -Fq 'create("community")' app/build.gradle.kts; then
-            ./gradlew :app:assembleCommunityDebug --no-daemon --no-configuration-cache --max-workers=2
+            ./gradlew :app:assembleCommunityDebug :app:assemblePlayDebug --no-daemon --no-configuration-cache --max-workers=2
           else
             ./gradlew :app:assembleDebug --no-daemon --no-configuration-cache --max-workers=2
           fi
@@ -63,11 +67,11 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Test real Telecom and SystemUI, then record first run on API 35
+      - name: Test real Telecom and SystemUI, then record Play first run
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         env:
           BASELINE_WITHOUT_PHONE_PERMISSION: ${{ inputs.baseline_without_phone_permission }}
-          RUN_STORE_DEMO: ${{ matrix.api == 35 }}
+          RUN_STORE_DEMO: 'true'
         with:
           api-level: ${{ matrix.api }}
           target: google_apis
@@ -86,5 +90,6 @@ jobs:
             build/store-demo/
             tools/call-fixture/build/outputs/apk/debug/
             source-app/app/build/outputs/apk/community/debug/
+            source-app/app/build/outputs/apk/play/debug/
             source-app/app/build/outputs/apk/debug/
           retention-days: 7

@@ -7,11 +7,17 @@ import subprocess
 import sys
 
 community_apk = Path("source-app/app/build/outputs/apk/community/debug/app-community-debug.apk")
+play_apk = Path("source-app/app/build/outputs/apk/play/debug/app-play-debug.apk")
 plain_apk = Path("source-app/app/build/outputs/apk/debug/app-debug.apk")
-found = [path for path in (community_apk, plain_apk) if path.is_file()]
-if len(found) != 1:
-    raise SystemExit(f"Expected exactly one built candidate APK; found {found}")
-app_apk = str(found[0])
+if community_apk.is_file() and play_apk.is_file() and not plain_apk.exists():
+    regression_apk = community_apk
+    demo_apk = play_apk
+elif plain_apk.is_file() and not community_apk.exists() and not play_apk.exists():
+    regression_apk = plain_apk
+    demo_apk = None
+else:
+    raise SystemExit("Expected CommunityDebug + PlayDebug, or one historical plain Debug APK")
+app_apk = str(regression_apk)
 fixture_apk = "tools/call-fixture/build/outputs/apk/debug/call-fixture-debug.apk"
 app_commit = subprocess.check_output(["git", "-C", "source-app", "rev-parse", "HEAD"], text=True).strip()
 command = [sys.executable, "tools/call-fixture/run.py", "--serial", "emulator-5554", "--reset-test-packages",
@@ -40,21 +46,30 @@ if baseline:
                               scenario="all", baseline_without_phone_permission=True)
     try:
         WithoutPhonePermission(args).run()
-        print("Negative control unexpectedly passed without Phone permission", file=sys.stderr)
+        print("NEGATIVE_CONTROL_UNEXPECTED_PASS: calls passed without Phone permission",
+              file=sys.stderr)
         regression_code = 1
     except Exception as error:
-        print(f"Negative control regression failed: {error}", file=sys.stderr)
+        evidence = Path("build/device-regression")
+        failed_calls = [name for name in ("ringing", "silent")
+                        if (evidence / name / "instrumentation.txt").is_file()
+                        and "INSTRUMENTATION_RESULT: result=FAIL" in
+                        (evidence / name / "instrumentation.txt").read_text()]
+        if failed_calls:
+            print(f"NEGATIVE_CONTROL_CALL_FAILURE: {failed_calls}; {error}", file=sys.stderr)
+        else:
+            print(f"NEGATIVE_CONTROL_SETUP_OR_OTHER_FAILURE: {error}", file=sys.stderr)
         regression_code = 1
 else:
     regression_code = subprocess.run(command, check=False).returncode
 demo = None
 if (os.environ.get("RUN_STORE_DEMO") == "true"
         and not baseline
-        and found[0] == community_apk):
+        and demo_apk is not None):
     # run.py owns its own consent seed. This separate run clears both packages again.
     demo = subprocess.run([sys.executable, "tools/call-fixture/store_demo.py",
                            "--serial", "emulator-5554", "--reset-test-packages",
-                           "--app-apk", app_apk, "--fixture-apk", fixture_apk,
+                           "--app-apk", str(demo_apk), "--fixture-apk", fixture_apk,
                            "--app-commit", app_commit], check=False)
 if regression_code or (demo is not None and demo.returncode):
     raise SystemExit(f"device checks failed: regression={regression_code}, "

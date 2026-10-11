@@ -100,8 +100,12 @@ class Demo:
     def swipe(self, direction="up"):
         if direction == "up":
             self.shell("input", "swipe", "530", "1750", "530", "500", "450")
-        else:
+        elif direction == "down":
+            self.shell("input", "swipe", "530", "500", "530", "1750", "450")
+        elif direction == "shade":
             self.shell("input", "swipe", "530", "30", "530", "1650", "350")
+        else:
+            raise ValueError(direction)
         time.sleep(.35)
 
     def seek(self, phrase, tries=5):
@@ -198,7 +202,12 @@ class Demo:
         self.shell("am", "start", "-W", "-n", PRODUCT + "/.MainActivity")
 
     def grant_phone(self):
-        self.tap_node(self.seek("Allow call-state access"))
+        # Settings returns to the retained Home scroll position. Move to its top
+        # within the app, without starting the gesture at the status bar.
+        self.swipe("down")
+        self.swipe("down")
+        button, _ = self.find("Allow call-state access", timeout=12)
+        self.tap_node(button)
         self.mark("tap", "Allow call-state access")
         self.tap("Allow", timeout=10, exact=True)
         package = ""
@@ -247,17 +256,24 @@ class Demo:
         self.find("What are you here for?", timeout=14)
         self.require(time.monotonic() - launched >= 7.5, "choices follow initial eight-second lock")
         self.screenshot("choices-after-eight-seconds.png")
-        continue_button, _ = self.find("Continue", timeout=7, exact=True)
-        self.require(continue_button.get("enabled") == "true",
-                     "Continue enabled after 12 second breath")
+        deadline = time.monotonic() + 9
+        continue_enabled = False
+        while time.monotonic() < deadline:
+            root = self.dump()
+            continue_enabled = any(self.label(node) == "Continue" and node.get("enabled") == "true"
+                                   for node in root.iter("node"))
+            if continue_enabled:
+                break
+            time.sleep(.4)
+        self.require(continue_enabled, "Continue enabled after 12 second breath")
         # Preflight the native shade on this exact AVD profile. The timed second
         # launch uses its observed gear bounds without expensive XML dumps.
         self.tap("Leave")
-        self.swipe("down")
-        self.swipe("down")
+        self.swipe("shade")
+        self.swipe("shade")
         shade = self.dump()
         gear = next((node for node in shade.iter("node")
-                     if self.label(node) in ("Settings", "Open settings")
+                     if self.label(node).rstrip(".").casefold() in ("settings", "open settings")
                      and node.get("bounds")), None)
         if gear is None:
             (self.out / "preflight-shade.xml").write_bytes(ET.tostring(shade))
@@ -273,8 +289,8 @@ class Demo:
         second_launch = time.monotonic()
         self.shell("am", "start", "-W", "-n", FIXTURE + "/.TargetActivity")
         self.find("Breathe", timeout=12)
-        self.swipe("down")
-        self.swipe("down")
+        self.swipe("shade")
+        self.swipe("shade")
         self.screenshot("systemui-during-lock.png")
         # Tap the Settings gear seen on the same native shade in preflight.
         self.tap_node(gear)
@@ -291,6 +307,24 @@ class Demo:
                      "native Settings escaped hard lock")
         self.screenshot("settings-escape.png")
         self.mark("native_settings_escape")
+        self.tap_node(self.seek("Accessibility"))
+        for phrase in ("Installed apps", "Downloaded apps"):
+            if self.visible(phrase):
+                self.tap(phrase)
+                break
+        self.tap("Speedbreaker")
+        self.tap_node(self.seek("Use Speedbreaker"))
+        if self.visible("Stop"):
+            self.tap("Stop", exact=True)
+        enabled = ""
+        for _ in range(20):
+            enabled = self.shell("settings", "get", "secure", "enabled_accessibility_services")
+            if PRODUCT not in enabled:
+                break
+            time.sleep(.5)
+        self.require(PRODUCT not in enabled, "native Accessibility service disabled at end")
+        self.screenshot("accessibility-disabled.png")
+        self.mark("native_accessibility_disabled")
 
     def run(self):
         self.started = time.monotonic()
