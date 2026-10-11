@@ -23,14 +23,15 @@ def main():
     parser.add_argument("--password-secret", help="Bitwarden secret ID, read through bjs-bws on bjslab")
     parser.add_argument("--output-dir", type=Path, default=ROOT / "dist")
     args = parser.parse_args()
-    sdk = Path(os.environ.get("ANDROID_SDK_ROOT", "/usr/lib/android-sdk"))
+    args.output_dir = args.output_dir.expanduser().resolve()
+    sdk = Path(os.environ.get("ANDROID_SDK_ROOT", "/usr/lib/android-sdk")).expanduser().resolve()
     build_tools = sdk / "build-tools" / "35.0.0"
     for tool in ("apksigner", "aapt"):
         if not (build_tools / tool).is_file():
             parser.error(f"Install Android build-tools 35.0.0 in {sdk}")
-    signing = Path(os.environ.get("SPEEDBREAKER_SIGNING_DIR", str(Path.home() / ".local/share/speedbreaker-signing")))
+    signing = Path(os.environ.get("SPEEDBREAKER_SIGNING_DIR", str(Path.home() / ".local/share/speedbreaker-signing"))).expanduser().resolve()
     release_key = signing / "release.jks"
-    legacy_key = Path(os.environ.get("SPEEDBREAKER_LEGACY_KEYSTORE", str(Path.home() / ".android/debug.keystore")))
+    legacy_key = Path(os.environ.get("SPEEDBREAKER_LEGACY_KEYSTORE", str(Path.home() / ".android/debug.keystore"))).expanduser().resolve()
     lineage = ROOT / "signing/speedbreaker.lineage"
     if not all(path.is_file() for path in (release_key, legacy_key, lineage)):
         parser.error("Restore the original release and legacy keys before signing; never generate replacements for an update")
