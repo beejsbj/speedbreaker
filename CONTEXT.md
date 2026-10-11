@@ -1,84 +1,52 @@
 # Speedbreaker
 
-Speedbreaker is a personal Android attention aid that inserts deliberate friction between the impulse to open a distracting app and the choice to continue using it.
+Speedbreaker is a local Android attention aid: a breathing pause at an app
+boundary, with an optional check-in during continuous visible use.
 
-## Product direction
-
-- The production interface uses Material 3 Expressive as its component and
-  motion foundation, restrained into a minimal, calming ink-and-ivory visual
-  language. Expressive means purposeful hierarchy, shape, type, and motion—not
-  visual noise, bright decoration, or gamification.
-- The breathing pause remains the visual center. Reflection and choices arrive
-  progressively instead of competing for attention at once.
-- Production layouts must adapt cleanly across portrait, landscape, split
-  screen, and accessibility text sizes. The throwaway enforcement probe is not
-  a visual reference or acceptance target.
-- Redirect is part of the production Speedbreaker choice set. Its absence from
-  the enforcement probe is deliberate: the probe isolates Android interception,
-  continuous-use timing, safety, and recovery before product features are
-  layered on.
+The settled V1 behavior is in [the interaction contract](docs/interaction-contract.md).
+The old cumulative daily budgets, friction ladder and mercy allowance were
+removed during product shaping and are not part of V1.
 
 ## Language
 
-**Target app**:
-An installed app chosen for mediation, with its own settings inherited from global defaults. Speedbreaker, the launcher, Settings, input methods, permission controllers, and System UI cannot be target apps.
-_Avoid_: Blocked app, distraction app
+**Target app**: an eligible installed app explicitly chosen for mediation.
+Nothing is selected on a fresh install. The launcher, Settings, keyboards,
+dialer and safety-critical system apps cannot be targets.
 
-**Speedbreaker**:
-A configurable timed pause presented before access to a target app, ending in an explicit Continue, Leave, or Redirect choice.
-_Avoid_: Intervention, blocker, lockout, interruption
+**Speedbreaker**: the breathing pause shown on opening or at a check-in.
+The first eight seconds lock ordinary navigation; safety UI always yields.
 
-**Opening trigger**:
-The condition that starts a Speedbreaker when a target app is newly opened outside its cooldown.
-_Avoid_: App block
+**Opening**: the pause caused by newly entering a target outside its active
+session. Returning within sixty seconds resumes the current check-in interval.
 
-**Continuous-use trigger**:
-The condition that starts a Speedbreaker when a target app remains visibly in active use for its configured interval. The interval is adjustable or can be disabled per app. There is no cumulative-daily trigger.
-_Avoid_: Screen-time limit
+**Checking in**: the pause caused by reaching a target's continuous-use interval.
+Active use means screen-on visibility, including split-screen and PiP.
+Background time does not count.
 
-**Active use**:
-Screen-on time when a target app is foregrounded or visibly present in picture-in-picture or split-screen, and the phone is interactive. Background activity does not count.
-_Avoid_: Background time, process runtime
+**Continue**: enter the target after the full configured breath.
 
-**Cooldown**:
-The fixed 60-second grace period after Continue during which returning to the same target app resumes its continuous-use timer instead of starting another opening-triggered Speedbreaker. A longer absence ends the session, so the next opening starts fresh.
-_Avoid_: Bypass, exemption
+**Leave**: end the target session and return Home after the eight-second lock.
 
-**Hard lock**:
-The first eight seconds of every Speedbreaker, during which only the breathing surface is shown and Home, Back, and Recents do not dismiss it. Calls, emergency or dialer UI, lockscreen, Accessibility settings, and the phone becoming non-interactive always break through immediately.
+**Redirect**: leave the target for one of exactly four configured alternative
+apps. Redirects must be non-target apps. Per-app alternatives replace all four.
 
-**Breath**:
-The unskippable breathing experience that opens a Speedbreaker. Its total duration is a single global setting between 8 and 60 seconds, default 12; it never varies per app. Leave, Redirect, and Pause become actionable after the first eight seconds; Continue unlocks only when the full breath completes.
+**Pause**: one of two per-target, per-local-day tokens that grants fifteen
+minutes immediately. The active pause and today's token count persist locally;
+a notification's End now action resumes enforcement.
 
-**Reflection**:
-The fixed prompt “What are you here for?” shown during a Speedbreaker. It requires no input and stores no answer.
-_Avoid_: Content feed, recommendation, engagement prompt
+**Active schedule**: the optional hours when a target's policy applies.
+A per-app schedule replaces the global schedule. Outside it, enforcement and
+the current session stop.
 
-**Continue**:
-The explicit choice to proceed into the target app after completing a Speedbreaker. It starts the app's continuous-use interval.
+**Reflection**: the fixed prompt “What are you here for?” It accepts no input
+and stores no answer.
 
-**Leave**:
-The explicit choice to abandon the target app and return to the Android Home screen.
+**Whole-app interception**: mediation at the app boundary. Recognizing an
+individual subsection such as Reels is outside V1.
 
-**Redirect**:
-The explicit choice to leave the target app by opening one of exactly four globally configured alternative apps. A target app may replace all four with its own set. Redirect destinations cannot themselves be target apps. Tapping one opens it immediately and ends the target-app session.
+## Delivery
 
-**Pause**:
-A temporary suspension of enforcement for a single target app, available from the intervention itself. Each target app receives two pause tokens per local day; one token grants 15 wall-clock minutes. Active pauses appear as ongoing, individually cancellable notifications. This token state is the only daily counter; there is no usage total or history.
-_Avoid_: Bypass
-
-**Active schedule**:
-The days of the week and single daily window during which a target app's policy applies. The optional global schedule has at most one window per day, copyable across days and allowed to cross midnight. A per-app schedule replaces the global schedule. Outside its window the app is unenforced and its session is cleared.
-_Avoid_: Calendar, routine
-
-**Choice acknowledgment**:
-A brief, non-accumulating affirmation after Leave or Redirect. It carries no points, streaks, dashboard, or moral judgment; the chosen alternative app is the meaningful reward.
-_Avoid_: Reward, score, achievement
-
-**Whole-app interception**:
-Mediation at the target-app boundary; recognizing a subsection such as Instagram Reels is a later capability.
-_Avoid_: Content detection
-
-## Explicitly out of scope
-
-Cumulative usage, daily usage budgets or resets, over-budget state, friction ladders, mercy allowance, Usage Access, and usage counters or history are not part of the product. Time-dependent strictness profiles are a possible later idea, not current scope.
+Burooj accepts One Hand Operation+ being unavailable while the overlay is
+visible. He configures his own targets and alternatives. The October 11 delivery
+is a signed, shareable release; a personal full-day verdict is subsequent use.
+Linear is the workflow record; device evidence lives in docs/reviews/.

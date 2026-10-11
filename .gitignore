@@ -17,3 +17,12 @@ bin/
 gen/
 out/
 app/build/
+
+# Signing keys stay in the encrypted credential store.
+*.jks
+*.keystore
+*.p12
+/signing/*.properties
+/dist/
+__pycache__/
+*.pyc

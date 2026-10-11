@@ -76,3 +76,11 @@ Let the prototype answer presentation questions through live reaction: whether t
 * It makes trigger type, timers, schedule state, cooldown, active pause, remaining tokens, and Accessibility status inspectable so state transitions can be judged.
 * The artifact path and commit are recorded here.
 * Burooj has driven the live flow and the resulting presentation decisions and verdict are recorded here.
+
+## October 11 release clarification
+
+Burooj accepts One Hand Operation+ being unavailable while the Speedbreaker
+overlay is visible. OHO compatibility is not a release defect. The delivery
+goal is a signed, shareable app; Burooj will configure his own targets and
+redirects. His personal full-day trial does not gate delivering that artifact.
+Device observations and untested recovery cases must still be reported accurately.
