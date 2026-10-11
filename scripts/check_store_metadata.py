@@ -68,6 +68,10 @@ def check_phone_screenshots(directory, required=False):
             if max(width, height) > 2 * min(width, height):
                 raise ValueError(f"{path}: longest side exceeds twice the shortest side")
             image.verify()
+        # JPEG verify() only checks headers. Decode the pixels as well so a
+        # truncated/corrupt upload cannot pass merely by retaining valid dimensions.
+        with Image.open(path) as image:
+            image.load()
         print(f"Checked phone screenshot {path.name}: {width}×{height}")
 
 

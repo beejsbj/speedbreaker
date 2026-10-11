@@ -45,10 +45,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Check artifact trust boundary
-        run: python3 -m unittest discover -s scripts/tests -v
       - name: Install uv
         run: python3 -m pip install uv==0.12.3
+      - name: Check artifact trust boundary and screenshot decoding
+        run: uv run --with pillow==11.3.0 python3 -m unittest discover -s scripts/tests -v
       - name: Check committed export freshness
         run: uv run --locked scripts/export_store_assets.py --check
       - name: Check metadata and image requirements
