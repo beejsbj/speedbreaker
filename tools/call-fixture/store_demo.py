@@ -120,6 +120,26 @@ class Demo:
         (self.out / name).write_bytes(data)
         self.mark("screenshot", name)
 
+    @staticmethod
+    def finalized_mp4(path):
+        if not path.is_file() or path.stat().st_size < 100_000:
+            return False
+        data = path.read_bytes()
+        offset = 0
+        atoms = set()
+        while offset + 8 <= len(data):
+            size = int.from_bytes(data[offset:offset + 4], "big")
+            kind = data[offset + 4:offset + 8]
+            if size == 1 and offset + 16 <= len(data):
+                size = int.from_bytes(data[offset + 8:offset + 16], "big")
+            elif size == 0:
+                size = len(data) - offset
+            if size < 8 or offset + size > len(data):
+                return False
+            atoms.add(kind)
+            offset += size
+        return offset == len(data) and {b"ftyp", b"mdat", b"moov"} <= atoms
+
     def app(self):
         self.shell("am", "start", "-W", "-n", PRODUCT + "/.MainActivity")
         self.find("Make the next tap intentional.", timeout=20)
@@ -311,7 +331,9 @@ class Demo:
             raise
         finally:
             if self.video:
-                self.video.terminate()
+                # End the Android encoder itself so it writes the MP4 moov atom.
+                for pid in self.shell("pidof", "screenrecord", check=False).split():
+                    self.shell("kill", "-2", pid, check=False)
                 try:
                     self.video.communicate(timeout=10)
                 except subprocess.TimeoutExpired:
@@ -319,6 +341,8 @@ class Demo:
                     self.video.communicate()
                 self.adb_call("pull", "/sdcard/sb-store-demo.mp4", str(self.out / "first-run.mp4"), check=False)
                 self.shell("rm", "/sdcard/sb-store-demo.mp4", check=False)
+            video_valid = self.finalized_mp4(self.out / "first-run.mp4")
+            self.assertions["finalized screen recording"] = video_valid
             captures = {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
                         for p in self.out.iterdir() if p.suffix in (".png", ".mp4") and p.stat().st_size}
             (self.out / "evidence.json").write_text(json.dumps({
@@ -326,6 +350,8 @@ class Demo:
                 "events": self.events, "assertions": self.assertions,
                 "capture_sha256": captures,
             }, indent=2) + "\n")
+            if not video_valid:
+                raise AssertionError("Screen recording did not finalize; first-run.mp4 is not a valid MP4")
 
 
 def main():
