@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.burooj.speedbreaker.model.AppPolicy
+import dev.burooj.speedbreaker.model.Redirects
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.presentation.components.AppGlyph
 import dev.burooj.speedbreaker.presentation.components.ConnectedChoice
@@ -186,9 +187,9 @@ internal fun AppSettingsScreen(
         Section(
             title = "Redirects",
             footnote = when {
-                redirects == null -> "Using the default four."
-                redirects.size == 4 -> "Replaces all four default redirects for this app."
-                else -> "This app shows no redirects until four are chosen."
+                redirects == null -> "Using the default redirects."
+                redirects.isEmpty() -> "No redirects for this app."
+                else -> "Replaces the default redirects for this app."
             },
         ) {
             ModeSwitch(
@@ -272,19 +273,19 @@ private fun ModeSwitch(options: List<String>, selected: Int, onSelect: (Int) -> 
 }
 
 /**
- * The four redirect places as they will appear, then the edit row.
+ * Up to four redirect places, then the edit row.
  * With [onEdit] null the slots are read-only (an inherited set).
  */
 @Composable
 internal fun RedirectSlots(redirects: List<String>, onEdit: (() -> Unit)?) {
     val catalog = appCatalog()
-    val filled = redirects.takeIf { it.size == 4 }
+    val filled = redirects.takeIf { Redirects.isValid(it) }.orEmpty()
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
-        repeat(4) { index ->
-            val packageName = filled?.get(index)
+        repeat(Redirects.MAX_COUNT) { index ->
+            val packageName = filled.getOrNull(index)
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
@@ -317,8 +318,8 @@ internal fun RedirectSlots(redirects: List<String>, onEdit: (() -> Unit)?) {
     if (onEdit != null) {
         RowDivider()
         NavRow(
-            title = if (filled == null) "Choose four apps" else "Change redirects",
-            summary = if (filled == null) "None shown until all four are set" else null,
+            title = if (filled.isEmpty()) "Choose redirect apps" else "Change redirects",
+            summary = "Choose up to four apps, or leave empty",
             onClick = onEdit,
         )
     }

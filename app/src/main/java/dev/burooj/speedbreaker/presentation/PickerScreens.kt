@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.burooj.speedbreaker.model.Redirects
 import dev.burooj.speedbreaker.presentation.components.AppGlyph
 import dev.burooj.speedbreaker.presentation.components.ContentMaxWidth
 import dev.burooj.speedbreaker.presentation.components.Eyebrow
@@ -61,7 +62,7 @@ internal fun AppPickerScreen(
     PickerFrame(
         title = "Choose apps",
         subtitle = "Pick the apps that pull at you. Your launcher, keyboards, and safety-critical apps " +
-            "can’t be chosen. Choosing one of your redirects clears that set of four.",
+            "can’t be chosen. Choosing one of your redirects removes it from your alternatives.",
         query = query,
         onQuery = { query = it },
         onBack = onBack,
@@ -94,10 +95,10 @@ internal fun RedirectPickerScreen(
 ) {
     var draft by remember(initial) { mutableStateOf(initial) }
     var query by remember { mutableStateOf("") }
-    val full = draft.size == REDIRECT_COUNT
+    val full = draft.size >= Redirects.MAX_COUNT
     PickerFrame(
         title = title,
-        subtitle = "Choose exactly four places to go instead. They’re shown only when all four are set.",
+        subtitle = "Choose up to four places to go instead, or leave redirects empty.",
         query = query,
         onQuery = { query = it },
         onBack = onBack,
@@ -105,9 +106,9 @@ internal fun RedirectPickerScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 QuietAction("Clear", onClick = { onSave(emptyList()) }, enabled = initial.isNotEmpty())
                 PrimaryAction(
-                    text = if (full) "Save" else "${draft.size} of 4 chosen",
+                    text = "Save",
                     onClick = { onSave(draft) },
-                    enabled = full,
+                    enabled = Redirects.isValid(draft),
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -135,7 +136,7 @@ private fun ChosenStrip(chosen: List<Pair<String, String>>, onRemove: (String) -
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        repeat(REDIRECT_COUNT) { index ->
+        repeat(Redirects.MAX_COUNT) { index ->
             val entry = chosen.getOrNull(index)
             Surface(
                 shape = MaterialTheme.shapes.medium,
@@ -320,5 +321,3 @@ private fun LazyListScope.emptyResult(query: String) {
 
 private fun LaunchableApp.matches(query: String): Boolean =
     label.contains(query, ignoreCase = true) || packageName.contains(query, ignoreCase = true)
-
-private const val REDIRECT_COUNT = 4
