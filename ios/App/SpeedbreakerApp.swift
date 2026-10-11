@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import FamilyControls
 import DeviceActivity
@@ -76,7 +77,10 @@ final class PrototypeModel: ObservableObject {
     func stop() {
         policy.mode = .off
         // Publish off before stopping monitoring so late callbacks normally see off.
-        do { try PrototypeStorage.save(policy) }
+        do {
+            try PrototypeStorage.save(policy)
+            status = "Monitoring stopped; prototype shields cleared"
+        }
         catch { status = "Cleared shields; could not save off state: \(error.localizedDescription)" }
         DeviceActivityCenter().stopMonitoring([PrototypeIDs.activity])
         PrototypeShields.clear()
