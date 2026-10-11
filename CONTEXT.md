@@ -65,3 +65,16 @@ link in the app. He prefers the Mac for local heavy jobs; use hosted CI or the
 Mac for Gradle rather than bjslab. GitHub is the current distribution channel;
 F-Droid, Play and an iOS implementation remain future work described in the
 [distribution guide](docs/distribution.md).
+
+## Store work — October 11, 2026
+
+Active implementation thread `98543987-c8a8-4578-921d-a593647b609a`, branch
+`release/store-distribution`, PR #8, Linear BJS-532. Authoritative evidence:
+[docs/store/status.md](docs/store/status.md). Candidate1.0.2/code6/API36 has
+community and Play source sets; only Play includes optional native Billing tips.
+Stable1.0.1 remains unchanged. Public privacy/support Pages deployed. Historical
+APK signature-copy reproduction passed hostedCI38157458089, not F-Droid server.
+Owner retains Android8 on F-Droid and waits for valid-key-rotation support; no
+signing replacement. Owner abandoned Apple Developer/App Store path; preserve
+compiled native prototype without promising iOS parity. GooglePlay account
+enrollment/publicmailbox/productkey/signing/Testtrack prerequisites pending.

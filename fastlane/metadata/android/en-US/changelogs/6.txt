@@ -1,0 +1,1 @@
+Prepared for Android 16. Clearer Accessibility disclosure and an explicit Not now option. Separate community support and optional Google Play tips; every app feature remains free.

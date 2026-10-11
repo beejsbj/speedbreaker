@@ -1,10 +1,15 @@
-# Discovery and future store distribution
+# Discovery and store distribution
 
-Status checked October 11, 2026. GitHub Releases is the current Android download
-channel. Version 1.0.1 addresses the incoming-call defect found in the 1.0.0
-testing prerelease, with phone and emulator verification. F-Droid, Google Play
-and the Apple App Store are future destinations;
-no listing or approval is claimed for them.
+Status checked October 11, 2026. GitHub stable **1.0.1** is the public Android
+release. Store preparation is implemented in PR #8; no F-Droid or Google Play
+submission/approval is claimed. The owner discontinued Apple Developer/App Store
+work; the native iOS feasibility prototype remains saved.
+
+See [the current evidence and blockers](store/status.md),
+[Google Play submission packet](store/google-play.md),
+[F-Droid inclusion record](store/fdroid.md), and [native iOS prototype](../ios/README.md).
+The deployed [privacy policy](https://beejsbj.github.io/speedbreaker/privacy.html)
+and [support page](https://beejsbj.github.io/speedbreaker/support.html) are public.
 
 ## Helping people find Speedbreaker
 
@@ -44,14 +49,15 @@ for the actual build recipe and merge request.
 
 Prefer validating reproducible builds with the developer's existing signing
 identity before choosing a distribution signing strategy. F-Droid can publish
-developer-signed APKs after verifying that its rebuild matches; this has not yet
-been proven for Speedbreaker. A different signing identity can affect updates
+developer-signed APKs after verifying that its rebuild matches; the published 1.0.1 APK now passes hosted signature-copy reproduction, but the
+F-Droid buildserver has not verified it. Its tested server parser rejects the
+valid rotation; the owner chose to keep Android 8 and wait for support. A different signing identity can affect updates
 between channels. See [reproducible builds](https://f-droid.org/en/docs/Reproducible_Builds/).
 Never give a store submission worker access to release keys unnecessarily.
 
 ## Google Play
 
-The current APK targets API 35. Google's current requirement for **new mobile
+The stable 1.0.1 APK targets API 35; the 1.0.2 candidate targets API 36. Google's current requirement for **new mobile
 apps and updates** is API 36 or newer, so a Play candidate needs an SDK upgrade
 and Android 16 behavior/device testing. This does not prevent distributing the
 current APK on GitHub. Recheck the requirement at submission time:
@@ -72,7 +78,11 @@ and demonstration video. Review navigation blocking and Settings escape against
 the current policy before submission; approval is not guaranteed by passing
 technical tests. See [AccessibilityService policy](https://support.google.com/googleplay/android-developer/answer/10964491?hl=en).
 
-## Apple App Store
+## Apple App Store — discontinued
+
+The owner stopped this distribution path on October 11, 2026. The following is
+background for the retained prototype, not an active enrollment commitment.
+
 
 An APK cannot become an iPhone app through a packaging change. An iOS version
 needs a separate implementation and an interaction design tested against
@@ -101,7 +111,9 @@ Recheck each store's payment rules before submitting that store's build:
 
 - F-Droid supports public external donation URLs in its
   [Donate metadata](https://f-droid.org/docs/Build_Metadata_Reference/#Donate).
-- Google exempts direct creator tips from Play Billing when 100% goes to the
+- The Play candidate uses native Google Play Billing tips with no digital
+  benefit; its actual account-dependent fees are not a 100% creator exception.
+  The external route was evaluated separately: Google exempts direct creator tips from Play Billing when 100% goes to the
   creator and there is no digital benefit. Confirm how the actual Buy Me a
   Coffee flow and fees fit that condition; do not assume that a generic support
   button is automatically exempt. See

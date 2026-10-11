@@ -31,8 +31,8 @@ Repo: https://github.com/beejsbj/speedbreaker.git
 Builds:
   - versionName: 1.0.1
     versionCode: 5
-    disable: Clean F-Droid buildserver rebuild and signed-APK match are not verified
-      yet; do not publish until they pass.
+    disable: Waiting for F-Droid rotation support with Android 8 retained; clean
+      F-Droid buildserver verification is still required.
     commit: 3f90ca53e420fb308dcbe48030566f8824ad1688
     subdir: app
     gradle:

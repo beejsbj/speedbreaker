@@ -1,5 +1,9 @@
 # Speedbreaker: bounded native iOS feasibility prototype
 
+> Distribution stopped at Burooj’s request on October 11, 2026. This prototype
+> is retained as technical evidence; no Apple enrollment or App Store submission
+> is being pursued.
+
 This is an investigation, **not an iOS implementation of the Android V1 contract**.
 Parent: distribution thread `98543987-c8a8-4578-921d-a593647b609a`,
 `release/store-distribution`, base `769b403`. All changes belong to `ios/**`

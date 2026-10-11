@@ -1,0 +1,22 @@
+Make the next tap intentional.
+
+Speedbreaker puts a breathing pause between you and the Android apps you choose. Take a moment, then continue, leave, or open somewhere else. Optional check-ins bring that same pause back during continuous visible use.
+
+CHOOSE YOUR OWN APPS
+Nothing is selected for you. Choose the apps that pull at you, and optionally choose four alternatives to open instead. System Settings, launchers, keyboards and dialers cannot be targets.
+
+A LITTLE ROOM TO CHOOSE
+Set a breath from 8 to 60 seconds (12 seconds by default). The first eight seconds intentionally hold ordinary Back, Home and Recents navigation. After eight seconds, Leave, configured redirects and Pause become available. Continue waits for the full breath. Android Settings, lock screen, screen-off and Android-reported calls interrupt the pause. You can disable the service in Android Accessibility settings.
+
+CHECK IN ON YOUR TERMS
+Check in again after ten minutes of continuous visible use by default, change the interval, or turn check-ins off for each app. Returning within sixty seconds resumes the current session. Choose active hours, with per-app schedules when needed. Each app gets two optional fifteen-minute pauses per local day, with End now controls in the app and its notification.
+
+LOCAL BY DESIGN
+No account, ads, analytics, cloud sync, usage history, streaks or screen-time scores. Settings and pause allowances stay on your phone. The reflection asks “What are you here for?” and stores no answer. All features are free. Optional support does not unlock anything.
+
+ACCESSIBILITY AND PHONE PERMISSION
+Speedbreaker uses Android's AccessibilityService API to identify visible app package names, including relevant system screens, show its breathing pause and carry out your navigation choices. It does not read screen text or typed input, capture screenshots, or upload app activity. You see an in-app disclosure and choose whether to consent before enabling the service.
+
+Phone permission supports a check of Android's call state. No phone numbers, call history or audio are read. Breaths stay off without this access. Calling apps exposing neither Android call state nor communication audio may not be detected while ringing. Notifications are needed for the fifteen-minute Pause option.
+
+Android 8.0 or newer. Device behavior can vary. One Hand Operation+ gestures are unavailable during the overlay. Speedbreaker is a general attention aid, with no medical or disability-treatment claim.

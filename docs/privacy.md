@@ -1,10 +1,14 @@
-# Privacy
+# Privacy policy
 
-Applies to Speedbreaker **1.0.1**. Last reviewed: **October 11, 2026**.
+Applies to Android Speedbreaker **1.0.1** and the **1.0.2 candidate**, including
+its community and Google Play builds. The candidate is not a store release.
+Last reviewed: **October 11, 2026**. Publisher: **Burooj (beejsbj)**.
 
 Speedbreaker runs on your Android phone. It has no account, analytics, ads,
 cloud sync, or Internet permission. The app does not send your settings or app
-activity to the developer.
+activity to the developer. The Google Play candidate includes Google Play
+Billing for optional tips; it communicates with the Play Store payment service.
+The community build and stable GitHub APK contain no payment SDK.
 
 ## What Accessibility observes
 
@@ -90,7 +94,9 @@ or clear its storage in Android Settings, to remove its local data. Clearing
 storage also resets consent, chosen apps, and pause allowances. There is no
 Speedbreaker cloud backup or account to delete.
 
-## Downloads and reports
+## Optional support and payments
+
+### GitHub and community builds
 
 The optional **Buy me a coffee** action opens
 [buymeacoffee.com/beejsbj](https://buymeacoffee.com/beejsbj) outside Speedbreaker.
@@ -98,6 +104,32 @@ That website and its payment providers handle any visit or contribution under
 their own privacy terms. Speedbreaker sends no settings or app-usage data with
 the link, embeds no payment SDK, and does not receive or store payment details.
 Contributing does not unlock features.
+
+### Google Play candidate
+
+The optional **Leave a tip** chooser uses Google Play Billing. Google handles
+checkout, payment details, transaction records, and refunds under its
+[privacy policy](https://policies.google.com/privacy) and payment terms.
+Speedbreaker does not receive your card number, billing address, or account
+password. A tip grants no feature, content, badge, or other digital benefit.
+
+Speedbreaker receives purchase status, product identifiers, a purchase token,
+and a signed purchase receipt from Google Play. It verifies the receipt locally
+and returns the token to Google Play to consume and acknowledge a completed tip.
+These records are held in memory while processing; Speedbreaker does not log
+them, save a purchase history, or send them to a developer server. An unfinished
+transaction can be recovered from Google Play when the app reopens. If it is
+never acknowledged, Google's refund rules apply. Google retains its transaction
+records under its own policies; clearing Speedbreaker's storage does not delete
+those records or request a refund.
+
+The publisher may see transaction and payout information in Google Play Console
+for payment administration, support, tax, and legally required records. Exact
+account-level retention and a public support email must be confirmed when the
+publisher enrolls, before a Play submission. No Play account, live tip products,
+or completed payment flow is claimed by this candidate.
+
+## Downloads, reports and contact
 
 GitHub hosts this repository, releases, and issue reports. Visiting GitHub or
 posting there is separate from using the offline app. Anything you include in

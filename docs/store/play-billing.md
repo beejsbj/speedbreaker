@@ -1,37 +1,18 @@
 # Optional Google Play tips
 
-Implementation branch: `release/play-tips`, based on parent `release/store-distribution`
-at `c8b3b81`. Candidate is 1.0.2 / code 6 / API 36. No publishing or Console
-configuration has been performed. All features remain free.
+Implemented in `release/store-distribution`, PR #8. Candidate is 1.0.2 / code 6 /
+API 36. No publishing or Console configuration has been performed. All features
+remain free. Both `community` and `play` flavors share the existing package and
+signing lineage. Only Play includes Billing Library 9.1.0; community keeps the
+external BMC action. The Play chooser is dismissible and contains no external
+payment fallback. Nothing appears in breathing overlays.
 
-## Parent integration contract
-
-The parent owns `app/build.gradle.kts`, workflows, listing and privacy variants.
-This branch does not change them. Add flavors `community` and `play` in dimension
-`distribution`, with the same `dev.burooj.speedbreaker` application ID and signing.
-Add only `playImplementation("com.android.billingclient:billing:9.1.0")`.
-No BuildConfig flag, billing-ktx dependency, application ID suffix, version change,
-backend, account system or entitlement is needed.
-
-Both flavors provide `rememberDistributionSupport()` in the presentation package.
-Main adds only Home label/summary parameters (existing defaults retained) and uses
-that support action. Community retains the BMC browser action and fallback toast;
-its source set contains no billing imports. Play has a dismissible Home chooser
-and no website/payment-link action or toast fallback. Nothing appears in overlays.
-
-Tests belong in **`app/src/testPlay/java`**, not `src/playTest`. AGP includes this
-flavor unit-test source set; shared `testImplementation` dependencies already
-include JUnit. Parent hosted CI should run at least:
-
-```sh
-./gradlew :app:testCommunityDebugUnitTest :app:testPlayDebugUnitTest :app:assembleCommunityDebug :app:assemblePlayDebug :app:bundlePlayRelease
-```
-
-Adjust existing artifact paths/jobs to flavor names. Before parent integration,
-main cannot resolve the variant support function because flavors do not yet
-exist. No full Android or Compose compile was run here. Verify manifest merging,
-AndroidViewModel creation, Compose dialog/lifecycle integration and both flavor
-assemblies in hosted CI. No additional test library is required.
+Hosted Android CI builds both release APKs, the Play AAB, both flavor test suites,
+and release lint. The worker's pure JVM tests are additional evidence; they do
+not establish a complete app compile or a real transaction. The first hosted
+Play compile found a nullable one-time offer token; the integration fix accepts
+legacy products without inventing a token. Final hosted results are recorded in
+[distribution status](status.md).
 
 ## Owner prerequisites — currently blocked
 
@@ -67,7 +48,7 @@ Google's standard eligible 15% tier applies to the first US$1M in annual revenue
 eligibility/enrollment, other tiers and regional programs affect actual fees.
 Do not claim that 100% goes to the creator. See [Play service fees](https://support.google.com/googleplay/android-developer/answer/112622).
 
-The parent must reconcile Play listing/privacy text: Play handles billing data;
+The [public privacy policy](../privacy.md) distinguishes these variants: Play handles billing data;
 Speedbreaker does not collect card details, settings or usage for this flow.
 Community's BMC/no-payment-SDK wording does not describe the Play variant.
 
@@ -138,7 +119,7 @@ and used `javap` on its `classes.jar` to confirm:
 AAR SHA-256: `d28286d4e4c18725510980de01211d9b72501e7146d96817fa0c9999af9b0d22`.
 Its manifest declares `com.android.vending.BILLING`, the Play billing service
 queries, library-version metadata and non-exported proxy activities. It does
-not add INTERNET permission. Parent should inspect the final merged manifest.
+not add INTERNET permission. The hosted release inventory checks the final merged manifest.
 
 **Actually ran:** 13 JUnit tests for the pure ledger, receipt decisions and RSA
 verification, compiled with cached Kotlin 2.3.20/JUnit 4.13.2 using direct JVM
@@ -152,7 +133,7 @@ They do not exercise the live BillingClient, Android callbacks or Compose UI.
 
 ## Required Console/license-test checks — not yet performed
 
-After the prerequisites and parent CI, use an installed Play test-track build
+After the prerequisites and passing hosted CI, use an installed Play test-track build
 with configured license testers and record evidence for:
 
 1. Empty/invalid public key and missing/inactive products: no checkout, no fake
