@@ -112,8 +112,8 @@ class FlexibleRedirectsTest {
         }
         compose.onNodeWithText("Leave").assertIsDisplayed().assertIsEnabled()
         compose.onNodeWithText("Continue in 4s").assertIsNotEnabled()
-        if (count == 0) compose.onNodeWithText("Or go to").assertDoesNotExist()
-        else compose.onNodeWithText("Or go to").assertIsDisplayed()
+        if (count == 0) compose.onNodeWithText("OR GO TO").assertDoesNotExist()
+        else compose.onNodeWithText("OR GO TO").assertIsDisplayed()
         for (app in destinations) {
             compose.onNodeWithText(app.label).assertIsDisplayed().assertIsEnabled().performClick()
         }
