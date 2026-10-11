@@ -49,8 +49,10 @@ jobs:
         run: |
           mkdir -p "$ANDROID_AVD_HOME"
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd --force --name native-pages-ci --path "$ANDROID_AVD_HOME/native-pages-ci.avd" --package 'system-images;android-36;google_apis_ps16k;x86_64' --device pixel_6
+          # The Pixel profile's 1.5 GB default lets this 16 KB image kill foreground apps.
+          sed -i 's/^hw.ramSize=.*/hw.ramSize=4096M/' "$ANDROID_AVD_HOME/native-pages-ci.avd/config.ini"
           cat "$ANDROID_AVD_HOME/native-pages-ci.avd/config.ini" > build/native-pages/avd-config.ini
-          nohup "$ANDROID_HOME/emulator/emulator" -avd native-pages-ci -port 5554 -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none > build/native-pages/emulator.txt 2>&1 &
+          nohup "$ANDROID_HOME/emulator/emulator" -avd native-pages-ci -port 5554 -memory 4096 -cores 2 -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none > build/native-pages/emulator.txt 2>&1 &
           timeout 90 "$ANDROID_HOME/platform-tools/adb" -s emulator-5554 wait-for-device
           for attempt in $(seq 1 120); do
             if [ "$("$ANDROID_HOME/platform-tools/adb" -s emulator-5554 shell getprop sys.boot_completed | tr -d '\r')" = 1 ]; then

@@ -131,6 +131,7 @@ class Audit:
         require(self.adb('shell', 'getprop', 'ro.product.cpu.abi') == 'x86_64', 'Not x86_64')
         self.report['device'] = {'serial': 'emulator-5554', 'page_size': 16384, 'api': 36,
                                  'abi': 'x86_64', 'fingerprint': self.adb('shell', 'getprop', 'ro.build.fingerprint')}
+        self.report['device']['meminfo'] = self.adb('shell', 'cat', '/proc/meminfo')
         self.save()
         # adbd can close the root request while the newly booted emulator reconnects.
         # Its process exit code is not the root-state assertion; verified UID 0 is.
