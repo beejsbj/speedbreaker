@@ -565,6 +565,8 @@ class Demo:
                 if installed:
                     result = self.adb_call("uninstall", package, check=False)
                     self.require(result == "Success", "uninstalled test package " + package)
+                    self.require(not self.shell("pm", "path", package, check=False).startswith("package:"),
+                                 "package absent after uninstall " + package)
                 else:
                     self.mark("fresh_package_absent", package)
             for apk in (self.args.app_apk, self.args.fixture_apk):
