@@ -1,0 +1,46 @@
+Categories:
+  - Lifestyle
+License: Apache-2.0
+AuthorName: Burooj
+WebSite: https://github.com/beejsbj/speedbreaker
+SourceCode: https://github.com/beejsbj/speedbreaker
+IssueTracker: https://github.com/beejsbj/speedbreaker/issues
+Donate: https://buymeacoffee.com/beejsbj
+
+AutoName: Speedbreaker
+Summary: A breathing pause before chosen apps
+Description: |
+  Speedbreaker adds a breathing pause when you open apps you choose, with
+  optional check-ins during continuous visible use. The first eight seconds
+  lock ordinary navigation; Android safety screens such as Settings and
+  incoming-call UI can interrupt the pause. You can continue, leave, or
+  redirect to a configured alternative after the lock.
+
+  Speedbreaker uses an Accessibility service to identify the visible app and
+  mediate navigation. The Android Phone permission is used only to check
+  whether Android reports a call; breathing pauses stay off when this access
+  is unavailable. Notifications are used for active pause controls.
+
+  Settings, selected apps, schedules, and pause state are stored on the device.
+  The app has no account, analytics, ads, cloud sync, or Internet permission,
+  and does not upload app activity.
+
+RepoType: git
+Repo: https://github.com/beejsbj/speedbreaker.git
+
+Builds:
+  - versionName: 1.0.1
+    versionCode: 5
+    commit: 3f90ca53e420fb308dcbe48030566f8824ad1688
+    subdir: app
+    gradle:
+      - yes
+    binary: https://github.com/beejsbj/speedbreaker/releases/download/v%v/Speedbreaker-%v.apk
+    disable: Clean F-Droid buildserver rebuild and signed-APK match are not verified yet; do not publish until they pass.
+
+AllowedAPKSigningKeys: fe3fcd3e893fe89d97aba6e25b429e9140455846423c2b42c44bfb4fcc320272
+
+AutoUpdateMode: None
+UpdateCheckMode: Static
+CurrentVersion: 1.0.1
+CurrentVersionCode: 5
