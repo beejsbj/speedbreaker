@@ -232,7 +232,10 @@ class PlayTipsModelTest {
         assertEquals(2, billing.launches)
         // The scheduled recovery still carries generation 1, while checkout 2 is open.
         val staleRecoveryQuery = billing.holdPurchases()
+        val queriesBeforeRetry = billing.purchaseQueries
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(2))
+        assertEquals("The stale generation must actually reach an ownership query",
+            queriesBeforeRetry + 1, billing.purchaseQueries)
         staleRecoveryQuery.complete(BillingReply(BillingResponseCode.OK, emptyList()))
         drain()
         assertFalse(model.state.value.canBuy)
@@ -328,6 +331,7 @@ class PlayTipsModelTest {
         var closed = false
         var connectionCode = BillingResponseCode.OK
         var purchaseCode = BillingResponseCode.OK
+        var purchaseQueries = 0
         val consumedTokens = mutableListOf<String>()
         private var nextOffers: CompletableDeferred<BillingReply<List<PlayTipOffer>>>? = null
         private var nextPurchases: CompletableDeferred<BillingReply<List<Purchase>>>? = null
@@ -347,6 +351,7 @@ class PlayTipsModelTest {
             return held?.await() ?: BillingReply(BillingResponseCode.OK, listOf(offer))
         }
         override suspend fun purchases(): BillingReply<List<Purchase>> {
+            purchaseQueries++
             val held = nextPurchases
             nextPurchases = null
             return held?.await() ?: BillingReply(purchaseCode, emptyList())
