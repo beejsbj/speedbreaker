@@ -215,9 +215,9 @@ class Audit:
         self.check_crashes()
 
     def check_crashes(self):
-        log = self.adb('logcat', '-b', 'all', '-d', check=False)
+        log = self.adb('logcat', '-b', 'all', '-d')
         (self.output / 'logcat.txt').write_text(log + '\n')
-        crash = self.adb('logcat', '-b', 'crash', '-d', check=False)
+        crash = self.adb('logcat', '-b', 'crash', '-d')
         (self.output / 'crash.txt').write_text(crash + '\n')
         # Fresh disposable AVD, log cleared before installation: any fatal signal is a failure.
         require(not re.search(r'Fatal signal|SIGSEGV|FATAL EXCEPTION|>>> dev\.burooj\.speedbreaker',
@@ -253,12 +253,13 @@ def main():
         if args.mode == 'runtime':
             try:
                 audit.check_crashes()
-                audit.adb('shell', 'dumpsys', 'activity', 'activities', check=False)
-                audit.adb('shell', 'dumpsys', 'package', PACKAGE, check=False)
+                audit.adb('shell', 'dumpsys', 'activity', 'activities')
+                audit.adb('shell', 'dumpsys', 'package', PACKAGE)
             except Exception as failure:
                 audit.report.update(result='FAIL', collection_failure=str(failure))
         audit.save()
         print(json.dumps(audit.report, indent=2))
+    # A late failure in finally must fail CI even when runtime() returned successfully.
     require(audit.report['result'] == 'PASS', 'Evidence collection or crash gate failed')
 
 

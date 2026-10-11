@@ -47,6 +47,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
       - name: Boot explicitly selected 16 KB AVD
         run: |
+          free -m > build/native-pages/host-free-before-emulator.txt
           mkdir -p "$ANDROID_AVD_HOME"
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd --force --name native-pages-ci --path "$ANDROID_AVD_HOME/native-pages-ci.avd" --package 'system-images;android-36;google_apis_ps16k;x86_64' --device pixel_6
           # The Pixel profile's 1.5 GB default lets this 16 KB image kill foreground apps.
@@ -64,6 +65,13 @@ jobs:
       - name: Exercise target APK native library with compatibility mode off
         run: |
           python3 scripts/check_native_pages.py --mode runtime --apk app/build/outputs/apk/play/debug/app-play-debug.apk --fixture tools/call-fixture/build/outputs/apk/debug/call-fixture-debug.apk --adb "$ANDROID_HOME/platform-tools/adb" --output build/native-pages/runtime
+      - name: Record final host and guest memory even on failure
+        if: always()
+        run: |
+          mkdir -p build/native-pages
+          free -m > build/native-pages/host-free-after-test.txt
+          timeout 15 "$ANDROID_HOME/platform-tools/adb" -s emulator-5554 shell free -m > build/native-pages/guest-free-after-test.txt 2>&1 || true
+          timeout 15 "$ANDROID_HOME/platform-tools/adb" -s emulator-5554 shell cat /proc/meminfo > build/native-pages/guest-meminfo-after-test.txt 2>&1 || true
       - name: Preserve evidence on success and failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
