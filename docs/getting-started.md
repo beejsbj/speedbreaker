@@ -40,6 +40,18 @@ If Android shows **Restricted setting** or **Controlled by Restricted Setting**:
 Menu names differ across Android versions and manufacturers. This is an
 individual app approval, not a reason to turn off Play Protect.
 
+## Allow call-state access
+
+After Accessibility connects, tap **Allow call-state access** and allow Android’s
+**Phone** permission. This lets Speedbreaker detect ringing calls, including
+silent ones, even when their controls appear in a system notification. It checks
+whether a call exists; it does not read numbers, call history, or audio.
+
+Breaths stay off if this permission is denied or revoked. To change a previous
+denial, use the same button to open app info, then **Permissions → Phone**.
+Android-reported calls and communication audio suspend breaths. Some third-party
+calling apps do not report incoming calls to Android and may not be detected.
+
 ## Choose and configure apps
 
 Tap **Choose apps** and select the apps you want to pause. Search is available;
@@ -47,7 +59,7 @@ changes to the target selection take effect as you select or deselect apps.
 Speedbreaker, the launcher, keyboards, and safety-related system apps are
 excluded from the picker. Nothing is selected on a fresh installation.
 
-With Accessibility connected, the home screen shows **Ready when you are**
+With Accessibility connected and call-state access allowed, the home screen shows **Ready when you are**
 until you choose an app, then **On for … apps**. Open one of those apps to try
 the breath.
 
@@ -84,15 +96,20 @@ split-screen and picture-in-picture. Leaving briefly pauses that interval;
 returning within sixty seconds resumes it. A longer absence starts a fresh
 opening breath. Leave and redirects end the session immediately.
 
-A fifteen-minute pause has an ongoing notification with **End now**. Ending or
+A fifteen-minute pause appears under **Active pauses** on Speedbreaker’s home
+screen, with **End now** for each app. Its notification provides the same action
+and opens Speedbreaker when tapped. If you dismiss the notification, the in-app
+control remains available; ending a pause does not restore its daily token. Ending or
 expiring it resumes enforcement immediately if the target is visible, or on its
 next opening otherwise. Allowances reset each local day. An active pause keeps
 its original expiry even if it crosses midnight.
 
 One Hand Operation+ edge gestures do not work while the overlay is visible.
-Use Leave, a redirect, or ordinary navigation after eight seconds. Calls, the
-dialer, lock screen, screen-off, and Android Settings are designed to take
-priority over the overlay. Device verification is still limited; see
+Use Leave, a redirect, or ordinary navigation after eight seconds. Android-reported
+calls, the dialer, lock screen, screen-off, and Android Settings take priority.
+A call-state check runs during each observation and on the service’s 250 ms tick;
+this avoids the eight-second lock delay, but is not a guaranteed response deadline.
+After a call ends, a still-visible target can receive a fresh opening breath. Device verification is still limited; see
 [the README](../README.md#privacy-and-device-support).
 
 ## Troubleshooting
@@ -111,13 +128,14 @@ app. Clearing app storage is a reset and deletes your choices and pause state.
 ### A chosen app opens without a breath
 
 Check that the app is still selected, Accessibility is connected, and its
-schedule is currently active. A fifteen-minute Pause suppresses intervention;
+schedule is currently active. Call-state access must be allowed, and Android
+must not be reporting a call or communication audio. A fifteen-minute Pause suppresses intervention;
 a quick return after Continue can also resume a session without another breath.
 
 On Samsung, use **Reliability → Battery and background** to open Speedbreaker's
 app info, then set **Battery → Unrestricted** if available. Background behavior
 varies by phone; extended idle reliability has not been verified on release
-1.0.0. If it keeps missing pauses, report the phone model and exact conditions.
+1.0.1. If it keeps missing pauses, report the phone model and exact conditions.
 
 ### Pause is unavailable
 

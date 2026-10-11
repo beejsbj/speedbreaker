@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.1 — release candidate
+
+Version code: **4**.
+
+- Suspend breaths while Android reports a ringing, dialing, active, or held call,
+  including silent incoming calls displayed by SystemUI. Phone permission is
+  now a setup requirement; denied or revoked access keeps breaths off. No phone
+  numbers, call history, or audio are read. Communication audio is an additional
+  safety signal; calls not registered with Android may still evade detection.
+- Keep committed settings and pause changes visible even if the screen’s save
+  coroutine is cancelled during the database write.
+- Show **Active pauses** and per-app **End now** on Home. Dismissing a notification
+  no longer removes the only way to end a pause early.
+- Do not forward Back into a call or system screen when safety removes a breath.
+
+Validation and release status will be recorded after the candidate checks.
+
 ## 1.0.0 — testing prerelease
 
 Version code: **3**. Installed-release verification: **October 11, 2026**.

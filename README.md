@@ -56,7 +56,9 @@ own apps and redirects.
 3. Open Speedbreaker, read the Accessibility disclosure, and tap
    **I understand — continue**.
 4. Tap **Turn on in Accessibility** and enable **Speedbreaker attention pauses**.
-5. Return to Speedbreaker and tap **Choose apps**. Open a chosen app to try it.
+5. Return to Speedbreaker, tap **Allow call-state access**, and allow Phone
+   permission. Breaths stay off without it so silent calls are not hidden.
+6. Tap **Choose apps**. Open a chosen app to try it.
 
 If Android says the Accessibility setting is restricted, open Speedbreaker's
 **App info → ⋮ → Allow restricted settings**, confirm your identity, and return
@@ -73,21 +75,24 @@ and Recents cannot dismiss it during that time. At eight seconds, Leave,
 configured redirects, and Pause become available; Continue waits until the full
 breath finishes. Ordinary navigation can leave after eight seconds.
 
-Each chosen app gets two fifteen-minute pauses per local day. Its notification
-contains **End now**. On Android 14+, dismissing that notification currently
-removes this early-ending control; see [issue #5](https://github.com/beejsbj/speedbreaker/issues/5). After Continue, returning within sixty
+Each chosen app gets two fifteen-minute pauses per local day. **Active pauses**
+on the home screen and the pause notification both offer **End now**; the in-app
+control remains available if the notification is dismissed. After Continue, returning within sixty
 seconds resumes the session; a longer absence starts a new opening breath.
 Visible apps in split-screen and picture-in-picture count toward check-ins.
 
-The app is designed to yield to calls, the dialer, the lock screen, screen-off,
-and Android Settings. One Hand Operation+ edge gestures are unavailable while
+The app yields to Android-reported calls, communication audio, the dialer, the
+lock screen, screen-off, and Android Settings. Calling apps that do not report
+their calls to Android may not be detected while ringing. One Hand Operation+ edge gestures are unavailable while
 the overlay is visible; use Leave, a redirect, or ordinary navigation once
 choices unlock. You can turn Speedbreaker off in Android Accessibility settings.
 
 ## Privacy and device support
 
 Accessibility lets Speedbreaker identify visible apps and display its pause.
-The app does not read message text, take screenshots, or store usage history.
+Phone permission supports a call-state check, without reading numbers, call
+history, or audio. The app does not read message text, take screenshots, or store
+usage history.
 Settings and pause state stay on the phone. It requests no Internet, Usage
 Access, or separate “display over other apps” permission. Android backup and
 device transfer of app data are disabled in its configuration.
