@@ -801,21 +801,24 @@ class Demo:
         """
         self.mark("first_lock_probe_started", {"seconds_after_target_launch":
                                                round(time.monotonic() - launched, 2)})
-        (self.out / "initial-lock-before-windows.xml").write_bytes(
-            ET.tostring(self.dump(all_windows=True)))
         for step, gesture in enumerate(("shade", "expand_shade"), 1):
             if time.monotonic() - launched >= 8:
                 break
             self.swipe(gesture)
             observed_at = time.monotonic() - launched
             prefix = f"initial-lock-{step}"
+            self.mark("first_lock_gesture_sent", {"step": step, "gesture": gesture,
+                                                  "seconds_after_target_launch":
+                                                  round(observed_at, 2)})
+            # Capture WindowManager immediately. UiAutomation's all-window
+            # traversal can take seconds on a busy hosted AVD.
+            (self.out / f"{prefix}-window.txt").write_text(
+                self.shell("dumpsys", "window", "windows"))
+            self.screenshot(f"{prefix}-shade.png")
             windows = self.dump(all_windows=True)
             (self.out / f"{prefix}-windows.xml").write_bytes(ET.tostring(windows))
             shade = self.dump()
             (self.out / f"{prefix}-ui.xml").write_bytes(ET.tostring(shade))
-            self.screenshot(f"{prefix}-shade.png")
-            (self.out / f"{prefix}-window.txt").write_text(
-                self.shell("dumpsys", "window", "windows"))
             (self.out / f"{prefix}-statusbar.txt").write_text(
                 self.shell("dumpsys", "statusbar"))
             packages = sorted({node.get("package", "") for node in shade.iter("node")})
