@@ -1,0 +1,4 @@
+{
+  "dark": {"background": "#131311", "foreground": "#ECE5D6", "secondary": "#ABA595", "line": "#3A3832"},
+  "light": {"background": "#F7F2E8", "foreground": "#1C1B17", "secondary": "#5F5A4F", "line": "#DCD3C2"}
+}
