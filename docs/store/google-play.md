@@ -57,6 +57,9 @@ alternative. Settings, lock-screen and detected calls yield immediately.
 **Data accessed:** visible-window package names and Accessibility event/window
 metadata, including relevant non-target and system app identities. No screen
 text traversal, typed-input reading, message reading, screenshots or usage log.
+The candidate also checks native SystemUI window type, display and touchable
+geometry so the overlay can yield its presentation to a full-display native
+panel without restarting the breath. Native reachability remains a device gate.
 Package names and timers are processed locally. Selected targets, schedules and
 pause state remain in a local database and are never uploaded.
 

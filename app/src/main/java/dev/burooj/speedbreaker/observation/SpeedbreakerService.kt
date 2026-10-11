@@ -52,6 +52,7 @@ internal class SpeedbreakerService : AccessibilityService() {
     private val ownPauseWriteSnapshots = mutableListOf<Map<String, PauseState>>()
     private val expectedPauseEnds = mutableSetOf<String>()
     private var navigationAwayLatched = false
+    private var systemPanelOwnsDisplay = false
     private val labelCache = mutableMapOf<String, String>()
 
     private val ticker = object : Runnable {
@@ -97,10 +98,15 @@ internal class SpeedbreakerService : AccessibilityService() {
         ) return
         val windowTransition = event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             event.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
-        if (overlay.isShowing && windowTransition && safetyPolicy.isNavigationPackage(packageName)) {
+        if (overlay.hasBreaker && windowTransition && packageName != "com.android.systemui" &&
+            safetyPolicy.isNavigationPackage(packageName)
+        ) {
             navigationAwayLatched = true
         }
-        val forceSafetyYield = overlay.isShowing && safetyPolicy.isImmediateYieldPackage(packageName)
+        // SystemUI application windows (for example Recents) still count as
+        // ordinary navigation. Native SYSTEM panel transitions do not cancel
+        // the retained breath; observation() distinguishes their window types.
+        val forceSafetyYield = overlay.hasBreaker && safetyPolicy.isImmediateYieldPackage(packageName)
         reconcile(forceSafetyYield = forceSafetyYield)
     }
 
@@ -180,6 +186,7 @@ internal class SpeedbreakerService : AccessibilityService() {
     }
 
     private fun handleChoice(choice: Choice) {
+        if (!overlay.isShowing) return
         val currentEngine = engine ?: return
         if (repository.error.value != null || !repository.ready.value) {
             suspendEnforcement(repository.error.value)
@@ -188,14 +195,21 @@ internal class SpeedbreakerService : AccessibilityService() {
         if (choice == Choice.Pause && !notifications.isAvailable()) return
         val settings = safetyPolicy.filter(repository.settings.value)
         val observation = observation(navigationAway = false, forceSafetyYield = false)
+        if (systemPanelOwnsDisplay) {
+            apply(currentEngine.update(settings, observation), settings, observation)
+            return
+        }
         apply(currentEngine.choose(choice, settings, observation), settings, observation)
     }
 
     private fun handleBack() {
         val wasShowing = overlay.isShowing
+        if (!wasShowing) return
         val result = reconcile(navigationAway = true) ?: return
         // A safety dismissal exposes call or system controls; do not send Back into them.
-        if (wasShowing && result.update.breaker == null && !result.observation.safetyUiVisible) {
+        if (wasShowing && result.update.breaker == null &&
+            !result.observation.safetyUiVisible && !systemPanelOwnsDisplay
+        ) {
             systemActions.performBack()
         }
     }
@@ -249,7 +263,10 @@ internal class SpeedbreakerService : AccessibilityService() {
         if (breaker == null) {
             overlay.dismiss()
         } else {
-            overlay.showOrUpdate(overlayState(breaker, settings, update.pauses, observation))
+            overlay.showOrUpdate(
+                overlayState(breaker, settings, update.pauses, observation),
+                systemPanelOwnsDisplay,
+            )
         }
     }
 
@@ -356,7 +373,12 @@ internal class SpeedbreakerService : AccessibilityService() {
 
     private fun observation(navigationAway: Boolean, forceSafetyYield: Boolean): Observation {
         val elapsedMs = SystemClock.elapsedRealtime()
-        val visiblePackages = windowReader.visiblePackages(elapsedMs)
+        val windows = windowReader.snapshot(elapsedMs)
+        val visiblePackages = windows.applicationPackages
+        systemPanelOwnsDisplay = windows.systemPanelOwnsDisplay
+        if (overlay.hasBreaker && windows.systemUiApplicationVisible) {
+            navigationAwayLatched = true
+        }
         val power = getSystemService(PowerManager::class.java)
         val interactive = power?.isInteractive == true
         return Observation(
@@ -364,7 +386,7 @@ internal class SpeedbreakerService : AccessibilityService() {
             interactive = interactive,
             safetyUiVisible = forceSafetyYield || !interactive ||
                 safetyPolicy.safetyUiVisible(visiblePackages),
-            navigationAway = navigationAway,
+            navigationAway = navigationAway || navigationAwayLatched,
             elapsedMs = elapsedMs,
             epochMs = System.currentTimeMillis(),
             zoneId = ZoneId.systemDefault(),

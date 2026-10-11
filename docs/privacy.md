@@ -23,6 +23,10 @@ window content. Speedbreaker's implementation reads window-root package names
 and event metadata. It does not traverse screen text, read messages or typed
 input, capture screenshots, or record the contents of other apps.
 
+The 1.0.2 candidate also reads native SystemUI window type, display and touchable
+geometry to expose a full-display system panel above the breathing surface.
+These are transient window metadata, not notification or screen contents.
+
 Current visibility and continuous-use timers are held in memory. They are not
 saved as a usage log. Screen-off time does not count toward check-ins.
 

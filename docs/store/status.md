@@ -44,6 +44,16 @@ native 38166287973 and metadata 38166287891. The
 main integration and the remaining candidate/device boundary. No new signing
 or publication followed that merge.
 
+The subsequent native-route investigation found two input/presentation barriers:
+outside-window status-bar touches were consumed by the focusable touch-modal
+overlay; after adding NOT_TOUCH_MODAL, API 36 showed a full-display native shade
+still covered by the breathing surface. Candidate source now prepares temporary
+window detachment while a trusted SYSTEM SystemUI panel owns the display,
+retaining the original engine timer and haptic state. This repair and its final
+Settings/early-close/navigation checks are **not yet verified**. Android 8–10
+uses a bounds fallback because exact touch regions are public only from API 30;
+its runtime geometry remains unverified. No minimum SDK or signing change.
+
 The integrated 467d700 checkpoint passed Android
 [38169807900](https://github.com/beejsbj/speedbreaker/actions/runs/38169807900),
 native [38169807955](https://github.com/beejsbj/speedbreaker/actions/runs/38169807955)
