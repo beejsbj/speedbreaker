@@ -11,11 +11,11 @@ internal class CallSafety(private val context: Context) {
     enum class Status { Idle, InCall, PermissionRequired, Unavailable }
 
     fun status(): Status {
-        if (PermissionChecker.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) !=
-            PermissionChecker.PERMISSION_GRANTED
-        ) return Status.PermissionRequired
-
         return try {
+            if (PermissionChecker.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) !=
+                PermissionChecker.PERMISSION_GRANTED
+            ) return Status.PermissionRequired
+
             val telecom = context.getSystemService(TelecomManager::class.java)
                 ?: return Status.Unavailable
             // Aggregate state includes ringing (even silent), held, and self-managed calls.

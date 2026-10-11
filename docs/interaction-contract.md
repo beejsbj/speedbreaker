@@ -84,3 +84,20 @@ overlay is visible. OHO compatibility is not a release defect. The delivery
 goal is a signed, shareable app; Burooj will configure his own targets and
 redirects. His personal full-day trial does not gate delivering that artifact.
 Device observations and untested recovery cases must still be reported accurately.
+
+## 1.0.1 call-safety and pause-control clarification
+
+The service observes visible app identities, including non-target safety screens,
+without traversing screen text. Phone permission is now required before breaths
+can run. It reads Android's aggregate call-state boolean and current audio mode;
+no numbers, call history, notification contents, or audio are read or stored.
+Denied/revoked access or observable query failure suspends breaths and preserves
+settings. Android-reported calls bypass the eight-second lock through each event,
+choice observation, and the 250 ms ticker. That interval is not a guaranteed
+latency deadline. Calling apps that do not register with Android may not be
+detected while ringing; the original broad “Calls” sentence is not a guarantee
+for every third-party app. When call safety clears, a still-visible target starts
+a fresh breath. A safety dismissal never forwards Back into the exposed call UI.
+
+Home now shows active pauses with an End now action for each app. These controls
+remain available if Android 14+ lets the user dismiss the pause notification.
