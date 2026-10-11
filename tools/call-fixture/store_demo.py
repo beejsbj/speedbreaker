@@ -65,7 +65,7 @@ class Demo:
         # UIAutomator writes a temporary hierarchy file; no app data or settings are changed.
         self.shell("uiautomator", "dump", "/sdcard/sb-store-demo.xml", timeout=20)
         raw = self.adb_call("exec-out", "cat", "/sdcard/sb-store-demo.xml", binary=True)
-        self.shell("rm", "/sdcard/sb-store-demo.xml")
+        self.shell("rm", "-f", "/sdcard/sb-store-demo.xml", check=False)
         return ET.fromstring(raw)
 
     @staticmethod
@@ -204,12 +204,23 @@ class Demo:
         self.shell("am", "start", "-W", "-n", PRODUCT + "/.MainActivity")
 
     def grant_phone(self):
-        # Settings returns to the retained Home scroll position. Move to its top
-        # within the app, without starting the gesture at the status bar.
+        # Settings returns to the retained Home scroll position. The service can
+        # reconnect while this screen is rendering; tap the real button as soon
+        # as the Call permission state is visible.
         self.swipe("down")
         self.swipe("down")
-        button, _ = self.find("Allow call-state access", timeout=12)
-        self.tap_node(button)
+        deadline = time.monotonic() + 25
+        tapped = False
+        while time.monotonic() < deadline:
+            for node in self.dump().iter("node"):
+                if self.label(node) == "Allow call-state access":
+                    self.tap_node(node)
+                    tapped = True
+                    break
+            if tapped:
+                break
+            time.sleep(.3)
+        self.require(tapped, "native Phone grant requested from app button")
         self.mark("tap", "Allow call-state access")
         self.tap("Allow", timeout=10, exact=True)
         package = ""
