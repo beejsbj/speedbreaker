@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.0.2 — unreleased candidate
+
+Version code: **6**. No APK, Play release or F-Droid build has been published.
+
+- Allow zero to four redirect destinations in Defaults and per-app Custom
+  settings. Default inherits; an explicitly empty Custom set disables redirects
+  for that app. Existing four-destination settings remain compatible.
+- Prepare Android 16 / API 36 community and Play builds, with a clearer first-run
+  Accessibility disclosure and an explicit decline action.
+- Keep Play's external direct-tip action hidden until its destination and payment
+  eligibility are verified. All features remain free, with no payment SDK.
+
+The redirect change was independently reviewed and merged in [PR #10](https://github.com/beejsbj/speedbreaker/pull/10).
+Store preparation and remaining verification are tracked in
+[distribution status](docs/store/status.md).
+
 ## 1.0.1 — October 11, 2026
 
 Version code: **5**.
