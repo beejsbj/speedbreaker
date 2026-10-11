@@ -125,11 +125,20 @@ class Audit:
         require(self.adb('shell', 'getconf', 'PAGE_SIZE') == '16384', 'Not a 16 KB emulator')
         require(self.adb('shell', 'getprop', 'ro.build.version.sdk') == '36', 'Not API 36')
         require(self.adb('shell', 'getprop', 'ro.product.cpu.abi') == 'x86_64', 'Not x86_64')
-        self.adb('root')
-        self.adb('wait-for-device')
-        require(self.adb('shell', 'id', '-u') == '0', 'Disposable emulator root unavailable')
         self.report['device'] = {'serial': 'emulator-5554', 'page_size': 16384, 'api': 36,
                                  'abi': 'x86_64', 'fingerprint': self.adb('shell', 'getprop', 'ro.build.fingerprint')}
+        self.save()
+        # adbd can close the root request while the newly booted emulator reconnects.
+        # Its process exit code is not the root-state assertion; verified UID 0 is.
+        rooted = False
+        for attempt in range(3):
+            self.adb('root', check=False, timeout=30)
+            self.adb('wait-for-device', timeout=30)
+            if self.adb('shell', 'id', '-u', check=False) == '0':
+                rooted = True
+                break
+            time.sleep(2)
+        require(rooted, 'Disposable emulator root unavailable after bounded reconnects')
         props = {'bionic.linker.16kb.app_compat.enabled': 'false',
                  'pm.16kb.app_compat.disabled': 'true'}
         for key, value in props.items():
