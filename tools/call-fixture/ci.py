@@ -1,6 +1,7 @@
 """Keep workflow input out of shell interpolation; the AVD serial is explicit."""
 import argparse
 import importlib.util
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -33,12 +34,18 @@ if baseline:
     class WithoutPhonePermission(fixture_run.Harness):
         def prepare(self, directory):
             super().prepare(directory)
-            self.shell("pm", "revoke", fixture_run.PRODUCT,
-                       "android.permission.READ_PHONE_STATE")
             state = self.shell("dumpsys", "package", fixture_run.PRODUCT)
+            declared = any(line.strip() == "android.permission.READ_PHONE_STATE"
+                           for line in state.splitlines())
+            if declared:
+                self.shell("pm", "revoke", fixture_run.PRODUCT,
+                           "android.permission.READ_PHONE_STATE")
+                state = self.shell("dumpsys", "package", fixture_run.PRODUCT)
+                print("NEGATIVE_CONTROL_PHONE_REVOKED", flush=True)
+            else:
+                print("NEGATIVE_CONTROL_PHONE_NOT_DECLARED", flush=True)
             if "android.permission.READ_PHONE_STATE: granted=true" in state:
                 raise AssertionError("Negative control still has Phone permission")
-            print("NEGATIVE_CONTROL_PHONE_REVOKED", flush=True)
 
     args = argparse.Namespace(serial="emulator-5554", reset_test_packages=True,
                               app_apk=Path(app_apk), app_commit=app_commit,
@@ -54,9 +61,13 @@ if baseline:
         failed_calls = [name for name in ("ringing", "silent")
                         if (evidence / name / "instrumentation.txt").is_file()
                         and "INSTRUMENTATION_RESULT: result=FAIL" in
-                        (evidence / name / "instrumentation.txt").read_text()]
+                        (evidence / name / "instrumentation.txt").read_text()
+                        and (evidence / name / "host-events.json").is_file()
+                        and any(event.get("event") == "gsm_call_sent"
+                                for event in json.loads((evidence / name / "host-events.json").read_text()))]
         if failed_calls:
-            print(f"NEGATIVE_CONTROL_CALL_FAILURE: {failed_calls}; {error}", file=sys.stderr)
+            print(f"NEGATIVE_CONTROL_CALL_FAILURE_AFTER_INJECTION: {failed_calls}; {error}",
+                  file=sys.stderr)
         else:
             print(f"NEGATIVE_CONTROL_SETUP_OR_OTHER_FAILURE: {error}", file=sys.stderr)
         regression_code = 1
