@@ -50,7 +50,12 @@ jobs:
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "platforms;android-36" "build-tools;36.0.0"'
       - name: Build app candidate
         working-directory: source-app
-        run: ./gradlew :app:assembleCommunityDebug --no-daemon --no-configuration-cache --max-workers=2
+        run: |
+          if grep -Fq 'create("community")' app/build.gradle.kts; then
+            ./gradlew :app:assembleCommunityDebug --no-daemon --no-configuration-cache --max-workers=2
+          else
+            ./gradlew :app:assembleDebug --no-daemon --no-configuration-cache --max-workers=2
+          fi
       - name: Build isolated fixture
         run: ./gradlew -PcallFixture=true :call-fixture:assembleDebug --no-daemon --no-configuration-cache --max-workers=2
       - name: Enable KVM for the runner
@@ -81,4 +86,5 @@ jobs:
             build/store-demo/
             tools/call-fixture/build/outputs/apk/debug/
             source-app/app/build/outputs/apk/community/debug/
+            source-app/app/build/outputs/apk/debug/
           retention-days: 7

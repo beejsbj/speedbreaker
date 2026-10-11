@@ -1,6 +1,6 @@
 # Hosted first-run store demo
 
-Run `.github/workflows/android-device.yml` on a disposable, English Android emulator. API 35 records the demo after the independent Telecom/SystemUI regression; API 36 runs the regression only. `workflow_dispatch` accepts an `app_ref`; pull requests use their candidate commit. The workflow builds the Community debug APK and the isolated fixture APK on GitHub Actions. It does not submit a store listing or create a PR.
+Run `.github/workflows/android-device.yml` on a disposable, English Android emulator. API 35 records the demo after the independent Telecom/SystemUI regression; API 36 runs the regression only. `workflow_dispatch` accepts an `app_ref`; pull requests use their candidate commit. The workflow builds the candidate's Community debug APK, or its plain debug APK for a pre-flavor revision, and the isolated fixture APK on GitHub Actions. Pre-flavor and `baseline_without_phone_permission` negative controls run only the call regression; their expected call failure must remain visible. It does not submit a store listing or create a PR.
 
 The recorder requires `--serial emulator-5554 --reset-test-packages`, verifies `ro.kernel.qemu=1`, then force-stops and clears **only** Speedbreaker and the synthetic fixture. It installs both APKs. It does not seed consent, grant Phone permission with `pm grant`, or write Accessibility settings. Do not run it on a personal device. The call regression has its own seeded state and is never used as the demo.
 
