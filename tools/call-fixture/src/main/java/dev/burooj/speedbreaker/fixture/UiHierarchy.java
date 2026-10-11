@@ -6,7 +6,10 @@ import android.app.Instrumentation;
 import android.app.UiAutomation;
 import android.graphics.Rect;
 import android.graphics.Bitmap;
+import android.graphics.Region;
+import android.graphics.RegionIterator;
 import android.os.Bundle;
+import android.os.Build;
 import android.os.SystemClock;
 import android.util.Xml;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -75,6 +78,9 @@ public final class UiHierarchy extends Instrumentation {
                                 xml.startTag(null, "window");
                                 attribute(xml, "type", Integer.toString(window.getType()));
                                 attribute(xml, "type-name", windowTypeName(window.getType()));
+                                attribute(xml, "window-id", Integer.toString(window.getId()));
+                                attribute(xml, "display-id", Build.VERSION.SDK_INT >= 30
+                                        ? Integer.toString(window.getDisplayId()) : "unavailable-api<30");
                                 attribute(xml, "active", Boolean.toString(window.isActive()));
                                 attribute(xml, "focused", Boolean.toString(window.isFocused()));
                                 attribute(xml, "layer", Integer.toString(window.getLayer()));
@@ -82,6 +88,19 @@ public final class UiHierarchy extends Instrumentation {
                                 Rect bounds = new Rect();
                                 window.getBoundsInScreen(bounds);
                                 attribute(xml, "bounds", bounds.toShortString());
+                                if (Build.VERSION.SDK_INT >= 30) {
+                                    Region touchable = new Region();
+                                    window.getRegionInScreen(touchable);
+                                    Region clipped = new Region(bounds);
+                                    clipped.op(touchable, Region.Op.DIFFERENCE);
+                                    attribute(xml, "touchable-region-source", "getRegionInScreen");
+                                    attribute(xml, "touchable-region-rects", regionRects(touchable));
+                                    attribute(xml, "bounds-minus-touchable-rects", regionRects(clipped));
+                                } else {
+                                    attribute(xml, "touchable-region-source", "bounds-fallback-api<30");
+                                    attribute(xml, "touchable-region-rects", bounds.toShortString());
+                                    attribute(xml, "bounds-minus-touchable-rects", "unavailable-api<30");
+                                }
                                 AccessibilityNodeInfo root = window.getRoot();
                                 attribute(xml, "package", root == null ? null : root.getPackageName());
                                 if (root != null) writeNode(xml, root);
@@ -148,6 +167,17 @@ public final class UiHierarchy extends Instrumentation {
 
     private static void attribute(XmlSerializer xml, String name, CharSequence value) throws Exception {
         xml.attribute(null, name, value == null ? "" : value.toString());
+    }
+
+    private static String regionRects(Region region) {
+        StringBuilder value = new StringBuilder();
+        RegionIterator iterator = new RegionIterator(region);
+        Rect rect = new Rect();
+        while (iterator.next(rect)) {
+            if (value.length() > 0) value.append(';');
+            value.append(rect.toShortString());
+        }
+        return value.toString();
     }
 
     private static String windowTypeName(int type) {

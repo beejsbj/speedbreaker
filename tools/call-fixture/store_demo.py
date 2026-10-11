@@ -37,6 +37,8 @@ class Demo:
         self.display_width = 0
         self.display_height = 0
         self.listing_failures = []
+        self.phase = "setup"
+        self.failure_reason = None
 
     def adb_call(self, *parts, timeout=30, binary=False, check=True):
         result = subprocess.run(self.adb + list(parts), capture_output=True,
@@ -948,6 +950,7 @@ class Demo:
             self.started = time.monotonic()
             self.recording = True
             self.mark("recording_started")
+            self.phase = "welcome_decline"
             self.app()
             self.screenshot("welcome.png")
             self.listing_jpeg("01-welcome.jpg")
@@ -959,15 +962,21 @@ class Demo:
             self.mark("disclosure_footer_visible")
             self.screenshot("full-disclosure.png")
             self.decline_disclosure()
+            self.phase = "welcome_accept"
             self.app()
             self.require(self.visible("Make the next tap intentional."), "Welcome reopened without consent")
             self.seek("What it keeps")
             self.screenshot("acceptance-disclosure.png")
             self.accept_disclosure()
+            self.phase = "accessibility_grant"
             self.enable_accessibility()
+            self.phase = "phone_grant"
             self.grant_phone()
+            self.phase = "synthetic_target"
             self.select_target()
+            self.phase = "defaults"
             self.verify_defaults()
+            self.phase = "first_lock_probe" if self.args.policy_diagnostic_tall else "full_policy_overlay"
             self.exercise_overlay()
             if self.args.policy_diagnostic_tall:
                 self.assertions["listing assets deliberately skipped in tall diagnostic"] = True
@@ -978,6 +987,7 @@ class Demo:
                          "full demo completed within screen recording limit")
             self.mark("first_lock_probe_complete" if self.args.policy_diagnostic_tall else "demo_complete")
         except Exception as error:
+            self.failure_reason = str(error)
             self.mark("failure", str(error))
             try:
                 self.screenshot("failure.png")
@@ -1041,10 +1051,20 @@ class Demo:
             self.stop_observer()
             video_valid = video_pull_ok and self.finalized_mp4(self.out / "first-run.mp4")
             self.assertions["finalized screen recording"] = video_valid
+            observer_valid = (self.observer is None or
+                              self.assertions.get("persistent UI observer finished cleanly", False))
+            status = ("FAILED" if prior_failure or not video_valid or not observer_valid else
+                      "DIAGNOSTIC_ONLY_COMPLETE" if self.args.policy_diagnostic_tall else "DEMO_COMPLETE")
+            failure_reason = self.failure_reason
+            if status == "FAILED" and failure_reason is None:
+                failure_reason = ("screen recording did not finalize" if not video_valid else
+                                  "persistent UI observer did not finish cleanly")
             captures = {str(p.relative_to(self.out)): hashlib.sha256(p.read_bytes()).hexdigest()
                         for p in self.out.rglob("*") if p.is_file()
                         and p.suffix in (".png", ".jpg", ".mp4") and p.stat().st_size}
             (self.out / "evidence.json").write_text(json.dumps({
+                "status": {"result": status, "phase": self.phase,
+                           "failure": failure_reason},
                 "source": self.source,
                 "events": self.events, "assertions": self.assertions,
                 "capture_sha256": captures,
