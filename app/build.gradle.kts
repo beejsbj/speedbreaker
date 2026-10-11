@@ -30,6 +30,9 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            // The external provenance receipt records HEAD; merge commits with identical
+            // source trees must not change APK bytes inside META-INF.
+            vcsInfo.include = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

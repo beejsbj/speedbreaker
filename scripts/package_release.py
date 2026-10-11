@@ -61,6 +61,7 @@ def main():
     output = args.output_dir / f"Speedbreaker-{package.group(3)}.apk"
     run([
         str(build_tools / "apksigner"), "sign", "--out", str(output),
+        "--alignment-preserved",
         "--debuggable-apk-permitted", "false", "--v4-signing-enabled", "false",
         "--lineage", str(lineage), "--rotation-min-sdk-version", "28",
         "--ks", str(legacy_key), "--ks-key-alias", "androiddebugkey", "--ks-pass", "pass:android",

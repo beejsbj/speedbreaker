@@ -1,5 +1,5 @@
 Categories:
-  - Lifestyle
+  - System
 License: Apache-2.0
 AuthorName: Burooj
 WebSite: https://github.com/beejsbj/speedbreaker
@@ -31,12 +31,13 @@ Repo: https://github.com/beejsbj/speedbreaker.git
 Builds:
   - versionName: 1.0.1
     versionCode: 5
+    disable: Clean F-Droid buildserver rebuild and signed-APK match are not verified
+      yet; do not publish until they pass.
     commit: 3f90ca53e420fb308dcbe48030566f8824ad1688
     subdir: app
     gradle:
       - yes
     binary: https://github.com/beejsbj/speedbreaker/releases/download/v%v/Speedbreaker-%v.apk
-    disable: Clean F-Droid buildserver rebuild and signed-APK match are not verified yet; do not publish until they pass.
 
 AllowedAPKSigningKeys: fe3fcd3e893fe89d97aba6e25b429e9140455846423c2b42c44bfb4fcc320272
 

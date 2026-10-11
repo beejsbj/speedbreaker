@@ -13,7 +13,10 @@ PUBLISHED_SHA256 = "5ca9948dbe730d110f8fd9def95094bb13f9b5ba44c1a51649fc679efb62
 def entries(path):
     with zipfile.ZipFile(path) as archive:
         return {item.filename: hashlib.sha256(archive.read(item)).hexdigest()
-                for item in archive.infolist() if not item.filename.startswith("META-INF/")}
+                for item in archive.infolist()
+                if not (item.filename == "META-INF/MANIFEST.MF" or
+                        (item.filename.startswith("META-INF/") and
+                         item.filename.endswith((".RSA", ".DSA", ".EC", ".SF"))))}
 
 
 def main():
@@ -34,7 +37,7 @@ def main():
         "published_sha256": signed_digest,
         "source_commit": "3f90ca53e420fb308dcbe48030566f8824ad1688",
         "rebuilt_sha256": hashlib.sha256(args.rebuilt.read_bytes()).hexdigest(),
-        "different_payload_entries_excluding_meta_inf": different,
+        "different_payload_entries_excluding_jar_signatures": different,
         "signature_copy_verified": result.returncode == 0,
         "copier_stdout": result.stdout,
         "copier_stderr": result.stderr,
