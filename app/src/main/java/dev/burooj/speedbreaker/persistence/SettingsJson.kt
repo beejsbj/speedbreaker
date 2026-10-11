@@ -2,6 +2,7 @@ package dev.burooj.speedbreaker.persistence
 
 import dev.burooj.speedbreaker.model.AppPolicy
 import dev.burooj.speedbreaker.model.PauseState
+import dev.burooj.speedbreaker.model.Redirects
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.model.TimeWindow
 import dev.burooj.speedbreaker.model.WeeklySchedule
@@ -16,13 +17,13 @@ internal object SettingsJson {
             policy.copy(
                 continuousSeconds = policy.continuousSeconds?.coerceIn(60, 24 * 60 * 60),
                 schedule = policy.schedule?.let(::validateSchedule),
-                redirects = policy.redirects?.let { validateRedirects(it, targets) },
+                redirects = policy.redirects?.let { Redirects.normalize(it, targets) },
             )
         }
         return input.copy(
             breathSeconds = input.breathSeconds.coerceIn(8, 60),
             apps = apps,
-            redirects = validateRedirects(input.redirects, targets),
+            redirects = Redirects.normalize(input.redirects, targets),
             schedule = input.schedule?.let(::validateSchedule),
         )
     }
@@ -35,11 +36,6 @@ internal object SettingsJson {
                 untilEpochMs = pause.untilEpochMs.coerceAtLeast(0),
             )
         }
-
-    private fun validateRedirects(values: List<String>, targets: Set<String>): List<String> {
-        val distinct = values.filter { it.isNotBlank() && it !in targets }.distinct()
-        return if (distinct.size == 4) distinct else emptyList()
-    }
 
     private fun validateSchedule(schedule: WeeklySchedule): WeeklySchedule = WeeklySchedule(
         schedule.days.filter { (day, window) ->

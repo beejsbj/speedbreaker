@@ -4,6 +4,7 @@ import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.model.TimeWindow
 import dev.burooj.speedbreaker.model.WeeklySchedule
+import dev.burooj.speedbreaker.model.effectiveRedirects
 import java.time.Instant
 import java.time.ZoneId
 
@@ -136,10 +137,8 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
 
             is Choice.Redirect -> {
                 if (!hardLockFinished) return result()
-                val redirects = effectiveRedirects(current.packageName, settings)
+                val redirects = settings.effectiveRedirects(current.packageName)
                 if (
-                    redirects.size != REQUIRED_REDIRECTS ||
-                    redirects.toSet().size != REQUIRED_REDIRECTS ||
                     choice.packageName !in redirects ||
                     choice.packageName in settings.apps
                 ) {
@@ -420,9 +419,6 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
     private fun effectiveSchedule(packageName: String, settings: Settings): WeeklySchedule? =
         settings.apps[packageName]?.schedule ?: settings.schedule
 
-    private fun effectiveRedirects(packageName: String, settings: Settings): List<String> =
-        settings.apps[packageName]?.redirects ?: settings.redirects
-
     private fun isScheduleActive(schedule: WeeklySchedule?, observation: Observation): Boolean {
         if (schedule == null) return true
         val local = Instant.ofEpochMilli(observation.epochMs).atZone(observation.zoneId)
@@ -475,7 +471,6 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
         const val ABSENCE_GRACE_MS = 60_000L
         const val PAUSE_DURATION_MS = 15 * 60 * 1_000L
         const val PAUSES_PER_DAY = 2
-        const val REQUIRED_REDIRECTS = 4
         const val MIN_BREATH_SECONDS = 8
         const val MAX_BREATH_SECONDS = 60
         const val MINUTES_PER_HOUR = 60

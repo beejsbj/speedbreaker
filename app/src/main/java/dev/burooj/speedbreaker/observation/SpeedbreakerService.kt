@@ -14,6 +14,7 @@ import dev.burooj.speedbreaker.enforcement.EngineUpdate
 import dev.burooj.speedbreaker.enforcement.Observation
 import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.model.Settings
+import dev.burooj.speedbreaker.model.effectiveRedirects
 import dev.burooj.speedbreaker.persistence.SpeedbreakerRepository
 import dev.burooj.speedbreaker.presentation.RedirectDestination
 import dev.burooj.speedbreaker.systemaction.SystemActionController
@@ -334,10 +335,7 @@ internal class SpeedbreakerService : AccessibilityService() {
         pauses: Map<String, PauseState>,
         observation: Observation,
     ): OverlayState {
-        val policy = settings.apps[breaker.packageName]
-        val redirectPackages = (policy?.redirects ?: settings.redirects)
-            .takeIf { it.size == REDIRECT_COUNT && it.toSet().size == REDIRECT_COUNT }
-            .orEmpty()
+        val redirectPackages = settings.effectiveRedirects(breaker.packageName)
         val today = Instant.ofEpochMilli(observation.epochMs)
             .atZone(observation.zoneId)
             .toLocalDate()
@@ -406,7 +404,6 @@ internal class SpeedbreakerService : AccessibilityService() {
 
     internal companion object {
         private const val TICK_MS = 250L
-        private const val REDIRECT_COUNT = 4
         private const val PAUSES_PER_DAY = 2
         private var activeService = WeakReference<SpeedbreakerService>(null)
 

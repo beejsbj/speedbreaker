@@ -7,6 +7,15 @@ import org.junit.Test
 
 class SummariesTest {
     @Test
+    fun defaultsSummary_reportsEveryOptionalRedirectCount() {
+        val labels = listOf("no redirects", "1 redirect", "2 redirects", "3 redirects", "4 redirects")
+        for (count in 0..4) {
+            val settings = dev.burooj.speedbreaker.model.Settings(redirects = (1..count).map { "alt.$it" })
+            assertEquals("12-second breath · always on · ${labels[count]}", defaultsSummary(settings, use24Hour = true))
+        }
+    }
+
+    @Test
     fun namesCommonDaySetsAndRuns() {
         assertEquals("Every day", daysSummary((1..7).toSet()))
         assertEquals("Weekdays", daysSummary((1..5).toSet()))

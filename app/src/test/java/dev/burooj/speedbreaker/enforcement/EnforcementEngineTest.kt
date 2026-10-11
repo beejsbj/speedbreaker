@@ -374,6 +374,80 @@ class EnforcementEngineTest {
     }
 
     @Test
+    fun `one through four redirects launch only configured choices after the hard lock`() {
+        for (count in 1..4) {
+            val destinations = (1..count).map { "alt.$it" }
+            for (custom in listOf(false, true)) {
+                val settings = settings(
+                    redirects = if (custom) listOf("global") else destinations,
+                    apps = mapOf(TARGET to AppPolicy(redirects = destinations.takeIf { custom })),
+                )
+                for (destination in destinations) {
+                    val engine = EnforcementEngine()
+                    engine.update(settings, observation())
+                    val locked = engine.choose(Choice.Redirect(destination), settings, observation(elapsedMs = 7_999))
+                    assertTrue(locked.effects.isEmpty())
+                    assertEquals(TARGET, locked.breaker?.packageName)
+                    val rejected = engine.choose(Choice.Redirect("other"), settings, observation(elapsedMs = 8_000))
+                    assertTrue(rejected.effects.isEmpty())
+                    assertEquals(TARGET, rejected.breaker?.packageName)
+                    val redirected = engine.choose(Choice.Redirect(destination), settings, observation(elapsedMs = 8_000))
+                    assertNull(redirected.breaker)
+                    assertEquals(listOf(Effect.LaunchApp(destination), Effect.Acknowledge), redirected.effects)
+                    assertNull(engine.update(settings, observation(elapsedMs = 8_001)).breaker)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `empty custom redirects disable inheritance and default restores it`() {
+        for ((override, allowed) in listOf(null to true, emptyList<String>() to false, listOf("custom") to false)) {
+            val settings = settings(redirects = listOf("global"), apps = mapOf(TARGET to AppPolicy(redirects = override)))
+            val engine = EnforcementEngine()
+            engine.update(settings, observation())
+            val result = engine.choose(Choice.Redirect("global"), settings, observation(elapsedMs = 8_000))
+            if (allowed) assertEquals(listOf(Effect.LaunchApp("global"), Effect.Acknowledge), result.effects)
+            else {
+                assertTrue(result.effects.isEmpty())
+                assertEquals(TARGET, result.breaker?.packageName)
+            }
+        }
+    }
+
+    @Test
+    fun `empty or malformed redirect sets cannot launch even a listed destination`() {
+        for (destinations in listOf(emptyList(), listOf("one", "one"), listOf("one", TARGET), listOf("one", ""),
+            listOf("one", "two", "three", "four", "five"))) {
+            for (custom in listOf(false, true)) {
+                val settings = settings(
+                    redirects = if (custom) listOf("global") else destinations,
+                    apps = mapOf(TARGET to AppPolicy(redirects = destinations.takeIf { custom })),
+                )
+                val engine = EnforcementEngine()
+                engine.update(settings, observation())
+                val result = engine.choose(Choice.Redirect("one"), settings, observation(elapsedMs = 8_000))
+                assertTrue(result.effects.isEmpty())
+                assertEquals(TARGET, result.breaker?.packageName)
+            }
+        }
+    }
+
+    @Test
+    fun `short redirect sets still yield to safety and require target visibility`() {
+        for (count in 1..4) {
+            val settings = settings(redirects = (1..count).map { "alt.$it" })
+            for (unsafe in listOf(observation(elapsedMs = 8_000, safety = true),
+                observation(elapsedMs = 8_000, interactive = false),
+                observation(elapsedMs = 8_000, visible = emptySet()))) {
+                val engine = EnforcementEngine()
+                engine.update(settings, observation())
+                assertTrue(engine.choose(Choice.Redirect("alt.1"), settings, unsafe).effects.none { it is Effect.LaunchApp })
+            }
+        }
+    }
+
+    @Test
     fun `redirect must be a configured non-target destination`() {
         val configured = listOf("one", "two", "three", "four")
         val settings = settings(breathSeconds = 8, redirects = configured)

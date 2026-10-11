@@ -39,7 +39,7 @@ overlay keeps its existing `BreakerOverlay` signature.
   "Needs attention", "Ready when you are", "On for 3 apps"), followed by the one
   next action, then Apps, Defaults, and Reliability.
 - **Defaults** — breath slider with a large readout, redirects as four visible
-  slots, schedule as Always on / Scheduled.
+  slots with zero to four selected destinations, schedule as Always on / Scheduled.
 - **Schedule as hours groups.** A week reads as groups of days sharing one set
   of hours ("9 AM to 5 PM · M T W T F", "10 AM to Midnight · S S"). Changing a
   group's hours changes all its days, so there is nothing to copy. Tapping a
@@ -51,7 +51,8 @@ overlay keeps its existing `BreakerOverlay` signature.
   Custom, redirects Default / Custom, a note on what stays global, and
   "Stop pausing <app>".
 - **Pickers** are full screens with search; the redirect picker shows the four
-  slots filling as you choose.
+  slots filling as you choose, with Save available for zero to four destinations
+  (owner correction [#9](https://github.com/beejsbj/speedbreaker/issues/9)).
 
 ## Behavior changes worth checking
 

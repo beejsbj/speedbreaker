@@ -12,13 +12,66 @@ import org.junit.Test
 
 class SettingsJsonTest {
     @Test
-    fun validation_keepsOnlyFourDistinctNonTargetRedirects() {
+    fun validation_removesTargetsAndRetainsRemainingRedirects() {
         val settings = Settings(
             apps = mapOf("target" to AppPolicy()),
             redirects = listOf("one", "two", "three", "target"),
         )
 
-        assertTrue(SettingsJson.validateSettings(settings).redirects.isEmpty())
+        assertEquals(listOf("one", "two", "three"), SettingsJson.validateSettings(settings).redirects)
+    }
+
+    @Test
+    fun settingsCodec_preservesZeroThroughFourGlobalAndCustomDestinations() {
+        for (count in 0..4) {
+            val destinations = (1..count).map { "alt.$it" }
+            val settings = Settings(
+                consentAccepted = true,
+                breathSeconds = 12,
+                schedule = WeeklySchedule(mapOf(1 to TimeWindow(9 * 60, 17 * 60))),
+                apps = mapOf(
+                    "custom" to AppPolicy(continuousSeconds = 720, redirects = destinations),
+                    "inherited" to AppPolicy(),
+                    "disabled" to AppPolicy(redirects = emptyList()),
+                ),
+                redirects = destinations,
+            )
+            assertEquals(settings, SettingsJson.validateSettings(settings))
+            assertEquals(settings, SettingsJson.decodeSettings(SettingsJson.encodeSettings(settings)))
+        }
+    }
+
+    @Test
+    fun settingsEdits_normalizeDuplicatesButNeverTruncateOversizedSets() {
+        val settings = Settings(
+            apps = mapOf("target" to AppPolicy(redirects = listOf("one", "one", "target", ""))),
+            redirects = listOf("one", "one", "two"),
+        )
+        val checked = SettingsJson.validateSettings(settings)
+        assertEquals(listOf("one", "two"), checked.redirects)
+        assertEquals(listOf("one"), checked.apps.getValue("target").redirects)
+        for (oversized in listOf(listOf("one", "two", "three", "four", "five"), List(5) { "one" })) {
+            val invalid = settings.copy(
+                redirects = oversized,
+                apps = mapOf("target" to AppPolicy(redirects = oversized)),
+            )
+            val normalized = SettingsJson.validateSettings(invalid)
+            assertTrue(normalized.redirects.isEmpty())
+            assertEquals(emptyList<String>(), normalized.apps.getValue("target").redirects)
+        }
+    }
+
+    @Test
+    fun settingsDecoder_rejectsMalformedGlobalAndCustomRedirects() {
+        for (invalid in listOf(listOf("one", "one"), listOf("target"), listOf(""), (1..5).map { "alt.$it" })) {
+            val global = Settings(apps = mapOf("target" to AppPolicy()), redirects = invalid)
+            val custom = global.copy(redirects = emptyList(), apps = mapOf("target" to AppPolicy(redirects = invalid)))
+            for (settings in listOf(global, custom)) {
+                assertThrows(IllegalArgumentException::class.java) {
+                    SettingsJson.decodeSettings(SettingsJson.encodeSettings(settings))
+                }
+            }
+        }
     }
 
     @Test
