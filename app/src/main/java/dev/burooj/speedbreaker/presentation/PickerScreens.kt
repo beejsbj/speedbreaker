@@ -202,23 +202,30 @@ private fun PickerFrame(
             Box(Modifier.padding(horizontal = 8.dp).heightIn(min = 56.dp), contentAlignment = Alignment.CenterStart) {
                 IconButton(onClick = onBack) { Icon(Glyphs.Back, contentDescription = "Back") }
             }
-            Text(
-                title,
-                style = MaterialTheme.typography.headlineLarge,
-                modifier = Modifier.padding(horizontal = 20.dp).padding(top = 8.dp).semantics { heading() },
-            )
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-            )
-            SearchField(query, onQuery, Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 contentPadding = PaddingValues(bottom = 24.dp),
-                content = content,
-            )
+            ) {
+                item(key = "picker-title") {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.headlineLarge,
+                        modifier = Modifier.padding(horizontal = 20.dp).padding(top = 8.dp).semantics { heading() },
+                    )
+                }
+                item(key = "picker-subtitle") {
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                    )
+                }
+                item(key = "picker-search") {
+                    SearchField(query, onQuery, Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+                }
+                content()
+            }
             if (footer != null) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) { footer() }
