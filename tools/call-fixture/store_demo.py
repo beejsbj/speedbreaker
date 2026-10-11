@@ -33,6 +33,8 @@ class Demo:
         self.observer_sequence = 0
         self.recording = False
         self.remote_video = "/sdcard/sb-store-demo-" + uuid.uuid4().hex + ".mp4"
+        self.display_width = 0
+        self.display_height = 0
         self.listing_failures = []
 
     def adb_call(self, *parts, timeout=30, binary=False, check=True):
@@ -135,13 +137,12 @@ class Demo:
     def label(node):
         return " ".join((node.get("text", ""), node.get("content-desc", ""))).strip()
 
-    @staticmethod
-    def onscreen(node):
+    def onscreen(self, node):
         bounds = list(map(int, re.findall(r"-?\d+", node.get("bounds", ""))))
         return (node.get("visible-to-user") == "true" and len(bounds) == 4
                 and bounds[2] > bounds[0] and bounds[3] > bounds[1]
-                and bounds[0] < 1080 and bounds[2] > 0
-                and bounds[1] < 1920 and bounds[3] > 0)
+                and bounds[0] < self.display_width and bounds[2] > 0
+                and bounds[1] < self.display_height and bounds[3] > 0)
 
     def find(self, phrase, timeout=12, exact=False, tappable=False):
         end = time.monotonic() + timeout
@@ -162,7 +163,7 @@ class Demo:
         raise AssertionError(f"UI did not show {phrase!r}; see last-ui.xml")
 
     def tap_node(self, node):
-        self.require(self.onscreen(node), "tapped node visible on actual 1080x1920 display")
+        self.require(self.onscreen(node), "tapped node visible on actual display")
         bounds = node.get("bounds", "")
         coords = list(map(int, re.findall(r"\d+", bounds)))
         if len(coords) != 4 or coords[2] <= coords[0] or coords[3] <= coords[1]:
@@ -237,6 +238,10 @@ class Demo:
         self.mark("screenshot", name)
 
     def listing_jpeg(self, name):
+        if self.args.policy_diagnostic_tall:
+            self.mark("listing_capture_skipped", {"file": name,
+                                                   "reason": "manual tall policy diagnostic"})
+            return
         data = b""
         if int(self.source["api"]) < 36:
             self.observer_sequence += 1
@@ -578,7 +583,7 @@ class Demo:
             (self.out / "preflight-shade.xml").write_bytes(ET.tostring(shade))
             (self.out / "preflight-windows.xml").write_bytes(ET.tostring(self.dump(all_windows=True)))
             (self.out / "preflight-window.txt").write_text(
-                self.shell("dumpsys", "window", "windows", check=False))
+                self.shell("dumpsys", "window", "windows"))
             raise AssertionError("Native SystemUI Settings gear not found in preflight shade")
         gear_bounds = gear.get("bounds")
         self.mark("systemui_gear_preflight", {"label": self.label(gear),
@@ -606,7 +611,7 @@ class Demo:
             (self.out / "timed-shade.xml").write_bytes(ET.tostring(timed_shade))
             (self.out / "timed-windows.xml").write_bytes(ET.tostring(self.dump(all_windows=True)))
             (self.out / "timed-window.txt").write_text(
-                self.shell("dumpsys", "window", "windows", check=False))
+                self.shell("dumpsys", "window", "windows"))
             raise AssertionError("Native SystemUI gear absent during initial lock after preflight gestures")
         self.screenshot("systemui-during-lock.png")
         # Tap the actual native gear visible on this protected launch.
@@ -662,7 +667,9 @@ class Demo:
             "app_apk_sha256": hashlib.sha256(self.args.app_apk.read_bytes()).hexdigest(),
             "fixture_apk_sha256": hashlib.sha256(self.args.fixture_apk.read_bytes()).hexdigest(),
             "api": self.shell("getprop", "ro.build.version.sdk"),
-            "fingerprint": self.shell("getprop", "ro.build.fingerprint")}
+            "fingerprint": self.shell("getprop", "ro.build.fingerprint"),
+            "capture_mode": "tall_policy_diagnostic" if self.args.policy_diagnostic_tall
+            else "listing_and_policy"}
         try:
             # The preceding call regression grants Phone permission. pm clear does
             # not revoke runtime grants, so reinstall both test packages afresh.
@@ -685,10 +692,20 @@ class Demo:
                          "fresh install has no Phone grant before UI consent")
             self.shell("input", "keyevent", "KEYCODE_WAKEUP")
             self.shell("wm", "dismiss-keyguard")
-            self.shell("wm", "size", "1080x1920")
-            self.require("1080x1920" in self.shell("wm", "size"),
-                         "disposable emulator native 1080x1920 display")
-            self.mark("listing_display_size", "native wm size 1080x1920 on disposable emulator")
+            if not self.args.policy_diagnostic_tall:
+                self.shell("wm", "size", "1080x1920")
+            size_report = self.shell("wm", "size")
+            size_line = re.search(r"Override size: (\d+)x(\d+)", size_report)
+            if size_line is None:
+                size_line = re.search(r"Physical size: (\d+)x(\d+)", size_report)
+            self.require(size_line is not None, "emulator display dimensions available")
+            self.display_width, self.display_height = map(int, size_line.groups())
+            expected = (1080, 2400) if self.args.policy_diagnostic_tall else (1080, 1920)
+            self.require((self.display_width, self.display_height) == expected,
+                         "disposable emulator expected actual display dimensions")
+            self.mark("display_size", {"width": self.display_width, "height": self.display_height,
+                                       "mode": "tall_policy_diagnostic" if self.args.policy_diagnostic_tall
+                                       else "listing_and_policy"})
             self.adb_call("logcat", "-c")
             self.start_observer()
             self.video = subprocess.Popen(self.adb + ["shell", "screenrecord", "--time-limit", "180",
@@ -721,11 +738,14 @@ class Demo:
             self.select_target()
             self.verify_defaults()
             self.exercise_overlay()
-            self.require(not self.listing_failures and len(list((self.out / "listing").glob("*.jpg"))) == 4,
-                         "four native 1080x1920 JPEG listing captures")
+            if self.args.policy_diagnostic_tall:
+                self.assertions["listing assets deliberately skipped in tall diagnostic"] = True
+            else:
+                self.require(not self.listing_failures and len(list((self.out / "listing").glob("*.jpg"))) == 4,
+                             "four native 1080x1920 JPEG listing captures")
             self.require(time.monotonic() - self.started < 180,
                          "full demo completed within screen recording limit")
-            self.mark("demo_complete")
+            self.mark("policy_diagnostic_complete" if self.args.policy_diagnostic_tall else "demo_complete")
         except Exception as error:
             self.mark("failure", str(error))
             try:
@@ -745,8 +765,22 @@ class Demo:
                 ("failure-crash.txt", ("logcat", "-d", "-b", "crash")),
             ):
                 try:
-                    (self.out / name).write_text(self.adb_call(*command, check=False))
+                    invocation = self.adb + (["shell"] if command[0] == "dumpsys" else []) + list(command)
+                    collected = subprocess.run(invocation, capture_output=True, text=True,
+                                               timeout=30)
+                    if collected.returncode or (command[0] == "dumpsys" and not collected.stdout):
+                        (self.out / name).write_text(
+                            f"COLLECTION_FAILED exit={collected.returncode} command={command!r} "
+                            f"empty_stdout={not collected.stdout}\n"
+                            f"stderr:\n{collected.stderr}\nstdout:\n{collected.stdout}\n")
+                        self.mark("diagnostic_collection_failed", {"file": name,
+                                                                     "exit": collected.returncode})
+                    else:
+                        (self.out / name).write_text(collected.stdout)
+                        self.mark("diagnostic_collected", {"file": name,
+                                                           "bytes": len(collected.stdout)})
                 except Exception as capture_error:
+                    (self.out / name).write_text("COLLECTION_EXCEPTION " + str(capture_error) + "\n")
                     self.mark("failure_capture_error", {"file": name, "error": str(capture_error)})
             raise
         finally:
@@ -771,7 +805,8 @@ class Demo:
                     self.mark("video_pull_failure", {"returncode": pull.returncode,
                                                      "stderr": pull.stderr[-500:]})
                 self.shell("rm", self.remote_video, check=False)
-            self.shell("wm", "size", "reset", check=False)
+            if not self.args.policy_diagnostic_tall:
+                self.shell("wm", "size", "reset", check=False)
             self.stop_observer()
             video_valid = video_pull_ok and self.finalized_mp4(self.out / "first-run.mp4")
             self.assertions["finalized screen recording"] = video_valid
@@ -797,6 +832,7 @@ def main():
     parser.add_argument("--app-apk", type=Path, required=True)
     parser.add_argument("--fixture-apk", type=Path, required=True)
     parser.add_argument("--app-commit", required=True)
+    parser.add_argument("--policy-diagnostic-tall", action="store_true")
     parser.add_argument("--output", type=Path, default=ROOT / "build/store-demo")
     Demo(parser.parse_args()).run()
 

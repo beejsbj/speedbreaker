@@ -26,6 +26,10 @@ on:
         description: 'Dispatch diagnostic only: skip seeded call regression, record Play first-run demo'
         type: boolean
         default: false
+      policy_diagnostic_tall:
+        description: 'Manual demo_only: native tall display for policy/Settings diagnosis; listing JPEGs explicitly skipped'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -76,6 +80,7 @@ jobs:
         env:
           BASELINE_WITHOUT_PHONE_PERMISSION: ${{ inputs.baseline_without_phone_permission }}
           DEMO_ONLY: ${{ inputs.demo_only }}
+          POLICY_DIAGNOSTIC_TALL: ${{ inputs.policy_diagnostic_tall }}
           RUN_STORE_DEMO: 'true'
         with:
           api-level: ${{ matrix.api }}

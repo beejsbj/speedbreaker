@@ -28,6 +28,9 @@ command = [sys.executable, "tools/call-fixture/run.py", "--serial", "emulator-55
            "--app-apk", app_apk, "--app-commit", app_commit]
 baseline = os.environ.get("BASELINE_WITHOUT_PHONE_PERMISSION") == "true"
 demo_only = os.environ.get("DEMO_ONLY") == "true"
+policy_diagnostic_tall = os.environ.get("POLICY_DIAGNOSTIC_TALL") == "true"
+if policy_diagnostic_tall and not demo_only:
+    raise SystemExit("policy_diagnostic_tall requires manual demo_only dispatch")
 if demo_only:
     if baseline or demo_apk is None or os.environ.get("RUN_STORE_DEMO") != "true" or os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch":
         raise SystemExit("demo_only requires manual dispatch, flavored Play APK, RUN_STORE_DEMO, and no baseline")
@@ -37,6 +40,7 @@ if demo_only:
         "status": "SKIPPED_DIAGNOSTIC_ONLY", "reason": "manual demo_only dispatch",
         "app_commit": app_commit, "regression_apk": app_apk,
         "api": subprocess.check_output(["adb", "-s", "emulator-5554", "shell", "getprop", "ro.build.version.sdk"], text=True).strip(),
+        "listing_capture": "SKIPPED_TALL_POLICY_DIAGNOSTIC" if policy_diagnostic_tall else "required",
     }, indent=2) + "\n")
     print("CALL_REGRESSION_SKIPPED_DIAGNOSTIC_ONLY", flush=True)
     regression_code = 0
@@ -110,10 +114,13 @@ if (os.environ.get("RUN_STORE_DEMO") == "true"
         and not baseline
         and demo_apk is not None):
     # run.py owns its own consent seed. This separate run clears both packages again.
-    demo = subprocess.run([sys.executable, "tools/call-fixture/store_demo.py",
+    demo_command = [sys.executable, "tools/call-fixture/store_demo.py",
                            "--serial", "emulator-5554", "--reset-test-packages",
                            "--app-apk", str(demo_apk), "--fixture-apk", fixture_apk,
-                           "--app-commit", app_commit], check=False)
+                           "--app-commit", app_commit]
+    if policy_diagnostic_tall:
+        demo_command.append("--policy-diagnostic-tall")
+    demo = subprocess.run(demo_command, check=False)
 if regression_code or (demo is not None and demo.returncode):
     raise SystemExit(f"device checks failed: regression={regression_code}, "
                      f"store_demo={demo.returncode if demo is not None else 'skipped'}")
