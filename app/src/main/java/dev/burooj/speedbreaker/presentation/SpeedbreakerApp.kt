@@ -175,6 +175,7 @@ internal fun SpeedbreakerApp() {
                     onPrivacy = { openPrivacyPolicy(context) },
                     supportLabel = support.label,
                     supportSummary = support.summary,
+                    supportAvailable = support.available,
                 )
                 currentRoute == Route.Apps -> AppPickerScreen(
                     apps = launchableApps,

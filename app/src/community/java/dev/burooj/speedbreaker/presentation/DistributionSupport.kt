@@ -7,7 +7,7 @@ import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
-internal data class DistributionSupport(val label: String, val summary: String, val onClick: () -> Unit)
+internal data class DistributionSupport(val label: String, val summary: String, val available: Boolean = true, val onClick: () -> Unit)
 
 @Composable
 internal fun rememberDistributionSupport(): DistributionSupport {

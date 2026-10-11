@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Enable only after the owner configures a no-reward direct-tip page and its
+         actual fee flow is verified against Play's creator-tip exception. -->
+    <bool name="play_direct_tip_verified">false</bool>
+    <string name="play_direct_tip_url" translatable="false"></string>
+</resources>

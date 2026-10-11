@@ -198,6 +198,7 @@ internal fun HomeScreen(
     onPrivacy: () -> Unit = {},
     supportLabel: String = "Buy me a coffee",
     supportSummary: String = "Opens buymeacoffee.com in your browser",
+    supportAvailable: Boolean = true,
 ) {
     val appCount = settings.apps.size
     val title = when (protection) {
@@ -290,15 +291,17 @@ internal fun HomeScreen(
         }
 
         Section(
-            title = "Support",
-            footnote = "If Speedbreaker helps, you can support its development. Always optional; every feature stays free.",
+            title = if (supportAvailable) "Support" else "About",
+            footnote = if (supportAvailable) "If Speedbreaker helps, you can support its development. Always optional; every feature stays free." else null,
         ) {
-            NavRow(
-                title = supportLabel,
-                summary = supportSummary,
-                onClick = onSupport,
-            )
-            RowDivider()
+            if (supportAvailable) {
+                NavRow(
+                    title = supportLabel,
+                    summary = supportSummary,
+                    onClick = onSupport,
+                )
+                RowDivider()
+            }
             NavRow(
                 title = "Privacy policy",
                 summary = "Opens the public policy in your browser",
