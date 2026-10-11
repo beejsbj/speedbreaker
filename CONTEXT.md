@@ -66,8 +66,9 @@ required, and missing access suspends breaths.
 Burooj requested visible app icons for redirects and a quiet optional support
 link in the app. He prefers the Mac for local heavy jobs; use hosted CI or the
 Mac for Gradle rather than bjslab. GitHub is the current distribution channel;
-F-Droid, Play and an iOS implementation remain future work described in the
-[distribution guide](docs/distribution.md).
+F-Droid and Play preparation are described in the
+[distribution guide](docs/distribution.md). The separate iOS prototype is
+retained; the owner stopped Apple Developer/App Store work.
 
 ## Store work — October 11, 2026
 
