@@ -196,6 +196,7 @@ internal fun HomeScreen(
     pauses: Map<String, PauseState> = emptyMap(),
     nowEpochMs: Long = System.currentTimeMillis(),
     onEndPause: (String) -> Unit = {},
+    onSupport: () -> Unit = {},
 ) {
     val appCount = settings.apps.size
     val title = when (protection) {
@@ -284,6 +285,17 @@ internal fun HomeScreen(
                 summary = "Open Speedbreaker’s app info",
                 onClick = onOpenAppInfo,
                 leading = { StatusDot(Color.Transparent) },
+            )
+        }
+
+        Section(
+            title = "Support",
+            footnote = "If Speedbreaker helps, you can support its development. Always optional; every feature stays free.",
+        ) {
+            NavRow(
+                title = "Buy me a coffee",
+                summary = "Opens buymeacoffee.com in your browser",
+                onClick = onSupport,
             )
         }
     }

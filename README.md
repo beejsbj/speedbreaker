@@ -107,6 +107,9 @@ phone has been tested.
 
 ## Help improve Speedbreaker
 
+If Speedbreaker helps, you can [buy me a coffee](https://buymeacoffee.com/beejsbj).
+Support is optional; every feature stays free.
+
 Found something unexpected? [Report a bug](https://github.com/beejsbj/speedbreaker/issues/new/choose)
 with your phone model, Android and app versions, steps, and what happened.
 Please remove personal information from screenshots and logs. For a security

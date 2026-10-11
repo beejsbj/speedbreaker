@@ -1,8 +1,11 @@
 package dev.burooj.speedbreaker.presentation
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.widget.Toast
 import android.provider.Settings as AndroidSettings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -168,6 +171,20 @@ internal fun SpeedbreakerApp() {
                     onChooseApps = { route = Route.Apps },
                     onDefaults = { route = Route.Defaults },
                     onApp = { route = Route.App(it) },
+                    onSupport = {
+                        try {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse("https://buymeacoffee.com/beejsbj"))
+                                    .addCategory(Intent.CATEGORY_BROWSABLE),
+                            )
+                        } catch (_: ActivityNotFoundException) {
+                            Toast.makeText(
+                                context,
+                                "Open buymeacoffee.com/beejsbj in a browser to support Speedbreaker.",
+                                Toast.LENGTH_LONG,
+                            ).show()
+                        }
+                    },
                 )
                 currentRoute == Route.Apps -> AppPickerScreen(
                     apps = launchableApps,

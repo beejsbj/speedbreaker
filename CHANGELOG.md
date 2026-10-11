@@ -2,7 +2,7 @@
 
 ## 1.0.1 — October 11, 2026
 
-Version code: **4**.
+Version code: **5**.
 
 - Suspend breaths while Android reports a ringing, dialing, active, or held call,
   including silent incoming calls displayed by SystemUI. Phone permission is
@@ -16,6 +16,8 @@ Version code: **4**.
 - Do not forward Back into a call or system screen when safety removes a breath.
 
 - Show larger installed-app icons on the four redirect buttons, alongside names.
+- Add an optional Buy Me a Coffee link at the bottom of Home. Support does not
+  unlock features, and no payment SDK or Internet permission is added.
 
 The candidate passed 71 automated tests and release lint (zero errors, 31
 warnings), plus real API 35 emulator call/navigation checks. On a Samsung Galaxy
