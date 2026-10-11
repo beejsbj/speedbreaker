@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title desc"><title id="title">Speedbreaker</title><desc id="desc">Two open arcs and a still center. Publication icon.</desc><rect width="128" height="128" rx="28" fill="#131311"/><g color="#ECE5D6" transform="translate(0 0) scale(1)"><g xmlns="http://www.w3.org/2000/svg" id="artwork" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round">
+    <path d="M 49,24 C 10,37 10,91 49,104" />
+    <path d="M 79,24 C 118,37 118,91 79,104" />
+    <circle cx="64" cy="64" r="6" fill="currentColor" stroke="none" />
+  </g>
+</g></svg>
