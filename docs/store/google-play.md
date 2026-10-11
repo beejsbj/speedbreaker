@@ -11,8 +11,8 @@ Account-dependent fields below are deliberately unresolved, not fabricated.
 Uploadable English metadata is in `fastlane/metadata/android/en-US/`. It states
 actual behavior, Accessibility use, the eight-second navigation hold, Settings
 escape, Phone permission and call-detection limits. Suggested category:
-**Productivity**. App is free, contains no ads, and offers optional consumable
-Google Play tips with no digital benefit. No subscriptions. Public URLs:
+**Productivity**. App is free, contains no ads, with no in-app purchases or subscriptions. An external direct-tip route is
+prepared but inactive until destination and policy eligibility are verified. Public URLs:
 
 - Privacy: https://beejsbj.github.io/speedbreaker/privacy.html
 - Website/help: https://beejsbj.github.io/speedbreaker/support.html
@@ -85,34 +85,32 @@ Policy sources:
 
 ## Data safety draft
 
-Based on source and Billing Library integration. Review the final merged manifest,
-resolved SDK inventory and actual Console payment configuration before saving.
-The [official Data safety guide](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en)
-defines collection as off-device transmission, including SDKs, and distinguishes
-payment-provider information from purchase history received by an app.
+The direct-tip candidate has no payment/analytics SDK, Internet permission or
+backend. The [official Data safety guide](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en)
+excludes data processed only on the device; review the final dependency and
+manifest inventory before saving the actual form.
 
-| Data / form field | Proposed answer and basis |
+| Data / field | Draft answer and evidence |
 | --- | --- |
-| App identities, settings, app activity, call state | Not collected off-device or shared; local processing only. No usage archive. Phone permission checks an aggregate call boolean, not phone numbers. |
-| Card/payment account details | Not received by Speedbreaker; Google collects directly under its payment terms. Do not declare that Speedbreaker collects card numbers. |
-| Purchase history | **Collected, optional, app functionality.** The Play client receives a signed transaction/token and returns it to Play for consumption. No receipt backend or persisted local history. This is a cautious draft inference from the implementation, not a saved Console declaration. |
-| Purchase-history sharing | User-initiated Google Play checkout/processing; guide's user-initiated transfer exception may apply. Confirm the actual form/provider disclosures before marking shared; never claim no payment processing. |
-| Ephemeral processing | Do not claim wholly ephemeral: Google retains transactions even though app memory is transient. |
-| Location, contacts, messages, media, health, identifiers/analytics/crash logs | No implementation collecting these off-device. Verify final SDK inventory; permissions alone do not establish collection. |
-| Required collection | Tips are optional; all free functions work without payment. No Speedbreaker account creation. |
-| Data deletion | Clear app storage/uninstall deletes local settings and pause state. Google transaction records/refunds are managed through Google; legal financial records may have mandatory retention. Public support email/account retention facts remain owner-dependent. |
-| Encryption in transit | No app network stack or backend. Confirm Google's provider declaration for the payment flow before selecting a universal form checkbox. |
-| Independent security review badge | No: model/code reviews and tests are not a certified MASA review. |
+| Data collected off-device | No. App identities, local settings, active timers and aggregate call state stay on the phone. |
+| Data shared | No. No data payload is attached to browser links or redirect intents. External websites operate under their own policies. |
+| Card/payment information, purchase history | Not accessed by the app. No native billing SDK, receipts, payment status or purchase history. Current Play support action is inactive. |
+| Location, contacts, messages, media, health, identifiers/analytics/crash logs | No code or resolved runtime SDK collecting these off-device. |
+| Data deletion | Clear app storage/uninstall deletes local settings and pause records; there is no Speedbreaker account or cloud record. External website/payment records are separate. |
+| Encryption in transit | No app data transmitted; follow the form's no-collection branch rather than imply a backend. |
+| Independent security review badge | No: code/model reviews are not a certified MASA review. |
 
-Do not copy the community build's “no payment SDK” statement into Play. The
-public privacy policy explains both variants and payment-provider retention.
+The prior native Billing prototype added Google DataTransport and network
+permissions through transitive dependencies; it has been removed from this
+candidate. Do not reuse its financial-data declarations or claim an enabled
+external tip is approved. See [direct-tip eligibility](play-tips.md).
 
 ## Content rating / audience drafts
 
 Questionnaire facts: no user-generated content, chat, social interaction, ads,
 location sharing, gambling, loot boxes, violence, sexual content, substances or
-medical diagnosis/treatment. Optional real-money tips/in-app purchases exist;
-answer monetary-purchase questions honestly. Google/IARC assigns the final
+medical diagnosis/treatment. The app has no in-app purchase. A future external contribution link must be
+identified honestly in any applicable monetary-purchase question. Google/IARC assigns the final
 rating; do not invent a rating before the completed questionnaire returns it.
 
 Suggested audience is adults seeking mindful app use. The owner must choose the
@@ -137,9 +135,9 @@ choice and configured app-signing certificate must be recorded and compared with
 the public fingerprints before the first distribution. A new app account is not
 proof this compatibility is solved.
 
-First use internal testing with license testers for all tip success, pending,
-cancel, restart, consume and refund cases in [play-billing.md](play-billing.md).
-Then meet the actual account's production-access requirements. New personal
+First use internal testing for installation, consent, Phone permission, target
+selection, safety escapes, local retention and update compatibility. Verify any
+external tip checkout separately before enabling its link. Then meet the actual account's production-access requirements. New personal
 accounts may require **12 opted-in testers for 14 continuous days**;
 [official testing rules](https://support.google.com/googleplay/android-developer/answer/14151465?hl=en).
 A CI run does not start this clock or replace real testers.
@@ -148,8 +146,9 @@ A CI run does not start this clock or replace real testers.
 
 Burooj must enroll at https://play.google.com/console/signup (US$25 once), supply
 identity/payment facts in Google's UI, and provide authenticated Console access.
-No account was found. Then create the app, public email, merchant/tax profile,
-licensing public key and tip products/prices; complete declarations and signing
-with the actual account. All technical preparation remains authorized; no new
+No account was found. Then create the app, supply the public email and actual legal/audience facts,
+and complete declarations and signing with the account. The separate external
+tip provider needs its own payment/legal setup and verified public destination;
+no Play merchant product catalog or licensing key is required for this build. All technical preparation remains authorized; no new
 blanket approval gate is imposed. Submission/track/live status must come from
 Google Play host evidence and be recorded in [status.md](status.md).

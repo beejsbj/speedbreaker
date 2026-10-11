@@ -71,10 +71,12 @@ F-Droid, Play and an iOS implementation remain future work described in the
 Active implementation thread `98543987-c8a8-4578-921d-a593647b609a`, branch
 `release/store-distribution`, PR #8, Linear BJS-532. Authoritative evidence:
 [docs/store/status.md](docs/store/status.md). Candidate1.0.2/code6/API36 has
-community and Play source sets; only Play includes optional native Billing tips.
+community and Play source sets; neither includes a payment SDK. Play prepares an external direct-tip link,
+hidden until actual destination/fee eligibility is verified. Native Billing
+prototype retained separately on fix/play-tip-races after privacy/fee audit.
 Stable1.0.1 remains unchanged. Public privacy/support Pages deployed. Historical
 APK signature-copy reproduction passed hostedCI38157458089, not F-Droid server.
 Owner retains Android8 on F-Droid and waits for valid-key-rotation support; no
 signing replacement. Owner abandoned Apple Developer/App Store path; preserve
 compiled native prototype without promising iOS parity. GooglePlay account
-enrollment/publicmailbox/productkey/signing/Testtrack prerequisites pending.
+enrollment/publicmailbox/external-tipdestination/signing/Testtrack prerequisites pending.

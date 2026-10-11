@@ -111,12 +111,13 @@ Recheck each store's payment rules before submitting that store's build:
 
 - F-Droid supports public external donation URLs in its
   [Donate metadata](https://f-droid.org/docs/Build_Metadata_Reference/#Donate).
-- The Play candidate uses native Google Play Billing tips with no digital
-  benefit; its actual account-dependent fees are not a 100% creator exception.
-  The external route was evaluated separately: Google exempts direct creator tips from Play Billing when 100% goes to the
-  creator and there is no digital benefit. Confirm how the actual Buy Me a
-  Coffee flow and fees fit that condition; do not assume that a generic support
-  button is automatically exempt. See
+- The Play candidate prepares an external direct-tip route and includes no
+  native Billing SDK. Its support action stays hidden until the actual destination
+  and eligibility are verified. Google exempts creator tips only when 100% goes
+  to the creator and no digital benefit is provided; the FAQ does not explicitly
+  resolve ordinary processor fees. BMC's platform fee is not assumed eligible.
+  Ko-fi Free has no one-time platform fee but still has processor fees; see
+  [the direct-tip record](store/play-tips.md) and
   [Google's payment FAQ](https://support.google.com/googleplay/android-developer/answer/10281818?hl=en).
 - Apple explicitly supports developer tips through in-app purchases. External
   payment links have storefront-specific rules, including a US exception;

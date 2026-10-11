@@ -109,8 +109,9 @@ configuration, dependency caches, and signing credentials should stay untracked.
 ## Distribution variants
 
 `community` is the GitHub/F-Droid build with an external optional support link.
-`play` is the Google Play build with optional Play Billing tips. They use the
-same package and version; APK update identity must remain compatible. Billing
-code and its proprietary dependency are excluded from the community variant.
-Run `testPlayDebugUnitTest` and `lintPlayRelease` for the Play variant. The CI
-matrix builds and verifies both variants separately.
+`play` is the Google Play build with a configurable external direct-tip route,
+hidden until its destination and fee/policy eligibility are verified. Neither
+flavor includes a payment SDK or Internet permission. They use the same package
+and version; APK update identity must remain compatible. Run
+`testPlayDebugUnitTest` and `lintPlayRelease` for Play. The CI matrix builds and
+verifies both variants separately.
