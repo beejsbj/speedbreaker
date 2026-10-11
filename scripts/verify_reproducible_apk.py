@@ -24,6 +24,8 @@ def main():
     parser.add_argument("signed", type=Path)
     parser.add_argument("rebuilt", type=Path)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--source-commit", default="3f90ca53e420fb308dcbe48030566f8824ad1688")
+    parser.add_argument("--normalization", choices=["none", "apksigner-35-padding"], default="none")
     args = parser.parse_args()
     signed_digest = hashlib.sha256(args.signed.read_bytes()).hexdigest()
     if signed_digest != PUBLISHED_SHA256:
@@ -35,7 +37,9 @@ def main():
                              str(args.rebuilt)], capture_output=True, text=True)
     receipt = {
         "published_sha256": signed_digest,
-        "source_commit": "3f90ca53e420fb308dcbe48030566f8824ad1688",
+        "source_commit": args.source_commit,
+        "release_tag_commit": "3f90ca53e420fb308dcbe48030566f8824ad1688",
+        "normalization": args.normalization,
         "rebuilt_sha256": hashlib.sha256(args.rebuilt.read_bytes()).hexdigest(),
         "different_payload_entries_excluding_jar_signatures": different,
         "signature_copy_verified": result.returncode == 0,
