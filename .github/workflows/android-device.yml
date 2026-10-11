@@ -24,6 +24,10 @@ concurrency:
 
 jobs:
   incoming-call:
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [35, 36]
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -40,7 +44,7 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
       - name: Install build SDK
-        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;36.0.0"'
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "platforms;android-36" "build-tools;36.0.0"'
       - name: Build app candidate
         working-directory: source-app
         run: ./gradlew :app:assembleDebug --no-daemon --no-configuration-cache --max-workers=2
@@ -51,12 +55,12 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Test real Telecom and SystemUI on API 35
+      - name: Test real Telecom and SystemUI
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         env:
           BASELINE_WITHOUT_PHONE_PERMISSION: ${{ inputs.baseline_without_phone_permission }}
         with:
-          api-level: 35
+          api-level: ${{ matrix.api }}
           target: google_apis
           arch: x86_64
           profile: pixel_6
@@ -67,7 +71,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: android-device-${{ github.sha }}
+          name: android-device-api${{ matrix.api }}-${{ github.sha }}
           path: |
             build/device-regression/
             tools/call-fixture/build/outputs/apk/debug/

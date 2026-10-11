@@ -5,14 +5,15 @@ plugins {
 
 android {
     namespace = "dev.burooj.speedbreaker"
-    compileSdk = 35
+    compileSdk = 36
+    buildToolsVersion = "36.0.0"
 
     defaultConfig {
         applicationId = "dev.burooj.speedbreaker"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 5
-        versionName = "1.0.1"
+        targetSdk = 36
+        versionCode = 6
+        versionName = "1.0.2"
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments["room.schemaLocation"] = "$projectDir/schemas"

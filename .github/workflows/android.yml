@@ -39,7 +39,7 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
       - name: Install Android SDK packages
-        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;36.0.0"'
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"'
       - name: Build unsigned release
         run: ./gradlew assembleRelease --no-daemon --no-configuration-cache --max-workers=2
       - name: Preserve unsigned APK from this commit
@@ -47,6 +47,15 @@ jobs:
         with:
           name: unsigned-release-${{ github.sha }}
           path: app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
+          retention-days: 7
+      - name: Build unsigned Play bundle
+        run: ./gradlew bundleRelease --no-daemon --no-configuration-cache --max-workers=2
+      - name: Preserve unsigned bundle from this commit
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: unsigned-bundle-${{ github.sha }}
+          path: app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 7
       - name: Unit and UI regression tests

@@ -7,7 +7,7 @@ root; `reference/ai-studio/` contains an older prototype, not the production bui
 
 - **Git** to clone the repository.
 - **Java 17**, with `JAVA_HOME` pointing to your JDK installation.
-- **Android SDK Platform 35**, plus Android SDK Build Tools and Platform Tools.
+- **Android SDK Platform 36**, Build Tools **36.0.0**, and Platform Tools.
 - The repository's **Gradle wrapper** (`./gradlew`, or `gradlew.bat` on Windows).
 - Network access for the first dependency download.
 
@@ -21,7 +21,7 @@ cd speedbreaker
 Set `ANDROID_SDK_ROOT` to your local Android SDK directory, or let Android Studio
 write `sdk.dir` into an untracked `local.properties`. Select JDK 17 as the Gradle
 JDK when using Android Studio. SDK paths vary by machine; do not commit yours.
-The app compiles against and targets API 35, with a minimum device API of 26
+The 1.0.2 candidate compiles against and targets API 36, with a minimum device API of 26
 (Android 8.0).
 
 ## Debug build, tests, and lint
@@ -89,6 +89,12 @@ build. The [October 11 release record](reviews/2026-10-11-release.md) identifies
 what was verified on 1.0.0. Older observations are not evidence for a new build.
 
 ## Release builds
+
+`./gradlew bundleRelease` produces an **unsigned** Android App Bundle at
+`app/build/outputs/bundle/release/app-release.aab`. Hosted Android checks retain
+the APK and bundle for the exact commit. A bundle must be signed with the upload
+identity configured in Play Console before upload; it does not carry the APK's
+v3 signing lineage. Store preparation does not mean the candidate is released.
 
 For release validation, run `assembleRelease` and `lintRelease` separately,
 using the same process and worker flags above, and run `testDebugUnitTest` in
