@@ -5,6 +5,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -473,15 +474,19 @@ class Demo:
         # task again merely brings Settings back; navigate each page in the UI.
         for step in range(4):
             root = self.dump()
-            home = next((node for node in root.iter("node")
-                         if node.get("package") == PRODUCT
-                         and "Off for now" in self.label(node) and self.onscreen(node)), None)
-            if home is not None:
+            app_visible = any(node.get("package") == PRODUCT and self.onscreen(node)
+                              for node in root.iter("node"))
+            welcome_visible = any("Make the next tap intentional." in self.label(node)
+                                  and self.onscreen(node) for node in root.iter("node"))
+            if app_visible and not welcome_visible:
                 activity = self.shell("dumpsys", "activity", "activities")
                 focused = [line for line in activity.splitlines()
                            if "topResumedActivity=" in line or "mResumedActivity:" in line]
                 self.require(any(PRODUCT + "/.MainActivity" in line for line in focused),
                              "Speedbreaker Home foreground after native grant")
+                rationale = self.seek("Allow call-state access")
+                self.require(rationale.get("package") == PRODUCT and self.onscreen(rationale),
+                             "Phone rationale visibly available on Speedbreaker Home")
                 self.mark("returned_home_from_native_accessibility", {"back_steps": step})
                 break
             self.require(any(node.get("package") == "com.android.settings"
@@ -784,6 +789,20 @@ class Demo:
             "capture_mode": "tall_policy_diagnostic" if self.args.policy_diagnostic_tall
             else "listing_and_policy"}
         try:
+            meminfo = self.shell("cat", "/proc/meminfo")
+            self.source["emulator_memtotal"] = meminfo.splitlines()[0]
+            self.source["emulator_cpu_online"] = self.shell("cat", "/sys/devices/system/cpu/online")
+            (self.out / "avd-meminfo.txt").write_text(meminfo + "\n")
+            avd_root = Path(os.environ.get("ANDROID_AVD_HOME", str(Path.home() / ".android/avd")))
+            configs = sorted(avd_root.glob("*.avd/config.ini"))
+            self.source["avd_config_sha256"] = {}
+            for config in configs:
+                data = config.read_bytes()
+                (self.out / ("avd-config-" + config.parent.name + ".ini")).write_bytes(data)
+                self.source["avd_config_sha256"][config.parent.name] = hashlib.sha256(data).hexdigest()
+            self.mark("emulator_resources", {"memtotal": self.source["emulator_memtotal"],
+                                              "cpu_online": self.source["emulator_cpu_online"],
+                                              "avd_configs": list(self.source["avd_config_sha256"])})
             # The preceding call regression grants Phone permission. pm clear does
             # not revoke runtime grants, so reinstall both test packages afresh.
             for package in (PRODUCT, FIXTURE):
