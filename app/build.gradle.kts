@@ -1,3 +1,5 @@
+import java.security.MessageDigest
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -106,7 +108,7 @@ listOf("community", "play").forEach { channel ->
                     mapOf("group" to id.group, "name" to id.module, "version" to id.version)
                 else mapOf("displayName" to id.displayName)
             fun sha256(file: java.io.File): String {
-                val digest = java.security.MessageDigest.getInstance("SHA-256")
+                val digest = MessageDigest.getInstance("SHA-256")
                 file.inputStream().use { stream ->
                     val buffer = ByteArray(8192)
                     while (true) {
@@ -134,7 +136,7 @@ listOf("community", "play").forEach { channel ->
                                   "selected" to component(dependency.selected.id))
                         else mapOf("requested" to dependency.requested.displayName,
                                     "unresolved" to dependency.toString())
-                    }.sortedBy { it["requested"] },
+                    }.sortedBy { it["requested"].toString() },
                 )
             }.sortedBy { it["component"].toString() }
             val result = mapOf("schemaVersion" to 1, "channel" to channel,
