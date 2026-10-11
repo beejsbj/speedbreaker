@@ -9,11 +9,13 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Xml;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
 
 import org.xmlpull.v1.XmlSerializer;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.List;
 
 /** Persistent, read-only observer: starting/stopping instrumentation kills its target package. */
 public final class UiHierarchy extends Instrumentation {
@@ -40,26 +42,49 @@ public final class UiHierarchy extends Instrumentation {
                 if (files != null) for (File request : files) {
                     if (!request.getName().startsWith("ui-request-")) continue;
                     String suffix = request.getName().substring("ui-request-".length());
+                    boolean allWindows = suffix.startsWith("all-");
                     File temporary = new File(directory, "ui-response-" + suffix + ".tmp");
                     File response = new File(directory, "ui-response-" + suffix + ".xml");
                     try (FileOutputStream stream = new FileOutputStream(temporary)) {
                         XmlSerializer xml = Xml.newSerializer();
                         xml.setOutput(stream, "UTF-8");
                         xml.startDocument("UTF-8", true);
-                        AccessibilityNodeInfo root = null;
-                        long rootDeadline = SystemClock.uptimeMillis() + 1_000;
-                        while (root == null && SystemClock.uptimeMillis() < rootDeadline) {
-                            root = automation.getRootInActiveWindow();
-                            if (root == null) SystemClock.sleep(50);
-                        }
-                        if (root == null) {
-                            xml.startTag(null, "error");
-                            attribute(xml, "message", "No active Accessibility window");
-                            xml.endTag(null, "error");
-                        } else {
+                        if (allWindows) {
                             xml.startTag(null, "hierarchy");
-                            writeNode(xml, root);
+                            List<AccessibilityWindowInfo> windows = automation.getWindows();
+                            for (AccessibilityWindowInfo window : windows) {
+                                xml.startTag(null, "window");
+                                attribute(xml, "type", Integer.toString(window.getType()));
+                                attribute(xml, "type-name", windowTypeName(window.getType()));
+                                attribute(xml, "active", Boolean.toString(window.isActive()));
+                                attribute(xml, "focused", Boolean.toString(window.isFocused()));
+                                attribute(xml, "layer", Integer.toString(window.getLayer()));
+                                attribute(xml, "title", window.getTitle());
+                                Rect bounds = new Rect();
+                                window.getBoundsInScreen(bounds);
+                                attribute(xml, "bounds", bounds.toShortString());
+                                AccessibilityNodeInfo root = window.getRoot();
+                                attribute(xml, "package", root == null ? null : root.getPackageName());
+                                if (root != null) writeNode(xml, root);
+                                xml.endTag(null, "window");
+                            }
                             xml.endTag(null, "hierarchy");
+                        } else {
+                            AccessibilityNodeInfo root = null;
+                            long rootDeadline = SystemClock.uptimeMillis() + 1_000;
+                            while (root == null && SystemClock.uptimeMillis() < rootDeadline) {
+                                root = automation.getRootInActiveWindow();
+                                if (root == null) SystemClock.sleep(50);
+                            }
+                            if (root == null) {
+                                xml.startTag(null, "error");
+                                attribute(xml, "message", "No active Accessibility window");
+                                xml.endTag(null, "error");
+                            } else {
+                                xml.startTag(null, "hierarchy");
+                                writeNode(xml, root);
+                                xml.endTag(null, "hierarchy");
+                            }
                         }
                         xml.endDocument();
                         stream.flush();
@@ -103,5 +128,15 @@ public final class UiHierarchy extends Instrumentation {
 
     private static void attribute(XmlSerializer xml, String name, CharSequence value) throws Exception {
         xml.attribute(null, name, value == null ? "" : value.toString());
+    }
+
+    private static String windowTypeName(int type) {
+        switch (type) {
+            case AccessibilityWindowInfo.TYPE_APPLICATION: return "APPLICATION";
+            case AccessibilityWindowInfo.TYPE_INPUT_METHOD: return "INPUT_METHOD";
+            case AccessibilityWindowInfo.TYPE_SYSTEM: return "SYSTEM";
+            case AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY: return "ACCESSIBILITY_OVERLAY";
+            default: return "OTHER";
+        }
     }
 }

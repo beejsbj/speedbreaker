@@ -80,11 +80,11 @@ class Demo:
             time.sleep(.1)
         raise AssertionError("UI observer did not become ready")
 
-    def dump(self):
+    def dump(self, all_windows=False):
         if self.observer is None or self.observer.poll() is not None:
             raise AssertionError("Persistent UI observer is not running")
         self.observer_sequence += 1
-        suffix = str(self.observer_sequence)
+        suffix = ("all-" if all_windows else "") + str(self.observer_sequence)
         self.shell("run-as", FIXTURE, "touch", "files/ui-request-" + suffix)
         deadline = time.monotonic() + 12
         last_response = b""
@@ -186,6 +186,31 @@ class Demo:
         self.require(data.startswith(b"\x89PNG\r\n\x1a\n"), f"PNG capture {name}")
         (self.out / name).write_bytes(data)
         self.mark("screenshot", name)
+
+    def listing_jpeg(self, name):
+        data = self.adb_call("exec-out", "screencap", "-j", binary=True)
+        self.require(data.startswith(b"\xff\xd8\xff") and data.endswith(b"\xff\xd9"),
+                     f"native JPEG capture {name}")
+        dimensions = None
+        offset = 2
+        while offset + 4 < len(data):
+            if data[offset] != 0xff:
+                break
+            marker = data[offset + 1]
+            if marker in (0xc0, 0xc1, 0xc2, 0xc3) and offset + 9 <= len(data):
+                dimensions = (int.from_bytes(data[offset + 7:offset + 9], "big"),
+                              int.from_bytes(data[offset + 5:offset + 7], "big"))
+                break
+            if marker in (0xd8, 0xd9) or 0xd0 <= marker <= 0xd7:
+                offset += 2
+            else:
+                offset += 2 + int.from_bytes(data[offset + 2:offset + 4], "big")
+        self.require(dimensions == (1080, 1920), f"native JPEG 1080x1920 {name}")
+        destination = self.out / "listing" / name
+        destination.parent.mkdir(exist_ok=True)
+        destination.write_bytes(data)
+        self.mark("native_listing_capture", {"file": str(destination.relative_to(self.out)),
+                                              "sha256": hashlib.sha256(data).hexdigest()})
 
     def overlay_visible(self):
         report = self.shell("dumpsys", "accessibility")
@@ -319,15 +344,45 @@ class Demo:
         self.screenshot("phone-rationale.png")
         self.tap_node(button)
         self.mark("tap", "Allow call-state access")
-        self.tap("Allow", timeout=10, exact=True)
         package = ""
-        for _ in range(10):
-            package = self.shell("dumpsys", "package", PRODUCT)
+        for attempt in range(2):
+            deadline = time.monotonic() + 10
+            previous = None
+            button = None
+            while time.monotonic() < deadline:
+                hierarchy = self.dump()
+                title = any("Allow Speedbreaker to make and manage phone calls?" in self.label(n)
+                            for n in hierarchy.iter("node"))
+                current = next((n for n in hierarchy.iter("node")
+                                if n.get("package") == "com.google.android.permissioncontroller"
+                                and n.get("resource-id", "").endswith("permission_allow_button")
+                                and self.label(n) == "Allow" and n.get("enabled") == "true"), None)
+                bounds = current.get("bounds") if current is not None and title else None
+                if bounds and bounds == previous:
+                    button = current
+                    break
+                previous = bounds
+                time.sleep(.3)
+            self.require(button is not None, "native Phone dialog Allow bounds stable across two reads")
+            self.mark("native_phone_allow_observed", {"attempt": attempt + 1,
+                                                        "bounds": button.get("bounds")})
+            self.tap_node(button)
+            self.mark("tap_native_phone_allow", {"attempt": attempt + 1,
+                                                  "bounds": button.get("bounds")})
+            for _ in range(8):
+                package = self.shell("dumpsys", "package", PRODUCT)
+                if "android.permission.READ_PHONE_STATE: granted=true" in package:
+                    break
+                time.sleep(.3)
             if "android.permission.READ_PHONE_STATE: granted=true" in package:
                 break
-            time.sleep(.5)
+            if not any("Allow Speedbreaker to make and manage phone calls?" in self.label(n)
+                       for n in self.dump().iter("node")):
+                break
         self.require("android.permission.READ_PHONE_STATE: granted=true" in package,
                      "native Phone permission granted")
+        self.require(not any("Allow Speedbreaker to make and manage phone calls?" in self.label(n)
+                             for n in self.dump().iter("node")), "native Phone dialog closed")
         self.mark("native_phone_granted")
 
     def select_target(self):
@@ -357,6 +412,7 @@ class Demo:
         self.tap("Back")
         self.find("Speedbreaker test target")
         self.screenshot("home.png")
+        self.listing_jpeg("02-home.jpg")
 
     def verify_defaults(self):
         self.tap_node(self.seek("Defaults"))
@@ -365,6 +421,7 @@ class Demo:
         self.require(self.visible("12 seconds"), "12 second default breath")
         self.require(self.visible("Always on"), "all-hours default displayed")
         self.screenshot("defaults.png")
+        self.listing_jpeg("03-defaults.jpg")
         self.tap("Back")
 
     def exercise_overlay(self):
@@ -400,6 +457,7 @@ class Demo:
                      "UI observer kept synthetic target process alive")
         self.wait_overlay(True, timeout=2)
         self.screenshot("choices-ready.png")
+        self.listing_jpeg("04-choices.jpg")
         self.require(time.monotonic() - overlay_seen >= 12,
                      "ready capture follows full 12-second visible breath")
         # Preflight the native shade on this exact AVD profile. The timed second
@@ -421,6 +479,9 @@ class Demo:
                 break
         if gear is None:
             (self.out / "preflight-shade.xml").write_bytes(ET.tostring(shade))
+            (self.out / "preflight-windows.xml").write_bytes(ET.tostring(self.dump(all_windows=True)))
+            (self.out / "preflight-window.txt").write_text(
+                self.shell("dumpsys", "window", "windows", check=False))
             raise AssertionError("Native SystemUI Settings gear not found in preflight shade")
         gear_bounds = gear.get("bounds")
         self.mark("systemui_gear_preflight", {"label": self.label(gear),
@@ -443,7 +504,12 @@ class Demo:
                            and self.label(node).rstrip(".").casefold() in ("settings", "open settings")
                            and node.get("bounds")), None)
         if timed_gear is None:
+            self.mark("timed_gear_absent", {"seconds_after_target_launch":
+                                             round(time.monotonic() - second_launch, 2)})
             (self.out / "timed-shade.xml").write_bytes(ET.tostring(timed_shade))
+            (self.out / "timed-windows.xml").write_bytes(ET.tostring(self.dump(all_windows=True)))
+            (self.out / "timed-window.txt").write_text(
+                self.shell("dumpsys", "window", "windows", check=False))
             raise AssertionError("Native SystemUI gear absent during initial lock after preflight gestures")
         self.screenshot("systemui-during-lock.png")
         # Tap the actual native gear visible on this protected launch.
@@ -508,6 +574,10 @@ class Demo:
                          "fresh install has no Phone grant before UI consent")
             self.shell("input", "keyevent", "KEYCODE_WAKEUP")
             self.shell("wm", "dismiss-keyguard")
+            self.shell("wm", "size", "1080x1920")
+            self.require("1080x1920" in self.shell("wm", "size"),
+                         "disposable emulator native 1080x1920 display")
+            self.mark("listing_display_size", "native wm size 1080x1920 on disposable emulator")
             self.adb_call("logcat", "-c")
             self.start_observer()
             self.video = subprocess.Popen(self.adb + ["shell", "screenrecord", "--time-limit", "180",
@@ -518,6 +588,7 @@ class Demo:
             self.mark("recording_started")
             self.app()
             self.screenshot("welcome.png")
+            self.listing_jpeg("01-welcome.jpg")
             for phrase in ("What it sees", "The first eight seconds", "What it keeps",
                            "No screen text or typed input", "No analytics, no cloud"):
                 self.seek(phrase)
@@ -548,10 +619,14 @@ class Demo:
             try:
                 self.screenshot("failure.png")
                 (self.out / "failure-ui.xml").write_bytes(ET.tostring(self.dump()))
+                (self.out / "failure-windows.xml").write_bytes(
+                    ET.tostring(self.dump(all_windows=True)))
             except Exception as capture_error:
                 self.mark("failure_capture_error", str(capture_error))
             for name, command in (
                 ("failure-accessibility.txt", ("dumpsys", "accessibility")),
+                ("failure-window.txt", ("dumpsys", "window", "windows")),
+                ("failure-statusbar.txt", ("dumpsys", "statusbar")),
                 ("failure-package.txt", ("dumpsys", "package", PRODUCT)),
                 ("failure-activity.txt", ("dumpsys", "activity", "activities")),
                 ("failure-logcat.txt", ("logcat", "-d", "-t", "8000")),
@@ -564,6 +639,7 @@ class Demo:
             raise
         finally:
             prior_failure = sys.exc_info()[0] is not None
+            self.shell("wm", "size", "reset", check=False)
             if self.video:
                 # End the Android encoder itself so it writes the MP4 moov atom.
                 for pid in self.shell("pidof", "screenrecord", check=False).split():
@@ -578,8 +654,9 @@ class Demo:
             self.stop_observer()
             video_valid = self.finalized_mp4(self.out / "first-run.mp4")
             self.assertions["finalized screen recording"] = video_valid
-            captures = {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
-                        for p in self.out.iterdir() if p.suffix in (".png", ".mp4") and p.stat().st_size}
+            captures = {str(p.relative_to(self.out)): hashlib.sha256(p.read_bytes()).hexdigest()
+                        for p in self.out.rglob("*") if p.is_file()
+                        and p.suffix in (".png", ".jpg", ".mp4") and p.stat().st_size}
             (self.out / "evidence.json").write_text(json.dumps({
                 "source": self.source,
                 "events": self.events, "assertions": self.assertions,

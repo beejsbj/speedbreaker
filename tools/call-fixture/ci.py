@@ -24,7 +24,20 @@ app_commit = subprocess.check_output(["git", "-C", "source-app", "rev-parse", "H
 command = [sys.executable, "tools/call-fixture/run.py", "--serial", "emulator-5554", "--reset-test-packages",
            "--app-apk", app_apk, "--app-commit", app_commit]
 baseline = os.environ.get("BASELINE_WITHOUT_PHONE_PERMISSION") == "true"
-if baseline:
+demo_only = os.environ.get("DEMO_ONLY") == "true"
+if demo_only:
+    if baseline or demo_apk is None or os.environ.get("RUN_STORE_DEMO") != "true" or os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch":
+        raise SystemExit("demo_only requires manual dispatch, flavored Play APK, RUN_STORE_DEMO, and no baseline")
+    skipped = Path("build/device-regression")
+    skipped.mkdir(parents=True, exist_ok=True)
+    (skipped / "skipped.json").write_text(json.dumps({
+        "status": "SKIPPED_DIAGNOSTIC_ONLY", "reason": "manual demo_only dispatch",
+        "app_commit": app_commit, "regression_apk": app_apk,
+        "api": subprocess.check_output(["adb", "-s", "emulator-5554", "shell", "getprop", "ro.build.version.sdk"], text=True).strip(),
+    }, indent=2) + "\n")
+    print("CALL_REGRESSION_SKIPPED_DIAGNOSTIC_ONLY", flush=True)
+    regression_code = 0
+elif baseline:
     # The existing run.py grants Phone permission in prepare(). Revoke it only
     # for the explicit pre-fix control, after every per-scenario reset/setup.
     spec = importlib.util.spec_from_file_location("call_fixture_run", "tools/call-fixture/run.py")

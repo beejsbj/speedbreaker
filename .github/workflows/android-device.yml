@@ -22,6 +22,10 @@ on:
         description: 'Pre-fix negative control only: allow absent phone permission (call tests must still fail)'
         type: boolean
         default: false
+      demo_only:
+        description: 'Dispatch diagnostic only: skip seeded call regression, record Play first-run demo'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -71,6 +75,7 @@ jobs:
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         env:
           BASELINE_WITHOUT_PHONE_PERMISSION: ${{ inputs.baseline_without_phone_permission }}
+          DEMO_ONLY: ${{ inputs.demo_only }}
           RUN_STORE_DEMO: 'true'
         with:
           api-level: ${{ matrix.api }}
