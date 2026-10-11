@@ -1,0 +1,4 @@
+.tools/
+Speedbreaker.xcodeproj/
+build/
+*.xcresult
