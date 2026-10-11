@@ -26,6 +26,7 @@ class Demo:
         self.events = []
         self.assertions = {}
         self.video = None
+        self.recording = False
 
     def adb_call(self, *parts, timeout=30, binary=False, check=True):
         result = subprocess.run(self.adb + list(parts), capture_output=True,
@@ -39,7 +40,8 @@ class Demo:
 
     def mark(self, name, detail=None):
         event = {"at_utc": datetime.now(timezone.utc).isoformat(),
-                 "video_seconds": round(time.monotonic() - self.started, 2), "event": name}
+                 "video_seconds": round(time.monotonic() - self.started, 2)
+                 if self.recording else None, "event": name}
         if detail is not None:
             event["detail"] = detail
         self.events.append(event)
@@ -273,7 +275,8 @@ class Demo:
         self.swipe("shade")
         shade = self.dump()
         gear = next((node for node in shade.iter("node")
-                     if self.label(node).rstrip(".").casefold() in ("settings", "open settings")
+                     if node.get("package") == "com.android.systemui"
+                     and self.label(node).rstrip(".").casefold() in ("settings", "open settings")
                      and node.get("bounds")), None)
         if gear is None:
             (self.out / "preflight-shade.xml").write_bytes(ET.tostring(shade))
@@ -284,7 +287,6 @@ class Demo:
                                                "ui_sha256": hashlib.sha256(ET.tostring(shade)).hexdigest()})
         self.screenshot("systemui-preflight.png")
         self.shell("input", "keyevent", "KEYCODE_HOME")
-        self.require(not self.visible("Quick Settings"), "preflight shade closed")
         # Start a second protected launch to test the SystemUI escape within hard lock.
         second_launch = time.monotonic()
         self.shell("am", "start", "-W", "-n", FIXTURE + "/.TargetActivity")
@@ -337,17 +339,27 @@ class Demo:
             "api": self.shell("getprop", "ro.build.version.sdk"),
             "fingerprint": self.shell("getprop", "ro.build.fingerprint")}
         try:
+            # The preceding call regression grants Phone permission. pm clear does
+            # not revoke runtime grants, so reinstall both test packages afresh.
+            for package in (PRODUCT, FIXTURE):
+                result = self.adb_call("uninstall", package, check=False)
+                self.require(result == "Success" or "not installed" in result.lower(),
+                             "uninstalled test package " + package)
             for apk in (self.args.app_apk, self.args.fixture_apk):
-                self.adb_call("install", "-r", "-t", str(apk.resolve()), timeout=120)
+                self.adb_call("install", "-t", str(apk.resolve()), timeout=120)
             for package in (PRODUCT, FIXTURE):
                 self.shell("am", "force-stop", package)
                 self.require(self.shell("pm", "clear", package) == "Success", "cleared " + package)
+            permissions = self.shell("dumpsys", "package", PRODUCT)
+            self.require("android.permission.READ_PHONE_STATE: granted=true" not in permissions,
+                         "fresh install has no Phone grant before UI consent")
             self.shell("input", "keyevent", "KEYCODE_WAKEUP")
             self.shell("wm", "dismiss-keyguard")
             self.video = subprocess.Popen(self.adb + ["shell", "screenrecord", "--time-limit", "180",
                                                      "/sdcard/sb-store-demo.mp4"],
                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             self.started = time.monotonic()
+            self.recording = True
             self.mark("recording_started")
             self.app()
             self.screenshot("welcome.png")

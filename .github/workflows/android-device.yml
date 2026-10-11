@@ -2,7 +2,7 @@ name: Android device regression
 
 on:
   push:
-    branches: [main, release/store-demo]
+    branches: [main]
     paths:
       - 'app/**'
       - 'tools/call-fixture/**'

@@ -2,7 +2,7 @@
 
 Run `.github/workflows/android-device.yml` on a disposable, English Android emulator. Both API 35 and 36 run the Telecom/SystemUI regression and record the first-run demo. `workflow_dispatch` accepts an `app_ref`; pull requests use their candidate commit. For a flavored candidate the workflow builds CommunityDebug for call regression and PlayDebug for the store demo, plus the isolated fixture APK. A pre-flavor revision builds its plain Debug APK and skips the demo. The `baseline_without_phone_permission` negative control also skips the demo; its actual call failure or unexpected pass is reported explicitly. It does not submit a store listing or create a PR.
 
-The recorder requires `--serial emulator-5554 --reset-test-packages`, verifies `ro.kernel.qemu=1`, then force-stops and clears **only** Speedbreaker and the synthetic fixture. It installs both APKs. It does not seed consent, grant Phone permission with `pm grant`, or write Accessibility settings. Do not run it on a personal device. The call regression has its own seeded state and is never used as the demo.
+The recorder requires `--serial emulator-5554 --reset-test-packages` and verifies `ro.kernel.qemu=1`. After the call regression, it uninstalls and freshly installs **only** Speedbreaker and the synthetic fixture, then force-stops and clears them. This removes runtime grants that `pm clear` alone retains; the recorder verifies Phone is ungranted before asking through the app UI. It does not seed consent, grant Phone permission with `pm grant`, or write Accessibility settings. Do not run it on a personal device. The call regression has its own seeded state and is never used as the demo.
 
 ## Recorded sequence
 
