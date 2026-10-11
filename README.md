@@ -16,19 +16,16 @@ that same pause back during continuous use.
 Android 8.0 or newer. Installed from an APK; not currently on Google Play,
 F-Droid, or iOS.
 
-**Testing prerelease:** an incoming call displayed as a system notification may
-remain behind the breathing overlay instead of interrupting it immediately.
-[Call-handling issue #6](https://github.com/beejsbj/speedbreaker/issues/6) must be
-fixed and checked on a phone before a stable release. Review the
-[release notes](https://github.com/beejsbj/speedbreaker/releases/tag/v1.0.0)
-before installing.
+Version **1.0.1** fixes incoming-call interruption, keeps active pause controls
+available in the app, and protects saved settings during screen changes.
+See the [release notes](https://github.com/beejsbj/speedbreaker/releases/tag/v1.0.1).
 
 ## A little room to choose
 
 - **Choose your own apps.** Nothing is selected for you.
 - **Take a breath.** Twelve seconds by default, adjustable from 8 to 60 seconds.
 - **Decide what comes next.** Continue in the app, Leave for your home screen,
-  or choose one of four optional redirect apps.
+  or choose one of four optional redirect apps, with their own icons.
 - **Check in again.** By default, another breath follows ten minutes of
   continuous use. Change the interval or turn check-ins off for each app.
 - **Set your hours.** Stay active all day or choose a weekly schedule, with
@@ -98,11 +95,15 @@ Access, or separate “display over other apps” permission. Android backup and
 device transfer of app data are disabled in its configuration.
 [Read the full privacy details](docs/privacy.md).
 
-The 1.0.0 release build was installed and checked on a Samsung Galaxy S23+.
-Opening pauses, Continue, a timed check-in, Leave, and the Settings escape were
-verified. Calls, reboot/recovery, extended idle, and other manufacturers have
-**not been verified on this release**. Android 8.0 is the minimum supported OS,
-not a claim that every compatible phone has been tested.
+The 1.0.1 candidate was checked on a Samsung Galaxy S23+: opening pauses,
+Phone permission setup, a silent incoming call during the initial lock, and
+ending a pause after swiping away its notification. Android API 35 emulator
+checks also cover audible/silent calls, touching Answer, ordinary navigation,
+and a fresh breath after the call ends. See the
+[verification record](docs/reviews/2026-10-11-1.0.1.md) for precise scope.
+Reboot/recovery, extended idle, and other manufacturers remain unverified.
+Android 8.0 is the minimum supported OS, not a claim that every compatible
+phone has been tested.
 
 ## Help improve Speedbreaker
 
