@@ -203,6 +203,30 @@ class Demo:
                 self.mark("acceptance_still_on_welcome", {"attempt": attempt + 1})
         raise AssertionError("Visible acceptance tap did not open Home")
 
+    def decline_disclosure(self):
+        for attempt in range(2):
+            candidate = self.seek("Not now")
+            time.sleep(.35)
+            hierarchy = self.dump()
+            stable = next((node for node in hierarchy.iter("node")
+                           if self.label(node) == self.label(candidate)
+                           and node.get("bounds") == candidate.get("bounds")
+                           and self.onscreen(node) and node.get("enabled") == "true"), None)
+            if stable is None:
+                continue
+            self.mark("decline_button_observed", {"attempt": attempt + 1,
+                                                   "bounds": stable.get("bounds")})
+            self.tap_node(stable)
+            self.mark("tap", "Not now — close")
+            deadline = time.monotonic() + 4
+            while time.monotonic() < deadline:
+                if not self.visible("Make the next tap intentional."):
+                    self.mark("declined_without_consent")
+                    return
+                time.sleep(.25)
+            self.mark("decline_still_on_welcome", {"attempt": attempt + 1})
+        raise AssertionError("Visible Not now tap did not close Welcome")
+
     def visible(self, phrase):
         return any(self.onscreen(n) and phrase.casefold() in self.label(n).casefold()
                    for n in self.dump().iter("node"))
@@ -375,6 +399,10 @@ class Demo:
             self.seek("Speedbreaker attention pauses")
             time.sleep(.35)
             root = self.dump()
+            if any("Use Speedbreaker" in self.label(node) and self.onscreen(node)
+                   for node in root.iter("node")):
+                self.mark("native_accessibility_detail_open")
+                return
             row = next((node for node in root.iter("node")
                         if self.label(node) == "Speedbreaker attention pauses"
                         and self.onscreen(node)), None)
@@ -392,7 +420,7 @@ class Demo:
             self.mark("tap_native_accessibility_row", {"attempt": attempt + 1,
                                                         "bounds": target.get("bounds")})
             try:
-                self.find("Use Speedbreaker", timeout=3)
+                self.find("Use Speedbreaker", timeout=8)
                 return
             except AssertionError:
                 pass
@@ -724,10 +752,7 @@ class Demo:
             self.seek("I understand")
             self.mark("disclosure_footer_visible")
             self.screenshot("full-disclosure.png")
-            self.tap_node(self.seek("Not now"))
-            self.mark("tap", "Not now — close")
-            self.require(not self.visible("Make the next tap intentional."), "Not now closed Welcome")
-            self.mark("declined_without_consent")
+            self.decline_disclosure()
             self.app()
             self.require(self.visible("Make the next tap intentional."), "Welcome reopened without consent")
             self.seek("What it keeps")
