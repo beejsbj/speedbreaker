@@ -162,10 +162,16 @@ class Demo:
             self.tap("Speedbreaker")
             self.tap_node(self.seek("Use Speedbreaker"))
             self.mark("tap", "Use Speedbreaker after restricted-settings workaround")
-        self.tap("Allow")
-        enabled = self.shell("settings", "get", "secure", "enabled_accessibility_services")
+        self.tap("Allow", exact=True)
+        enabled = ""
+        for _ in range(20):
+            enabled = self.shell("settings", "get", "secure", "enabled_accessibility_services")
+            if PRODUCT in enabled:
+                break
+            time.sleep(.5)
         self.require(PRODUCT in enabled, "native Accessibility service enabled")
         self.mark("native_accessibility_enabled", enabled)
+        self.screenshot("accessibility-enabled.png")
         self.shell("input", "keyevent", "KEYCODE_BACK")
         self.shell("input", "keyevent", "KEYCODE_BACK")
         self.shell("am", "start", "-W", "-n", PRODUCT + "/.MainActivity")
@@ -173,8 +179,13 @@ class Demo:
     def grant_phone(self):
         self.seek("Allow call-state access")
         self.tap("Allow call-state access")
-        self.tap("Allow", timeout=10)
-        package = self.shell("dumpsys", "package", PRODUCT)
+        self.tap("Allow", timeout=10, exact=True)
+        package = ""
+        for _ in range(10):
+            package = self.shell("dumpsys", "package", PRODUCT)
+            if "android.permission.READ_PHONE_STATE: granted=true" in package:
+                break
+            time.sleep(.5)
         self.require("android.permission.READ_PHONE_STATE: granted=true" in package,
                      "native Phone permission granted")
         self.mark("native_phone_granted")
@@ -184,7 +195,11 @@ class Demo:
         self.find("Search apps")
         self.tap("Search apps")
         self.shell("input", "text", "Speedbreaker%stest%starget")
-        target = self.seek("Speedbreaker test target")
+        # The query text itself is also an Accessibility node with this label.
+        target = next((node for node in self.dump().iter("node")
+                       if self.label(node) == "Speedbreaker test target"
+                       and "EditText" not in node.get("class", "")), None)
+        self.require(target is not None, "synthetic target row visible apart from search field")
         self.tap_node(target)
         self.mark("selected_synthetic_target", FIXTURE)
         self.screenshot("chooser.png")
@@ -216,6 +231,7 @@ class Demo:
                      "Continue enabled after 12 second breath")
         # Start a second protected launch to test the SystemUI escape within hard lock.
         self.tap("Leave")
+        second_launch = time.monotonic()
         self.shell("am", "start", "-W", "-n", FIXTURE + "/.TargetActivity")
         self.find("Breathe", timeout=12)
         self.swipe("down")
@@ -226,6 +242,8 @@ class Demo:
             self.tap("Settings")
         else:
             self.tap("Open settings")
+        self.require(time.monotonic() - second_launch < 8,
+                     "SystemUI Settings tapped within initial eight-second lock")
         self.find("Settings", timeout=12)
         foreground = self.shell("dumpsys", "activity", "activities")
         focused = [line for line in foreground.splitlines()
