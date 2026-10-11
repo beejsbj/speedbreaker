@@ -96,7 +96,7 @@ class Demo:
         deadline = time.monotonic() + 12
         last_response = b""
         while time.monotonic() < deadline:
-            read = subprocess.run(self.adb + ["exec-out", "run-as", FIXTURE, "cat",
+            read = subprocess.run(self.adb + ["shell", "-T", "run-as", FIXTURE, "cat",
                                               "files/ui-response-" + suffix + ".xml"],
                                   capture_output=True, timeout=30)
             raw = read.stdout
@@ -273,7 +273,7 @@ class Demo:
             self.shell("run-as", FIXTURE, "touch", "files/ui-jpeg-" + suffix)
             deadline = time.monotonic() + 12
             while time.monotonic() < deadline:
-                read = subprocess.run(self.adb + ["exec-out", "run-as", FIXTURE, "cat",
+                read = subprocess.run(self.adb + ["shell", "-T", "run-as", FIXTURE, "cat",
                                                   "files/ui-image-" + suffix + ".jpg"],
                                       capture_output=True, timeout=30)
                 data = read.stdout
@@ -290,14 +290,24 @@ class Demo:
             method = "UiAutomation.takeScreenshot + Android Bitmap JPEG"
         else:
             for attempt in range(3):
-                data = self.adb_call("exec-out", "screencap", "-j", binary=True, check=False)
+                capture = subprocess.run(self.adb + ["shell", "-T", "screencap", "-j"],
+                                         capture_output=True, timeout=30)
+                data = capture.stdout
+                if capture.returncode:
+                    self.listing_failures.append(name + ": shell screenshot command failed")
+                    self.mark("native_jpeg_transport_failure", {"file": name,
+                                                                 "exit": capture.returncode,
+                                                                 "stderr": capture.stderr[-500:].decode(errors="replace"),
+                                                                 "head": data[:24].hex(),
+                                                                 "tail": data[-24:].hex()})
+                    return
                 if data.startswith(b"\xff\xd8\xff") and data.endswith(b"\xff\xd9"):
                     break
                 self.mark("native_jpeg_retry", {"file": name, "attempt": attempt + 1,
                                                  "bytes": len(data), "head": data[:24].hex(),
                                                  "tail": data[-24:].hex()})
                 time.sleep(.3)
-            method = "Android shell screencap -j"
+            method = "Android shell -T screencap -j"
         if not (data.startswith(b"\xff\xd8\xff") and data.endswith(b"\xff\xd9")):
             self.mark("native_jpeg_failure", {"file": name, "method": method,
                                                "bytes": len(data), "head": data[:24].hex(),
@@ -459,12 +469,31 @@ class Demo:
         self.require(PRODUCT in enabled, "native Accessibility service enabled")
         self.mark("native_accessibility_enabled", enabled)
         self.screenshot("accessibility-enabled.png")
-        self.shell("input", "keyevent", "KEYCODE_BACK")
-        self.shell("input", "keyevent", "KEYCODE_BACK")
+        # Finish the native Settings transition before returning to the app.
+        # Queuing Back twice can run after am start and put Settings on top again.
+        self.shell("input", "keyevent", "KEYCODE_HOME")
+        deadline = time.monotonic() + 5
+        launcher_ready = False
+        while time.monotonic() < deadline:
+            activity = self.shell("dumpsys", "activity", "activities")
+            focused = [line for line in activity.splitlines()
+                       if "topResumedActivity=" in line or "mResumedActivity:" in line]
+            if any("launcher" in line.lower() for line in focused):
+                launcher_ready = True
+                break
+            time.sleep(.2)
+        self.require(launcher_ready, "launcher resumed after native Accessibility grant")
         self.shell("am", "start", "-W", "-n", PRODUCT + "/.MainActivity")
+        home, _ = self.find("Off for now", timeout=10)
+        self.require(home.get("package") == PRODUCT, "Speedbreaker Home visible after native grant")
 
     def grant_phone(self):
         self.wait_service_bound()
+        activity = self.shell("dumpsys", "activity", "activities")
+        focused = [line for line in activity.splitlines()
+                   if "topResumedActivity=" in line or "mResumedActivity:" in line]
+        self.require(any(PRODUCT + "/.MainActivity" in line for line in focused),
+                     "Speedbreaker Home foreground before Phone rationale")
         button = self.seek("Allow call-state access")
         self.require(button.get("package") == PRODUCT,
                      "Phone rationale button belongs to Speedbreaker")
@@ -594,18 +623,30 @@ class Demo:
         # launch uses its observed gear bounds without expensive XML dumps.
         # Preflight from the visible overlay itself, matching the protected
         # second launch's touch context. Home-only shade behavior is insufficient.
-        gestures = ["shade"]
-        self.swipe("shade")
+        gestures = []
         gear = None
-        for _ in range(3):
-            gestures.append("expand_shade")
-            self.swipe("expand_shade")
+        for gesture in ("shade", "expand_shade"):
+            gestures.append(gesture)
+            self.swipe(gesture)
             shade = self.dump()
+            step = len(gestures)
+            (self.out / f"preflight-shade-{step}.xml").write_bytes(ET.tostring(shade))
+            (self.out / f"preflight-windows-{step}.xml").write_bytes(
+                ET.tostring(self.dump(all_windows=True)))
+            (self.out / f"preflight-window-{step}.txt").write_text(
+                self.shell("dumpsys", "window", "windows"))
             gear = next((node for node in shade.iter("node")
                          if node.get("package") == "com.android.systemui"
                          and self.label(node).rstrip(".").casefold() in ("settings", "open settings")
                          and node.get("bounds")), None)
+            self.mark("systemui_preflight_observed", {"gesture": gesture,
+                                                      "gear_visible": gear is not None,
+                                                      "active_packages": sorted({n.get("package", "")
+                                                                                 for n in shade.iter("node")})})
             if gear is not None:
+                break
+            if not any(node.get("package") == "com.android.systemui"
+                       for node in shade.iter("node")):
                 break
         if gear is None:
             (self.out / "preflight-shade.xml").write_bytes(ET.tostring(shade))
