@@ -21,6 +21,9 @@ else:
 app_apk = str(regression_apk)
 fixture_apk = "tools/call-fixture/build/outputs/apk/debug/call-fixture-debug.apk"
 app_commit = subprocess.check_output(["git", "-C", "source-app", "rev-parse", "HEAD"], text=True).strip()
+regression_output = Path("build/device-regression")
+if regression_output.exists() and any(regression_output.iterdir()):
+    raise SystemExit("Refusing stale device-regression evidence; use a fresh output workspace")
 command = [sys.executable, "tools/call-fixture/run.py", "--serial", "emulator-5554", "--reset-test-packages",
            "--app-apk", app_apk, "--app-commit", app_commit]
 baseline = os.environ.get("BASELINE_WITHOUT_PHONE_PERMISSION") == "true"
@@ -45,6 +48,17 @@ elif baseline:
     spec.loader.exec_module(fixture_run)
 
     class WithoutPhonePermission(fixture_run.Harness):
+        def run_case(self, scenario):
+            self.current_scenario = scenario
+            return super().run_case(scenario)
+
+        def gsm(self, action):
+            result = super().gsm(action)
+            if action == "call":
+                self.acknowledged_calls[self.current_scenario] = (
+                    self.acknowledged_calls.get(self.current_scenario, 0) + 1)
+            return result
+
         def prepare(self, directory):
             super().prepare(directory)
             state = self.shell("dumpsys", "package", fixture_run.PRODUCT)
@@ -64,14 +78,19 @@ elif baseline:
                               app_apk=Path(app_apk), app_commit=app_commit,
                               fixture_apk=Path(fixture_apk), output=Path("build/device-regression"),
                               scenario="all", baseline_without_phone_permission=True)
+    control = WithoutPhonePermission(args)
+    control.acknowledged_calls = {}
     try:
-        WithoutPhonePermission(args).run()
+        control.run()
         print("NEGATIVE_CONTROL_UNEXPECTED_PASS: calls passed without Phone permission",
               file=sys.stderr)
         regression_code = 1
     except Exception as error:
         evidence = Path("build/device-regression")
+        (evidence / "acknowledged-gsm-calls.json").write_text(
+            json.dumps(control.acknowledged_calls, indent=2) + "\n")
         failed_calls = [name for name in ("ringing", "silent")
+                        if control.acknowledged_calls.get(name, 0) >= 2
                         if (evidence / name / "instrumentation.txt").is_file()
                         and "INSTRUMENTATION_RESULT: result=FAIL" in
                         (evidence / name / "instrumentation.txt").read_text()

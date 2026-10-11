@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 import time
+import uuid
 import xml.etree.ElementTree as ET
 
 PRODUCT = "dev.burooj.speedbreaker"
@@ -23,12 +24,15 @@ class Demo:
         self.adb = ["adb", "-s", args.serial]
         self.out = args.output.resolve()
         self.out.mkdir(parents=True, exist_ok=True)
+        if any(self.out.iterdir()):
+            raise AssertionError("Refusing stale store-demo output; use a fresh evidence directory")
         self.events = []
         self.assertions = {}
         self.video = None
         self.observer = None
         self.observer_sequence = 0
         self.recording = False
+        self.remote_video = "/sdcard/sb-store-demo-" + uuid.uuid4().hex + ".mp4"
         self.listing_failures = []
 
     def adb_call(self, *parts, timeout=30, binary=False, check=True):
@@ -90,9 +94,14 @@ class Demo:
         deadline = time.monotonic() + 12
         last_response = b""
         while time.monotonic() < deadline:
-            raw = self.adb_call("exec-out", "run-as", FIXTURE, "cat",
-                                "files/ui-response-" + suffix + ".xml", binary=True, check=False)
+            read = subprocess.run(self.adb + ["exec-out", "run-as", FIXTURE, "cat",
+                                              "files/ui-response-" + suffix + ".xml"],
+                                  capture_output=True, timeout=30)
+            raw = read.stdout
             if raw.lstrip().startswith(b"<?xml"):
+                if read.returncode:
+                    raise AssertionError(f"UI observer XML transport failed: exit={read.returncode} "
+                                         f"stderr={read.stderr[-200:]!r}")
                 try:
                     root = ET.fromstring(raw)
                 except ET.ParseError as error:
@@ -166,6 +175,33 @@ class Demo:
         self.tap_node(node)
         self.mark("tap", phrase)
 
+    def accept_disclosure(self):
+        for attempt in range(2):
+            candidate = self.seek("I understand")
+            time.sleep(.35)
+            hierarchy = self.dump()
+            stable = next((node for node in hierarchy.iter("node")
+                           if self.label(node) == self.label(candidate)
+                           and node.get("bounds") == candidate.get("bounds")
+                           and self.onscreen(node) and node.get("enabled") == "true"), None)
+            if stable is None:
+                continue
+            self.screenshot("accept-button-before-tap.png")
+            self.mark("accept_button_observed", {"attempt": attempt + 1,
+                                                  "bounds": stable.get("bounds"),
+                                                  "label": self.label(stable)})
+            self.tap_node(stable)
+            self.mark("tap", "I understand — continue")
+            try:
+                self.find("Off for now", timeout=4)
+                self.mark("accepted_after_disclosure")
+                return
+            except AssertionError:
+                if not self.visible("Make the next tap intentional."):
+                    raise AssertionError("Acceptance did not show Home and Welcome is absent")
+                self.mark("acceptance_still_on_welcome", {"attempt": attempt + 1})
+        raise AssertionError("Visible acceptance tap did not open Home")
+
     def visible(self, phrase):
         return any(self.onscreen(n) and phrase.casefold() in self.label(n).casefold()
                    for n in self.dump().iter("node"))
@@ -208,9 +244,16 @@ class Demo:
             self.shell("run-as", FIXTURE, "touch", "files/ui-jpeg-" + suffix)
             deadline = time.monotonic() + 12
             while time.monotonic() < deadline:
-                data = self.adb_call("exec-out", "run-as", FIXTURE, "cat",
-                                     "files/ui-image-" + suffix + ".jpg", binary=True, check=False)
+                read = subprocess.run(self.adb + ["exec-out", "run-as", FIXTURE, "cat",
+                                                  "files/ui-image-" + suffix + ".jpg"],
+                                      capture_output=True, timeout=30)
+                data = read.stdout
                 if data.startswith(b"\xff\xd8\xff") and data.endswith(b"\xff\xd9"):
+                    if read.returncode:
+                        self.listing_failures.append(name + ": JPEG transport failed")
+                        self.mark("native_jpeg_transport_failure", {"file": name,
+                                                                     "exit": read.returncode})
+                        return
                     break
                 if self.observer.poll() is not None:
                     break
@@ -324,7 +367,14 @@ class Demo:
         for attempt in range(3):
             if self.visible("Use Speedbreaker"):
                 return
-            row, root = self.find("Speedbreaker attention pauses", timeout=4, exact=True)
+            self.seek("Speedbreaker attention pauses")
+            time.sleep(.35)
+            root = self.dump()
+            row = next((node for node in root.iter("node")
+                        if self.label(node) == "Speedbreaker attention pauses"
+                        and self.onscreen(node)), None)
+            if row is None:
+                continue
             self.require(row.get("package") == "com.android.settings",
                          "native Accessibility service row belongs to Settings")
             parents = {child: parent for parent in root.iter() for child in parent}
@@ -565,12 +615,21 @@ class Demo:
                                                      "seconds_after_target_launch": round(gear_elapsed, 2)})
         self.require(gear_elapsed < 8,
                      "SystemUI Settings tapped within initial eight-second lock")
-        self.find("Settings", timeout=12)
-        foreground = self.shell("dumpsys", "activity", "activities")
-        focused = [line for line in foreground.splitlines()
-                   if "topResumedActivity=" in line or "mResumedActivity:" in line]
-        self.require(any("com.android.settings" in line for line in focused),
-                     "native Settings escaped hard lock")
+        settings_observed = False
+        while time.monotonic() - second_launch < 8:
+            foreground = self.shell("dumpsys", "activity", "activities")
+            focused = [line for line in foreground.splitlines()
+                       if "topResumedActivity=" in line or "mResumedActivity:" in line]
+            if any("com.android.settings" in line for line in focused):
+                settings_observed = True
+                self.mark("native_settings_resumed", {"seconds_after_target_launch":
+                                                      round(time.monotonic() - second_launch, 2),
+                                                      "focused": focused})
+                break
+            time.sleep(.1)
+        self.require(settings_observed and time.monotonic() - second_launch < 8,
+                     "native Settings resumed within initial eight-second lock")
+        self.find("Settings", timeout=8)
         self.screenshot("settings-escape.png")
         self.mark("native_settings_escape")
         self.tap_node(self.seek("Accessibility"))
@@ -631,7 +690,7 @@ class Demo:
             self.adb_call("logcat", "-c")
             self.start_observer()
             self.video = subprocess.Popen(self.adb + ["shell", "screenrecord", "--time-limit", "180",
-                                                     "/sdcard/sb-store-demo.mp4"],
+                                                     self.remote_video],
                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             self.started = time.monotonic()
             self.recording = True
@@ -654,10 +713,7 @@ class Demo:
             self.require(self.visible("Make the next tap intentional."), "Welcome reopened without consent")
             self.seek("What it keeps")
             self.screenshot("acceptance-disclosure.png")
-            self.tap_node(self.seek("I understand"))
-            self.mark("tap", "I understand — continue")
-            self.find("Off for now", timeout=15)
-            self.mark("accepted_after_disclosure")
+            self.accept_disclosure()
             self.enable_accessibility()
             self.grant_phone()
             self.select_target()
@@ -693,7 +749,7 @@ class Demo:
             raise
         finally:
             prior_failure = sys.exc_info()[0] is not None
-            self.shell("wm", "size", "reset", check=False)
+            video_pull_ok = False
             if self.video:
                 # End the Android encoder itself so it writes the MP4 moov atom.
                 for pid in self.shell("pidof", "screenrecord", check=False).split():
@@ -703,10 +759,19 @@ class Demo:
                 except subprocess.TimeoutExpired:
                     self.video.kill()
                     self.video.communicate()
-                self.adb_call("pull", "/sdcard/sb-store-demo.mp4", str(self.out / "first-run.mp4"), check=False)
-                self.shell("rm", "/sdcard/sb-store-demo.mp4", check=False)
+                pull = subprocess.run(self.adb + ["pull", self.remote_video,
+                                                  str(self.out / "first-run.mp4")],
+                                      capture_output=True, text=True, timeout=30)
+                video_pull_ok = (pull.returncode == 0 and (self.out / "first-run.mp4").is_file()
+                                 and (self.out / "first-run.mp4").stat().st_size > 0)
+                self.assertions["current recording pulled successfully"] = video_pull_ok
+                if not video_pull_ok:
+                    self.mark("video_pull_failure", {"returncode": pull.returncode,
+                                                     "stderr": pull.stderr[-500:]})
+                self.shell("rm", self.remote_video, check=False)
+            self.shell("wm", "size", "reset", check=False)
             self.stop_observer()
-            video_valid = self.finalized_mp4(self.out / "first-run.mp4")
+            video_valid = video_pull_ok and self.finalized_mp4(self.out / "first-run.mp4")
             self.assertions["finalized screen recording"] = video_valid
             captures = {str(p.relative_to(self.out)): hashlib.sha256(p.read_bytes()).hexdigest()
                         for p in self.out.rglob("*") if p.is_file()
