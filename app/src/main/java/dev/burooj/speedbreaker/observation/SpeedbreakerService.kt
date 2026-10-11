@@ -27,6 +27,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 internal class SpeedbreakerService : AccessibilityService() {
+    private data class ObservedUpdate(val update: EngineUpdate, val observation: Observation)
+
     private data class PauseWrite(
         val base: Map<String, PauseState>,
         val desired: Map<String, PauseState>,
@@ -117,7 +119,7 @@ internal class SpeedbreakerService : AccessibilityService() {
     private fun reconcile(
         navigationAway: Boolean = navigationAwayLatched,
         forceSafetyYield: Boolean = false,
-    ): EngineUpdate? {
+    ): ObservedUpdate? {
         if (!::repository.isInitialized) return null
         val persistenceError = repository.error.value
         if (!repository.ready.value || persistenceError != null) {
@@ -173,7 +175,7 @@ internal class SpeedbreakerService : AccessibilityService() {
         }
         apply(update, settings, currentObservation)
         if (update.breaker == null) navigationAwayLatched = false
-        return update
+        return ObservedUpdate(update, currentObservation)
     }
 
     private fun handleChoice(choice: Choice) {
@@ -190,8 +192,9 @@ internal class SpeedbreakerService : AccessibilityService() {
 
     private fun handleBack() {
         val wasShowing = overlay.isShowing
-        val update = reconcile(navigationAway = true) ?: return
-        if (wasShowing && update.breaker == null) {
+        val result = reconcile(navigationAway = true) ?: return
+        // A safety dismissal exposes call or system controls; do not send Back into them.
+        if (wasShowing && result.update.breaker == null && !result.observation.safetyUiVisible) {
             systemActions.performBack()
         }
     }

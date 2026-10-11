@@ -10,6 +10,7 @@ import dev.burooj.speedbreaker.model.Settings
 /** Runtime backstop for packages that must never become enforcement targets. */
 internal class SafetyPolicy(context: Context) {
     private val appContext = context.applicationContext
+    private val callSafety = CallSafety(appContext)
     private val launcherPackages = mutableSetOf<String>()
     private val excludedTargets = mutableSetOf<String>()
     private val immediateYieldPackages = mutableSetOf<String>()
@@ -73,6 +74,7 @@ internal class SafetyPolicy(context: Context) {
         packageName != null && packageName in immediateYieldPackages
 
     fun safetyUiVisible(visiblePackages: Set<String>): Boolean {
+        if (callSafety.status() != CallSafety.Status.Idle) return true
         val keyguard = appContext.getSystemService(KeyguardManager::class.java)
         if (keyguard?.isKeyguardLocked == true) return true
         return visiblePackages.any { it in immediateYieldPackages }

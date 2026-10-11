@@ -28,6 +28,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.burooj.speedbreaker.observation.PauseNotifications
 import dev.burooj.speedbreaker.observation.PauseEndReceiver
+import dev.burooj.speedbreaker.observation.CallSafety
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.observation.ServiceStatus
 import dev.burooj.speedbreaker.persistence.SpeedbreakerRepository
@@ -53,6 +54,11 @@ internal fun SpeedbreakerApp() {
         var resumeTick by remember { mutableIntStateOf(0) }
         var redirectRequest by remember { mutableStateOf<RedirectRequest?>(null) }
         var notificationRequestAttempted by rememberSaveable { mutableStateOf(false) }
+        var phoneRequestAttempted by rememberSaveable { mutableStateOf(false) }
+        val phonePermission = rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) { resumeTick++ }
+        val callSafety = remember(context) { CallSafety(context.applicationContext) }
         val notificationPermission = rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission(),
         ) { resumeTick++ }
@@ -75,6 +81,7 @@ internal fun SpeedbreakerApp() {
                 }
             }
         }
+        val callStatus = remember(resumeTick, nowEpochMs) { callSafety.status() }
         DisposableEffect(lifecycle) {
             val observer = LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) resumeTick++
@@ -115,6 +122,9 @@ internal fun SpeedbreakerApp() {
                     protection = when {
                         !accessibilityEnabled -> Protection.Off
                         !connected || runtimeError != null -> Protection.Broken
+                        callStatus == CallSafety.Status.PermissionRequired -> Protection.CallPermission
+                        callStatus == CallSafety.Status.Unavailable -> Protection.CallUnavailable
+                        callStatus == CallSafety.Status.InCall -> Protection.CallActive
                         else -> Protection.On
                     },
                     runtimeError = runtimeError,
@@ -132,6 +142,17 @@ internal fun SpeedbreakerApp() {
                         context.startActivity(Intent(AndroidSettings.ACTION_ACCESSIBILITY_SETTINGS))
                     },
                     onOpenAppInfo = { openAppDetails(context) },
+                    onCallAccess = {
+                        if (!phoneRequestAttempted &&
+                            context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
+                            PackageManager.PERMISSION_GRANTED
+                        ) {
+                            phoneRequestAttempted = true
+                            phonePermission.launch(Manifest.permission.READ_PHONE_STATE)
+                        } else {
+                            openAppDetails(context)
+                        }
+                    },
                     onNotifications = {
                         val canAsk = android.os.Build.VERSION.SDK_INT >= 33 &&
                             !notificationRequestAttempted &&
