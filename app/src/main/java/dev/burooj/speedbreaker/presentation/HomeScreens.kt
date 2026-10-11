@@ -194,6 +194,8 @@ internal fun HomeScreen(
     nowEpochMs: Long = System.currentTimeMillis(),
     onEndPause: (String) -> Unit = {},
     onSupport: () -> Unit = {},
+    supportLabel: String = "Buy me a coffee",
+    supportSummary: String = "Opens buymeacoffee.com in your browser",
 ) {
     val appCount = settings.apps.size
     val title = when (protection) {
@@ -290,8 +292,8 @@ internal fun HomeScreen(
             footnote = "If Speedbreaker helps, you can support its development. Always optional; every feature stays free.",
         ) {
             NavRow(
-                title = "Buy me a coffee",
-                summary = "Opens buymeacoffee.com in your browser",
+                title = supportLabel,
+                summary = supportSummary,
                 onClick = onSupport,
             )
         }

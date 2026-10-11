@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Play Console licensing RSA public key (base64 X.509). Empty deliberately disables tips.
+         This is a public verification key, never a private key or API credential. -->
+    <string name="play_billing_public_key" translatable="false"></string>
+</resources>
