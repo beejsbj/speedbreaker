@@ -14,6 +14,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -22,14 +23,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.burooj.speedbreaker.observation.PauseNotifications
+import dev.burooj.speedbreaker.observation.PauseEndReceiver
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.observation.ServiceStatus
 import dev.burooj.speedbreaker.persistence.SpeedbreakerRepository
 import dev.burooj.speedbreaker.presentation.theme.SpeedbreakerTheme
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 /** Owns state and navigation; every screen it shows is stateless and previewable. */
 @Composable
@@ -38,6 +43,7 @@ internal fun SpeedbreakerApp() {
         val context = LocalContext.current
         val repository = remember(context) { SpeedbreakerRepository.get(context) }
         val settings by repository.settings.collectAsStateWithLifecycle()
+        val pauses by repository.pauses.collectAsStateWithLifecycle()
         val ready by repository.ready.collectAsStateWithLifecycle()
         val repositoryError by repository.error.collectAsStateWithLifecycle()
         val connected by ServiceStatus.connected.collectAsStateWithLifecycle()
@@ -60,6 +66,15 @@ internal fun SpeedbreakerApp() {
         }
 
         val lifecycle = LocalLifecycleOwner.current.lifecycle
+        // Expiry must advance even when persisted pause state does not change (or the service is off).
+        val nowEpochMs by produceState(System.currentTimeMillis(), lifecycle) {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (isActive) {
+                    value = System.currentTimeMillis()
+                    delay(1_000L)
+                }
+            }
+        }
         DisposableEffect(lifecycle) {
             val observer = LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) resumeTick++
@@ -104,6 +119,15 @@ internal fun SpeedbreakerApp() {
                     },
                     runtimeError = runtimeError,
                     notificationsAllowed = notificationsAllowed,
+                    pauses = pauses,
+                    nowEpochMs = nowEpochMs,
+                    onEndPause = { packageName ->
+                        // Share the notification action's service coordination and durable transaction.
+                        context.sendBroadcast(
+                            Intent(context, PauseEndReceiver::class.java)
+                                .putExtra(PauseEndReceiver.EXTRA_PACKAGE_NAME, packageName),
+                        )
+                    },
                     onEnableAccessibility = {
                         context.startActivity(Intent(AndroidSettings.ACTION_ACCESSIBILITY_SETTINGS))
                     },
