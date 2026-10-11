@@ -31,9 +31,9 @@ setting limits resource contention. Compilation, tests, and lint are separate
 processes because combined runs previously caused substantial memory pressure.
 
 ```sh
-./gradlew assembleDebug --no-daemon --no-configuration-cache --max-workers=1
-./gradlew testDebugUnitTest --no-daemon --no-configuration-cache --max-workers=1
-./gradlew lintDebug --no-daemon --no-configuration-cache --max-workers=1 \
+./gradlew assembleCommunityDebug --no-daemon --no-configuration-cache --max-workers=1
+./gradlew testCommunityDebugUnitTest --no-daemon --no-configuration-cache --max-workers=1
+./gradlew lintCommunityDebug --no-daemon --no-configuration-cache --max-workers=1 \
   '-Dorg.gradle.jvmargs=-Xmx1g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8'
 ```
 
@@ -43,9 +43,9 @@ Avoid concurrent Gradle builds on a resource-constrained machine.
 
 | Output | Location |
 | --- | --- |
-| Debug APK | `app/build/outputs/apk/debug/app-debug.apk` |
-| Unit test results | `app/build/test-results/testDebugUnitTest/` |
-| Test HTML report | `app/build/reports/tests/testDebugUnitTest/index.html` |
+| Debug APK | `app/build/outputs/apk/community/debug/app-community-debug.apk` |
+| Unit test results | `app/build/test-results/testCommunityDebugUnitTest/` |
+| Test HTML report | `app/build/reports/tests/testCommunityDebugUnitTest/index.html` |
 | Lint reports | `app/build/reports/` |
 
 The tests include pure enforcement and persistence tests and Robolectric/Compose
@@ -56,14 +56,14 @@ renders directly into tracked `docs/design/screenshots/` files.** Review
 For a focused engine check:
 
 ```sh
-./gradlew testDebugUnitTest --tests '*EnforcementEngineTest*' \
+./gradlew testCommunityDebugUnitTest --tests '*EnforcementEngineTest*' \
   --no-daemon --no-configuration-cache --max-workers=1
 ```
 
 To regenerate the gallery deliberately:
 
 ```sh
-./gradlew testDebugUnitTest --tests '*GalleryScreenshotTest*' \
+./gradlew testCommunityDebugUnitTest --tests '*GalleryScreenshotTest*' \
   --no-daemon --no-configuration-cache --max-workers=1
 ```
 
@@ -90,14 +90,14 @@ what was verified on 1.0.0. Older observations are not evidence for a new build.
 
 ## Release builds
 
-`./gradlew bundleRelease` produces an **unsigned** Android App Bundle at
-`app/build/outputs/bundle/release/app-release.aab`. Hosted Android checks retain
+`./gradlew :app:bundlePlayRelease` produces an **unsigned** Android App Bundle at
+`app/build/outputs/bundle/playRelease/app-play-release.aab`. Hosted Android checks retain
 the APK and bundle for the exact commit. A bundle must be signed with the upload
 identity configured in Play Console before upload; it does not carry the APK's
 v3 signing lineage. Store preparation does not mean the candidate is released.
 
-For release validation, run `assembleRelease` and `lintRelease` separately,
-using the same process and worker flags above, and run `testDebugUnitTest` in
+For release validation, run `assembleCommunityRelease` and `lintCommunityRelease` separately,
+using the same process and worker flags above, and run `testCommunityDebugUnitTest` in
 its own invocation. The release variant excludes Compose debug tooling.
 
 The repository does not contain private release keys. An `assembleRelease`
@@ -105,3 +105,12 @@ output alone is not the signed APK distributed to users. Maintainer packaging
 and signing are documented in [release.md](release.md); contributors do not need
 those credentials to build and test the debug app. Generated APKs, local SDK
 configuration, dependency caches, and signing credentials should stay untracked.
+
+## Distribution variants
+
+`community` is the GitHub/F-Droid build with an external optional support link.
+`play` is the Google Play build with optional Play Billing tips. They use the
+same package and version; APK update identity must remain compatible. Billing
+code and its proprietary dependency are excluded from the community variant.
+Run `testPlayDebugUnitTest` and `lintPlayRelease` for the Play variant. The CI
+matrix builds and verifies both variants separately.

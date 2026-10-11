@@ -39,10 +39,10 @@ def main():
     if changed:
         parser.error("Commit source and packaging changes before building a release")
     if not args.skip_build:
-        run([str(ROOT / "gradlew"), "assembleRelease", "--no-daemon", "--no-configuration-cache", "--max-workers=1", "-Dorg.gradle.jvmargs=-Xmx1g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8"])
-    unsigned = ROOT / "app/build/outputs/apk/release/app-release-unsigned.apk"
+        run([str(ROOT / "gradlew"), ":app:assembleCommunityRelease", "--no-daemon", "--no-configuration-cache", "--max-workers=1", "-Dorg.gradle.jvmargs=-Xmx1g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8"])
+    unsigned = ROOT / "app/build/outputs/apk/community/release/app-community-release-unsigned.apk"
     if not unsigned.is_file():
-        parser.error("Release APK missing; run assembleRelease first")
+        parser.error("Community release APK missing; run assembleCommunityRelease first")
     badging = run([str(build_tools / "aapt"), "dump", "badging", str(unsigned)], capture_output=True, text=True).stdout
     package = re.search(r"package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'", badging)
     if not package or package.group(1) != "dev.burooj.speedbreaker":
@@ -69,7 +69,7 @@ def main():
     ], env=env)
     run([str(build_tools / "apksigner"), "verify", "--verbose", "--print-certs", str(output)])
     run([str(build_tools / "apksigner"), "verify", "--min-sdk-version", "26", "--max-sdk-version", "27", str(output)])
-    run([str(build_tools / "apksigner"), "verify", "--min-sdk-version", "28", "--max-sdk-version", "35", str(output)])
+    run([str(build_tools / "apksigner"), "verify", "--min-sdk-version", "28", "--max-sdk-version", "36", str(output)])
     digest = hashlib.sha256(output.read_bytes()).hexdigest()
     checksum = output.with_suffix(".apk.sha256")
     checksum.write_text(f"{digest}  {output.name}\n")

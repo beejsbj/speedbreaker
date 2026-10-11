@@ -21,6 +21,12 @@ android {
         }
     }
 
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("community") { dimension = "distribution" }
+        create("play") { dimension = "distribution" }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -69,6 +75,9 @@ dependencies {
     annotationProcessor("androidx.room:room-compiler:2.7.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0")
+
+    // Billing belongs only to Google Play; community/F-Droid builds stay offline and FLOSS.
+    "playImplementation"("com.android.billingclient:billing:9.1.0")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20250517")
