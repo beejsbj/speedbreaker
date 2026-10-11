@@ -7,13 +7,13 @@ Tracking: Linear BJS-532. Working branch: `release/store-distribution`.
 | Channel / work | Evidence and status | External dependency |
 | --- | --- | --- |
 | GitHub stable Android 1.0.1 | **Live:** immutable public release/tag, version code 5. | None for current APK. |
-| Candidate Android 1.0.2 | API 36, code 6, separate community and Play builds implemented. Full final CI/signing/release still in progress. **Not released.** | Play upload identity/Console signing configuration before a store upload. |
-| Public privacy/help | **Live:** GitHub Pages deployment run 38157020798 passed, public privacy/help URLs HTTP 200 verified. | Public Play support email and account-level financial retention facts pending. |
+| Candidate Android 1.0.2 | API 36, code 6, separate community and Play builds implemented. Hosted release APKs and Play AAB passed CI 38159600882 at cc5d370; 71 tests passed per flavor, lint 0 errors (community 33 / Play 34 warnings). Final consent/demo integration is in progress; inputs remain unsigned. **Not released.** | Play upload identity/Console signing configuration before a store upload. |
+| Public privacy/help | **Live:** Latest GitHub Pages deployment run 38159599194 passed, public privacy/help URLs HTTP 200 verified. | Public Play support email and external provider/payment facts pending. |
 | Original 1.0.1 reproduction | **Verified:** clean hosted rebuild and signature-copy run 38157458089 passed. Source tree matches canonical release tag. **Not an F-Droid buildserver verification.** | Complete F-Droid pipeline verification still required. |
 | F-Droid | Metadata lint/read/rewrite validated. **Blocked; not submitted.** | fdroidserver 2.4.5 rejects valid legacy/release v2/v3 rotation. Owner chose Android 8 retained and wait for support; GitLab account also absent. |
 | Google Play | API 36 build, external direct-tip preparation, listing/declaration drafts and CI implemented. **Not submitted.** | Developer account/US$25 fee, identity, public email, signing setup, external-tip destination/fee eligibility, legal facts, internal installation tests and account-specific production testing. |
 | iOS feasibility | Native SwiftUI/Screen Time source retained on separate `release/ios-feasibility` branch; all four targets compiled unsigned in hosted run 38157800786. No opening/breathing-overlay parity claim. | **App Store path discontinued at owner's request October 11.** No Apple membership/entitlement/submission pursued. Real-device behavior unverified. |
-| Independent code review | Fresh Astra high and Sol xhigh reviews of fixed c5b0fa2 dispatched against PR8. Results pending. | None; receipt and reconciled findings will be recorded here. |
+| Independent code review | Astra high reviewed cc5d370; no new substantive source finding, stale status wording corrected. Actual Sol6.1 xhigh review identified an editable signing-receipt gap; fixed in b899ff0 and independently reproduced positive/tampered host checks. Follow-up review and device-tooling integration pending. | None; receipt and reconciled findings will be recorded here. |
 
 ## Owner decisions carried forward
 

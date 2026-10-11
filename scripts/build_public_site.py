@@ -65,7 +65,7 @@ Then continue, leave, or open somewhere else. Optional check-ins bring the pause
 <img src="hero.png" alt="Speedbreaker — a moment to breathe. Room to choose.">
 <p><a href="{REPO}/releases/tag/v1.0.1">Download stable Android 1.0.1</a> ·
 <a href="{REPO}/blob/main/docs/getting-started.md">Setup guide</a></p>
-<p>Android 8.0 or newer. GitHub APK is available. F-Droid, Google Play and iOS distribution are in preparation;
+<p>Android 8.0 or newer. GitHub APK is available. F-Droid and Google Play distribution are in preparation;
 no store availability is claimed.</p><h2>What the pause does</h2>
 <p>The first eight seconds hold ordinary navigation. Settings and Android-reported calls yield.
 Breaths stay off without Phone permission. Calling apps exposing neither Android call state nor communication audio

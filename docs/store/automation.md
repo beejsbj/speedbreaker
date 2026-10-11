@@ -6,7 +6,7 @@ private signing host. Store status still requires actual host evidence.
 | Workflow | Trigger / result |
 | --- | --- |
 | `android.yml` | App PR/main changes or manual dispatch. Community/Play unsigned APKs, Play AAB, unit/UI tests, release lint, resolved dependency/license inventory, final manifest assertions, exact-source artifact hashes. |
-| `android-device.yml` | App/fixture PR/main changes or manual dispatch. API 35/36 real Telecom/SystemUI/navigation regression and separate fresh-install consent/demo captures on disposable emulators. Historical negative controls use the old variant and skip the new demo. |
+| `android-device.yml` | Current manual/isolated tooling workflow; PR/main triggers, historical task selection and fresh-install captures are being integrated by the store-demo worker. API 35/36 Telecom/SystemUI/navigation regression is separate from the unverified final consent video. |
 | `store-metadata.yml` | Listing/artwork PR/main changes. Character/image limits, deterministic committed-export freshness, generated 512px icon and 1024×500 feature graphic artifacts. |
 | `reproducible.yml` | Manual published-APK check. Immutable 1.0.1 clean source rebuild and actual signature-copy verification, with pinned historical padding/tool inputs. |
 | `pages.yml` | Public-document changes or dispatch. Render privacy/help and deploy GitHub Pages. |
@@ -43,7 +43,7 @@ python3 scripts/package_release.py --skip-build \
   --output-dir dist/CANDIDATE
 ```
 
-The script refuses receipt/source/hash mismatches, a non-community input,
+The signer independently re-downloads the canonical successful Android run's community inventory and APK, verifies GitHub archive digests and hosted provenance, and compares both the actual local APK and the entire receipt with server-derived evidence before reading the release password. Editing a local receipt to match an altered APK cannot bypass this check. It refuses receipt/source/hash mismatches, a non-community input,
 debuggable APKs and an existing output, then signs with the original legacy and
 release keys plus public rotation lineage. It verifies SDK 26–27 and SDK 28–36,
 and emits signed SHA-256 and source/build receipts. Its password is read through

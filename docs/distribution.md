@@ -84,21 +84,12 @@ The owner stopped this distribution path on October 11, 2026. The following is
 background for the retained prototype, not an active enrollment commitment.
 
 
-An APK cannot become an iPhone app through a packaging change. An iOS version
-needs a separate implementation and an interaction design tested against
-Apple's supported restrictions and timing behavior. Treat parity with Android's
-opening interception and eight-second overlay as an open feasibility question.
-
-Investigate Family Controls, Managed Settings and Device Activity; Apple's
-[Screen Time overview](https://developer.apple.com/documentation/screentimeapidocumentation)
-and [individual authorization introduction](https://developer.apple.com/videos/play/wwdc2022/110336/)
-are the starting points. The account holder must request Family Controls
-distribution entitlement approval for the app and relevant extensions before
-distribution. See [Apple's entitlement instructions](https://developer.apple.com/documentation/FamilyControls/requesting-the-family-controls-entitlement).
-
-The practical order is an iOS feasibility prototype, entitlement request,
-real-device testing, then TestFlight and App Store submission. Store accounts,
-fees, legal declarations and submission approvals remain owner decisions.
+The separate native SwiftUI/Family Controls/Managed Settings/Device Activity
+prototype is retained on `release/ios-feasibility`. Hosted CI compiled its app
+and three extensions unsigned. It uses static Screen Time shields, lacks
+Android's opening interception and eight-second breathing overlay, and has not
+been verified on a real iPhone. It is not an App Store candidate. No membership,
+distribution entitlement, TestFlight upload or submission is being pursued.
 
 ## Optional developer support
 
@@ -119,12 +110,7 @@ Recheck each store's payment rules before submitting that store's build:
   Ko-fi Free has no one-time platform fee but still has processor fees; see
   [the direct-tip record](store/play-tips.md) and
   [Google's payment FAQ](https://support.google.com/googleplay/android-developer/answer/10281818?hl=en).
-- Apple explicitly supports developer tips through in-app purchases. External
-  payment links have storefront-specific rules, including a US exception;
-  a worldwide iOS release cannot simply assume the Android support link is
-  acceptable everywhere. Choose StoreKit tips or an appropriate regional link
-  policy during the iOS implementation. See
-  [App Review Guidelines 3.1.1](https://developer.apple.com/app-store/review/guidelines/#in-app-purchase).
+- Apple payment preparation is inactive because the owner stopped that path.
 
 These notes were checked October 11, 2026. They are preparation for submission,
 not a claim that any store has approved this payment flow.
