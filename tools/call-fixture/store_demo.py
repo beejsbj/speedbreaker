@@ -62,19 +62,17 @@ class Demo:
         self.require(not locale or locale.startswith("en"), "English UI")
 
     def dump(self):
-        # UIAutomator writes a temporary hierarchy file; no app data or settings are changed.
-        last_error = None
-        for _ in range(3):
-            try:
-                self.shell("uiautomator", "dump", "/sdcard/sb-store-demo.xml", timeout=20)
-                raw = self.adb_call("exec-out", "cat", "/sdcard/sb-store-demo.xml", binary=True)
-                return ET.fromstring(raw)
-            except (ET.ParseError, RuntimeError, subprocess.TimeoutExpired) as error:
-                last_error = error
-                time.sleep(.3)
-            finally:
-                self.shell("rm", "-f", "/sdcard/sb-store-demo.xml", check=False)
-        raise AssertionError(f"Could not read Android UI hierarchy: {last_error}")
+        # The fixture's UiAutomation explicitly keeps other Accessibility services
+        # connected. Stock `uiautomator dump` disconnects the service under test.
+        report = self.shell("am", "instrument", "-w", FIXTURE + "/.UiHierarchy", timeout=20)
+        if "INSTRUMENTATION_RESULT: result=PASS" not in report:
+            raise AssertionError(f"Fixture UI observer failed: {report}")
+        raw = self.adb_call("exec-out", "run-as", FIXTURE, "cat", "files/ui-hierarchy.xml",
+                            binary=True)
+        try:
+            return ET.fromstring(raw)
+        except ET.ParseError as error:
+            raise AssertionError(f"Fixture UI observer returned invalid XML: {error}") from error
 
     @staticmethod
     def label(node):
@@ -236,16 +234,14 @@ class Demo:
         self.shell("am", "start", "-W", "-n", PRODUCT + "/.MainActivity")
 
     def grant_phone(self):
-        # Stock uiautomator dump suppresses the service under test. The Home
-        # button is at this viewport point on the validated pixel_6 profile;
-        # the native Phone dialog and Android grant are the positive proof.
-        self.require("1080x2400" in self.shell("wm", "size"), "pixel_6 demo viewport 1080x2400")
-        self.swipe("down")
-        self.swipe("down")
+        self.wait_service_bound()
+        button = self.seek("Allow call-state access")
+        self.require(button.get("package") == PRODUCT,
+                     "Phone rationale button belongs to Speedbreaker")
+        self.wait_service_bound()
         self.screenshot("phone-rationale.png")
-        self.shell("input", "tap", "540", "1040")
-        self.mark("tap", {"action": "Allow call-state access", "point": [540, 1040],
-                           "basis": "observed pixel_6 Home button; native dialog required next"})
+        self.tap_node(button)
+        self.mark("tap", "Allow call-state access")
         self.tap("Allow", timeout=10, exact=True)
         package = ""
         for _ in range(10):
