@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.burooj.speedbreaker.model.Settings
+import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.presentation.components.AppGlyph
 import dev.burooj.speedbreaker.presentation.components.ContentMaxWidth
 import dev.burooj.speedbreaker.presentation.components.Eyebrow
@@ -181,6 +182,9 @@ internal fun HomeScreen(
     onChooseApps: () -> Unit,
     onDefaults: () -> Unit,
     onApp: (String) -> Unit,
+    pauses: Map<String, PauseState> = emptyMap(),
+    nowEpochMs: Long = System.currentTimeMillis(),
+    onEndPause: (String) -> Unit = {},
 ) {
     val appCount = settings.apps.size
     val title = when (protection) {
@@ -193,6 +197,8 @@ internal fun HomeScreen(
         }
     }
     Page(title = title, onBack = null, eyebrow = "Speedbreaker") {
+        ActivePausesSection(pauses, nowEpochMs, onEndPause)
+
         StatusPanel(
             protection = protection,
             runtimeError = runtimeError,
@@ -245,7 +251,7 @@ internal fun HomeScreen(
                 summary = if (notificationsAllowed) {
                     "Allowed"
                 } else {
-                    "Needed for Pause and its End now action"
+                    "Needed to start a pause; End now is also here"
                 },
                 onClick = onNotifications,
                 leading = {
