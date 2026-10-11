@@ -10,6 +10,8 @@ import re
 import subprocess
 import sys
 
+from fetch_store_artifacts import verify_signing_input
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -59,10 +61,10 @@ def main():
                     "input_sha256": hashlib.sha256(unsigned.read_bytes()).hexdigest()}
         if any(build_receipt.get(key) != value for key, value in expected.items()):
             parser.error("Hosted input receipt does not match this committed source and APK")
-        host = json.loads(run(["gh", "api", f"repos/beejsbj/speedbreaker/actions/runs/{int(build_receipt['run_id'])}"],
-                              capture_output=True, text=True).stdout)
-        if host.get("head_sha") != commit or host.get("conclusion") != "success" or host.get("status") != "completed":
-            parser.error("Hosted build no longer has successful evidence for this commit")
+        try:
+            build_receipt = verify_signing_input(build_receipt, unsigned, commit, tree)
+        except (ValueError, KeyError, TypeError) as error:
+            parser.error(f"Hosted signing input rejected: {error}")
     badging = run([str(build_tools / "aapt"), "dump", "badging", str(unsigned)], capture_output=True, text=True).stdout
     package = re.search(r"package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'", badging)
     if not package or package.group(1) != "dev.burooj.speedbreaker":

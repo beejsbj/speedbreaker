@@ -46,6 +46,41 @@ def archive(artifact, destination):
     return {'artifactId': artifact['id'], 'name': artifact['name'], 'archiveSha256': expected[7:]}
 
 
+def verify_signing_input(receipt, unsigned, commit, tree):
+    """Re-establish trust from GitHub, never from editable local receipt hashes."""
+    run_id = int(receipt['run_id'])
+    run = gh(f'repos/{REPOSITORY}/actions/runs/{run_id}')
+    require(run.get('status') == 'completed' and run.get('conclusion') == 'success', 'CI must finish successfully')
+    require(run.get('head_sha') == commit, 'Run does not verify the current source commit')
+    workflow = gh(f'repos/{REPOSITORY}/actions/workflows/{run["workflow_id"]}')
+    require(workflow['path'] == '.github/workflows/android.yml', 'Unexpected build workflow')
+    artifacts = gh(f'repos/{REPOSITORY}/actions/runs/{run_id}/artifacts?per_page=100')['artifacts']
+    inventory = [a for a in artifacts if a['name'].startswith('store-inventory-community-')]
+    require(len(inventory) == 1, 'Missing/ambiguous community inventory')
+    with tempfile.TemporaryDirectory() as temporary:
+        location = Path(temporary)
+        archive(inventory[0], location / 'inventory')
+        provenance_files = list((location / 'inventory').rglob('provenance.json'))
+        require(len(provenance_files) == 1, 'Missing/ambiguous provenance')
+        provenance = json.loads(provenance_files[0].read_text())
+        require(provenance['sourceTree'] == tree and str(provenance['githubRunId']) == str(run_id), 'Hosted provenance mismatch')
+        built_head = provenance['sourceHead']
+        require(gh(f'repos/{REPOSITORY}/git/commits/{built_head}')['tree']['sha'] == tree, 'Host/source tree mismatch')
+        found = [a for a in artifacts if a['name'] == 'unsigned-community-release-' + built_head]
+        require(len(found) == 1, 'Missing/ambiguous community APK')
+        host_receipt = archive(found[0], location / 'apk')
+        apks = list((location / 'apk').rglob('*.apk'))
+        require(len(apks) == 1, 'Missing/ambiguous APK payload')
+        digest = sha(apks[0])
+        require(digest == provenance['artifactSha256']['apk'], 'Hosted payload/provenance mismatch')
+        require(sha(unsigned) == digest, 'Local APK differs from the verified hosted artifact')
+        trusted = {'repository': REPOSITORY, 'source_commit': commit, 'source_tree': tree,
+                   'build_checkout': built_head, 'run_id': run_id, 'run_url': run['html_url'],
+                   'input_sha256': digest, 'channel': 'community', 'kind': 'apk', **host_receipt}
+        require(receipt == trusted, 'Local input receipt differs from hosted evidence')
+        return trusted
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run-id', type=int, required=True)
