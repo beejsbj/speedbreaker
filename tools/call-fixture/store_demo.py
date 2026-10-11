@@ -238,7 +238,9 @@ class Demo:
         elif direction == "down":
             self.shell("input", "swipe", "530", "500", "530", "1750", "450")
         elif direction == "shade":
-            self.shell("input", "swipe", "530", "30", "530", "1650", "350")
+            # Pixel 6 status bar occupies y=0..128; y=30 can fall in its
+            # untouchable cutout/edge area on hosted API 35.
+            self.shell("input", "swipe", "300", "90", "300", "1650", "350")
         elif direction == "expand_shade":
             self.shell("input", "swipe", "530", "380", "530", "1650", "350")
         else:
@@ -472,7 +474,8 @@ class Demo:
         self.screenshot("accessibility-enabled.png")
         # Settings is stacked above MainActivity in the app's task. Starting the
         # task again merely brings Settings back; navigate each page in the UI.
-        for step in range(4):
+        launched_from_launcher = False
+        for step in range(6):
             root = self.dump()
             app_visible = any(node.get("package") == PRODUCT and self.onscreen(node)
                               for node in root.iter("node"))
@@ -489,6 +492,14 @@ class Demo:
                              "Phone rationale visibly available on Speedbreaker Home")
                 self.mark("returned_home_from_native_accessibility", {"back_steps": step})
                 break
+            if any(node.get("package") == "com.google.android.apps.nexuslauncher"
+                   for node in root.iter("node")):
+                self.require(not launched_from_launcher, "single owned app launch after native Back")
+                launched_from_launcher = True
+                self.mark("launcher_observed_after_native_back")
+                self.shell("am", "start", "-W", "-n", PRODUCT + "/.MainActivity")
+                time.sleep(.5)
+                continue
             self.require(any(node.get("package") == "com.android.settings"
                              for node in root.iter("node")),
                          "native Settings visible before Back to Speedbreaker")
