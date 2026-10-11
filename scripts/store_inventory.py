@@ -86,12 +86,11 @@ def collect(args):
     inventory = json.loads(Path(args.dependencies).read_text())
     coordinates = {tuple(artifact["component"][key] for key in ("group", "name", "version"))
                    for artifact in inventory["artifacts"] if all(key in artifact["component"] for key in ("group", "name", "version"))}
-    billing_artifacts = [artifact for artifact in inventory["artifacts"]
-                         if artifact["component"].get("group") == "com.android.billingclient"]
-    if inventory["channel"] == "community" and billing_artifacts:
-        raise ValueError("Community runtime contains Play Billing")
-    if inventory["channel"] == "play" and not billing_artifacts:
-        raise ValueError("Play runtime has no Billing artifact")
+    payment_artifacts = [artifact for artifact in inventory["artifacts"]
+                         if artifact["component"].get("group") in {
+                             "com.android.billingclient", "com.google.android.datatransport", "com.google.firebase"}]
+    if payment_artifacts:
+        raise ValueError("Direct-tip runtime contains a payment or diagnostics transport SDK")
     # Platform/BOM nodes have no runtime file, but are part of the resolved graph.
     coordinates.update(tuple(node["component"][key] for key in ("group", "name", "version"))
                        for node in inventory["graph"] if all(key in node["component"] for key in ("group", "name", "version")))
@@ -151,8 +150,10 @@ def verify(args):
         violations.append("package/version/SDK mismatch")
     if "android.permission.INTERNET" in permissions:
         violations.append("INTERNET permission present")
-    if (billing in permissions) != (args.channel == "play"):
-        violations.append("Billing permission mismatch")
+    if billing in permissions:
+        violations.append("Billing permission present in direct-tip build")
+    if "android.permission.ACCESS_NETWORK_STATE" in permissions:
+        violations.append("Network-state permission present in offline build")
     if debuggable:
         violations.append("debuggable APK")
     manifest = {"channel": args.channel, "package": package.group(1), "versionCode": int(package.group(2)),

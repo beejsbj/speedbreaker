@@ -73,7 +73,7 @@ Active implementation thread `98543987-c8a8-4578-921d-a593647b609a`, branch
 [docs/store/status.md](docs/store/status.md). Candidate1.0.2/code6/API36 has
 community and Play source sets; neither includes a payment SDK. Play prepares an external direct-tip link,
 hidden until actual destination/fee eligibility is verified. Native Billing
-prototype retained separately on fix/play-tip-races after privacy/fee audit.
+prototype retained separately on fix/play-tip-concurrency-e0be3c1 after privacy/fee audit.
 Stable1.0.1 remains unchanged. Public privacy/support Pages deployed. Historical
 APK signature-copy reproduction passed hostedCI38157458089, not F-Droid server.
 Owner retains Android8 on F-Droid and waits for valid-key-rotation support; no

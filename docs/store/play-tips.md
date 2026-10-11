@@ -23,7 +23,7 @@ seam uses `app/src/play/res/values/support.xml`:
 CI verifies the final release manifests and resolved graphs of both flavors;
 no Billing/DataTransport dependency is permitted in this direct-tip candidate.
 The earlier native implementation and its review fixes are retained separately
-on `fix/play-tip-races`; it is not shipped by this candidate.
+on `fix/play-tip-concurrency-e0be3c1`; it is not shipped by this candidate.
 
 ## Provider recommendation and unresolved policy detail
 
