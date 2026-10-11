@@ -1,9 +1,13 @@
 name: Android device regression
 
 on:
-  # Registers this new workflow without changing the default branch or the main checks.
   push:
-    branches: [test/device-regression]
+    branches: [release/store-demo]
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'tools/call-fixture/**'
+      - '.github/workflows/android-device.yml'
   workflow_dispatch:
     inputs:
       app_ref:
@@ -35,8 +39,7 @@ jobs:
       - name: Check out app candidate separately
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          # The isolated tooling branch validates the explicitly requested candidate.
-          ref: ${{ inputs.app_ref || (github.ref == 'refs/heads/test/device-regression' && '2b0bbddbd3ce647c67282a6c6680d072421a647f') || github.sha }}
+          ref: ${{ github.event_name == 'pull_request' && github.sha || inputs.app_ref || github.sha }}
           path: source-app
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
@@ -55,10 +58,11 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Test real Telecom and SystemUI
+      - name: Test real Telecom and SystemUI, then record first run on API 35
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         env:
           BASELINE_WITHOUT_PHONE_PERMISSION: ${{ inputs.baseline_without_phone_permission }}
+          RUN_STORE_DEMO: ${{ matrix.api == 35 }}
         with:
           api-level: ${{ matrix.api }}
           target: google_apis
@@ -74,6 +78,7 @@ jobs:
           name: android-device-api${{ matrix.api }}-${{ github.sha }}
           path: |
             build/device-regression/
+            build/store-demo/
             tools/call-fixture/build/outputs/apk/debug/
             source-app/app/build/outputs/apk/community/debug/
           retention-days: 7
