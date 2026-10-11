@@ -626,15 +626,18 @@ class Demo:
         self.shell("am", "start", "-W", "-n", FIXTURE + "/.TargetActivity")
         self.wait_overlay(True, timeout=6)
         overlay_seen = time.monotonic()
+        if self.args.policy_diagnostic_tall:
+            # The first pointer DOWN must precede screenshots, pid queries,
+            # and hierarchy snapshots: those can consume the entire lock.
+            self.mark("overlay_started")
+            self.probe_first_lock(launched)
+            return
         target_pid = self.shell("pidof", FIXTURE)
         self.require(bool(target_pid), "synthetic target process alive under overlay")
         self.mark("overlay_started")
         self.screenshot("breath-locked.png")
         self.require(time.monotonic() - launched < 8,
                      "locked breath captured inside initial eight seconds")
-        if self.args.policy_diagnostic_tall:
-            self.probe_first_lock(launched)
-            return
         time.sleep(max(0, 9.0 - (time.monotonic() - overlay_seen)))
         self.wait_overlay(True, timeout=2)
         self.screenshot("choices-after-eight-seconds.png")
@@ -821,6 +824,8 @@ class Demo:
             (self.out / f"{prefix}-ui.xml").write_bytes(ET.tostring(shade))
             (self.out / f"{prefix}-statusbar.txt").write_text(
                 self.shell("dumpsys", "statusbar"))
+            (self.out / f"{prefix}-activity.txt").write_text(
+                self.shell("dumpsys", "activity", "activities"))
             packages = sorted({node.get("package", "") for node in shade.iter("node")})
             gear = next((node for node in shade.iter("node")
                          if node.get("package") == "com.android.systemui"
