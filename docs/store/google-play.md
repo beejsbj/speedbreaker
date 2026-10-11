@@ -144,7 +144,17 @@ A CI run does not start this clock or replace real testers.
 
 ## Exact access dependencies
 
-Burooj supplied a Google Play registration-success screenshot on October 11: developer account created and registration payment completed. This is owner-provided account evidence, not an app submission or verification approval. Authenticated Console access is being checked; account type and outstanding verification/testing requirements are unverified. Then create the app, supply the public email and actual legal/audience facts,
+Burooj supplied a Google Play registration-success screenshot on October 11:
+developer account created and registration payment completed. The authenticated
+Mac Chrome Console was then inspected directly. It shows a **personal account**,
+**identity documents uploaded and verification pending**, and contact phone
+verification waiting for identity approval. Its **Create app** control is
+disabled with “Complete account verifications to create new apps.” There is no
+Speedbreaker app draft, uploaded release or submission in this account yet.
+Private account identifiers, contact details and screenshots remain outside
+this public repository. The next Console step is Google's identity decision,
+then the owner's phone verification. Once app creation is enabled, create the
+app, supply the public email and actual legal/audience facts,
 and complete declarations and signing with the account. The separate external
 tip provider needs its own payment/legal setup and verified public destination;
 no Play merchant product catalog or licensing key is required for this build. All technical preparation remains authorized; no new
