@@ -19,12 +19,22 @@ import kotlin.coroutines.resume
 internal data class PlayTipOffer(val details: ProductDetails, val token: String?, val price: String)
 internal data class BillingReply<T>(val code: Int, val value: T)
 
+/** Small boundary for deterministic ViewModel callback and suspension tests. */
+internal interface TipBilling {
+    suspend fun connect(): Int
+    suspend fun offers(): BillingReply<List<PlayTipOffer>>
+    suspend fun purchases(): BillingReply<List<Purchase>>
+    fun launch(activity: Activity, offer: PlayTipOffer): Int
+    suspend fun consume(token: String): Int
+    fun close()
+}
+
 /** Callback-only Billing artifact: no billing-ktx dependency. Never logs billing responses. */
 internal class PlayTipBilling(
     context: Context,
     onPurchases: (Int, List<Purchase>) -> Unit,
     onDisconnected: () -> Unit,
-) {
+) : TipBilling {
     private val client = BillingClient.newBuilder(context.applicationContext)
         .setListener { result, purchases -> onPurchases(result.responseCode, purchases.orEmpty()) }
         .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
@@ -32,7 +42,7 @@ internal class PlayTipBilling(
         .build()
     private val disconnected = onDisconnected
 
-    suspend fun connect(): Int {
+    override suspend fun connect(): Int {
         if (client.isReady) return BillingClient.BillingResponseCode.OK
         return withTimeout(15_000) {
             suspendCancellableCoroutine { continuation ->
@@ -46,7 +56,7 @@ internal class PlayTipBilling(
         }
     }
 
-    suspend fun offers(): BillingReply<List<PlayTipOffer>> = withTimeout(15_000) {
+    override suspend fun offers(): BillingReply<List<PlayTipOffer>> = withTimeout(15_000) {
         suspendCancellableCoroutine { continuation ->
             val products = tipProductIds.map { id ->
                 QueryProductDetailsParams.Product.newBuilder().setProductId(id)
@@ -70,7 +80,7 @@ internal class PlayTipBilling(
         }
     }
 
-    suspend fun purchases(): BillingReply<List<Purchase>> = withTimeout(15_000) {
+    override suspend fun purchases(): BillingReply<List<Purchase>> = withTimeout(15_000) {
         suspendCancellableCoroutine { continuation ->
             client.queryPurchasesAsync(QueryPurchasesParams.newBuilder()
                 .setProductType(BillingClient.ProductType.INAPP).build()) { result, purchases ->
@@ -79,7 +89,7 @@ internal class PlayTipBilling(
         }
     }
 
-    fun launch(activity: Activity, offer: PlayTipOffer): Int = client.launchBillingFlow(
+    override fun launch(activity: Activity, offer: PlayTipOffer): Int = client.launchBillingFlow(
         activity,
         BillingFlowParams.newBuilder().setProductDetailsParamsList(listOf(
             BillingFlowParams.ProductDetailsParams.newBuilder()
@@ -90,7 +100,7 @@ internal class PlayTipBilling(
         )).build(),
     ).responseCode
 
-    suspend fun consume(token: String): Int = withTimeout(15_000) {
+    override suspend fun consume(token: String): Int = withTimeout(15_000) {
         suspendCancellableCoroutine { continuation ->
             client.consumeAsync(ConsumeParams.newBuilder().setPurchaseToken(token).build()) { result, returnedToken ->
                 if (continuation.isActive) continuation.resume(
@@ -100,5 +110,5 @@ internal class PlayTipBilling(
         }
     }
 
-    fun close() { client.endConnection() }
+    override fun close() { client.endConnection() }
 }

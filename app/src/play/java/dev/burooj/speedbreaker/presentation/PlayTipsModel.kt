@@ -23,16 +23,26 @@ internal data class TipsUiState(
 )
 
 /** Activity-scoped, survives rotation and Play's payment Activity; closed on owner destruction. */
-internal class PlayTipsModel(application: Application) : AndroidViewModel(application) {
-    private val verification = TipVerification(application.getString(R.string.play_billing_public_key))
+internal class PlayTipsModel(
+    application: Application,
+    billingFactory: ((Int, List<Purchase>) -> Unit, () -> Unit) -> TipBilling,
+    publicKey: String,
+) : AndroidViewModel(application) {
+    constructor(application: Application) : this(
+        application,
+        { purchases, disconnected -> PlayTipBilling(application, purchases, disconnected) },
+        application.getString(R.string.play_billing_public_key),
+    )
+
+    private val verification = TipVerification(publicKey)
     private val ledger = TipLedger()
     private val mutableState = MutableStateFlow(TipsUiState())
     val state = mutableState.asStateFlow()
     private var refreshing = false
     private var recovered = false
     private var retryJob: Job? = null
-    private val billing = PlayTipBilling(application,
-        onPurchases = { code, purchases ->
+    private val billing = billingFactory(
+        { code, purchases ->
             viewModelScope.launch {
                 // A replayed old success callback must not release a newer checkout's lock.
                 if (code == BillingResponseCode.OK && purchases.isNotEmpty() &&
@@ -51,7 +61,7 @@ internal class PlayTipsModel(application: Application) : AndroidViewModel(applic
                 }
             }
         },
-        onDisconnected = {
+        {
             viewModelScope.launch {
                 recovered = false
                 publish("Google Play disconnected. Tips are temporarily unavailable.", clearOffers = true)
