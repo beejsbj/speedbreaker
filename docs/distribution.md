@@ -1,7 +1,8 @@
 # Discovery and future store distribution
 
 Status checked October 11, 2026. GitHub Releases is the current Android download
-channel. F-Droid, Google Play and the Apple App Store are future destinations;
+channel, currently a testing prerelease while [incoming-call handling](https://github.com/beejsbj/speedbreaker/issues/6)
+is corrected and device-tested. F-Droid, Google Play and the Apple App Store are future destinations;
 no listing or approval is claimed for them.
 
 ## Helping people find Speedbreaker

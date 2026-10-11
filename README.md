@@ -14,8 +14,14 @@ that same pause back during continuous use.
 [Report a bug](https://github.com/beejsbj/speedbreaker/issues/new/choose)
 
 Android 8.0 or newer. Installed from an APK; not currently on Google Play,
-F-Droid, or iOS. If the Releases page is empty, a public APK has not been
-published yet.
+F-Droid, or iOS.
+
+**Testing prerelease:** an incoming call displayed as a system notification may
+remain behind the breathing overlay instead of interrupting it immediately.
+[Call-handling issue #6](https://github.com/beejsbj/speedbreaker/issues/6) must be
+fixed and checked on a phone before a stable release. Review the
+[release notes](https://github.com/beejsbj/speedbreaker/releases/tag/v1.0.0)
+before installing.
 
 ## A little room to choose
 
@@ -67,8 +73,9 @@ and Recents cannot dismiss it during that time. At eight seconds, Leave,
 configured redirects, and Pause become available; Continue waits until the full
 breath finishes. Ordinary navigation can leave after eight seconds.
 
-Each chosen app gets two fifteen-minute pauses per local day. An ongoing
-notification lets you end a pause early. After Continue, returning within sixty
+Each chosen app gets two fifteen-minute pauses per local day. Its notification
+contains **End now**. On Android 14+, dismissing that notification currently
+removes this early-ending control; see [issue #5](https://github.com/beejsbj/speedbreaker/issues/5). After Continue, returning within sixty
 seconds resumes the session; a longer absence starts a new opening breath.
 Visible apps in split-screen and picture-in-picture count toward check-ins.
 
