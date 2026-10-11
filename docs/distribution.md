@@ -29,13 +29,13 @@ also explains product-page discovery. Neither channel guarantees search ranking.
 
 ## F-Droid
 
-The immediate gap is licensing: the project has not yet adopted an open-source
-license. F-Droid requires FLOSS licensing and reviewable, buildable source;
-artwork and dependency licensing also matter. See its
+The project uses Apache-2.0, a FLOSS license. F-Droid also requires reviewable,
+buildable source; artwork and dependency licensing still need an inclusion
+audit. See its
 [inclusion policy](https://f-droid.org/en/docs/Inclusion_Policy/).
 
-After the owner chooses a license, audit dependency and artwork rights, build
-from a clean published tag, and prepare `fdroiddata` metadata for
+Audit dependency and artwork rights, build from a clean published tag, and
+prepare `fdroiddata` metadata for
 `dev.burooj.speedbreaker`. Follow the
 [submission guide](https://f-droid.org/docs/Submitting_to_F-Droid_Quick_Start_Guide/)
 for the actual build recipe and merge request.
