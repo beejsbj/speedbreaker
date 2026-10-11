@@ -250,27 +250,50 @@ class Demo:
         self.find("Off for now")
         self.tap("Turn on in Accessibility")
 
+    def open_accessibility_detail(self):
+        for attempt in range(3):
+            if self.visible("Use Speedbreaker"):
+                return
+            row, root = self.find("Speedbreaker attention pauses", timeout=4, exact=True)
+            self.require(row.get("package") == "com.android.settings",
+                         "native Accessibility service row belongs to Settings")
+            parents = {child: parent for parent in root.iter() for child in parent}
+            target = row
+            while target in parents and target.get("clickable") != "true":
+                target = parents[target]
+            self.require(target.get("clickable") == "true",
+                         "native Accessibility service row has clickable ancestor")
+            self.tap_node(target)
+            self.mark("tap_native_accessibility_row", {"attempt": attempt + 1,
+                                                        "bounds": target.get("bounds")})
+            try:
+                self.find("Use Speedbreaker", timeout=3)
+                return
+            except AssertionError:
+                pass
+        raise AssertionError("Native Speedbreaker Accessibility detail did not open")
+
     def enable_accessibility(self):
         self.tap("Turn on in Accessibility")
         for phrase in ("Installed apps", "Downloaded apps"):
             if self.visible(phrase):
                 self.tap(phrase)
                 break
-        self.tap("Speedbreaker")
+        self.open_accessibility_detail()
         if self.visible("Restricted setting"):
             self.restricted_workaround()
             for phrase in ("Installed apps", "Downloaded apps"):
                 if self.visible(phrase):
                     self.tap(phrase)
                     break
-            self.tap("Speedbreaker")
+            self.open_accessibility_detail()
         self.screenshot("accessibility-settings.png")
         switch = self.seek("Use Speedbreaker")
         self.tap_node(switch)
         self.mark("tap", "Use Speedbreaker native switch")
         if self.visible("Restricted setting"):
             self.restricted_workaround()
-            self.tap("Speedbreaker")
+            self.open_accessibility_detail()
             self.tap_node(self.seek("Use Speedbreaker"))
             self.mark("tap", "Use Speedbreaker after restricted-settings workaround")
         self.tap("Allow", exact=True)
@@ -381,8 +404,8 @@ class Demo:
                      "ready capture follows full 12-second visible breath")
         # Preflight the native shade on this exact AVD profile. The timed second
         # launch uses its observed gear bounds without expensive XML dumps.
-        self.shell("input", "keyevent", "KEYCODE_HOME")
-        self.wait_overlay(False, timeout=5)
+        # Preflight from the visible overlay itself, matching the protected
+        # second launch's touch context. Home-only shade behavior is insufficient.
         gestures = ["shade"]
         self.swipe("shade")
         gear = None
@@ -414,11 +437,20 @@ class Demo:
         self.wait_overlay(True, timeout=5)
         for gesture in gestures:
             self.swipe(gesture)
+        timed_shade = self.dump()
+        timed_gear = next((node for node in timed_shade.iter("node")
+                           if node.get("package") == "com.android.systemui"
+                           and self.label(node).rstrip(".").casefold() in ("settings", "open settings")
+                           and node.get("bounds")), None)
+        if timed_gear is None:
+            (self.out / "timed-shade.xml").write_bytes(ET.tostring(timed_shade))
+            raise AssertionError("Native SystemUI gear absent during initial lock after preflight gestures")
         self.screenshot("systemui-during-lock.png")
-        # Tap the Settings gear seen on the same native shade in preflight.
-        self.tap_node(gear)
+        # Tap the actual native gear visible on this protected launch.
+        self.tap_node(timed_gear)
         gear_elapsed = time.monotonic() - second_launch
-        self.mark("tap_native_systemui_settings", {"bounds": gear_bounds,
+        self.mark("tap_native_systemui_settings", {"bounds": timed_gear.get("bounds"),
+                                                     "preflight_bounds": gear_bounds,
                                                      "seconds_after_target_launch": round(gear_elapsed, 2)})
         self.require(gear_elapsed < 8,
                      "SystemUI Settings tapped within initial eight-second lock")
@@ -435,7 +467,7 @@ class Demo:
             if self.visible(phrase):
                 self.tap(phrase)
                 break
-        self.tap("Speedbreaker")
+        self.open_accessibility_detail()
         self.tap_node(self.seek("Use Speedbreaker"))
         if self.visible("Stop"):
             self.tap("Stop", exact=True)
