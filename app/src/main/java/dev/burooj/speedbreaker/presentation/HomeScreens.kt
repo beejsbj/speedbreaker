@@ -50,7 +50,7 @@ import dev.burooj.speedbreaker.presentation.components.appCatalog
 
 /** One calm page that says what Speedbreaker does, what it cannot do, and what it keeps. */
 @Composable
-internal fun WelcomeScreen(onDecline: () -> Unit = {}, onAccept: () -> Unit) {
+internal fun WelcomeScreen(onDecline: () -> Unit = {}, onPrivacy: () -> Unit = {}, onAccept: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -101,6 +101,7 @@ internal fun WelcomeScreen(onDecline: () -> Unit = {}, onAccept: () -> Unit) {
             Spacer(Modifier.height(40.dp))
             PrimaryAction("I understand — continue", onAccept, Modifier.fillMaxWidth())
             QuietAction("Not now — close", onDecline, Modifier.fillMaxWidth())
+            QuietAction("Privacy policy", onPrivacy, Modifier.fillMaxWidth())
         }
     }
 }

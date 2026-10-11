@@ -107,7 +107,7 @@ internal fun SpeedbreakerApp() {
                 !ready -> LoadingScreen()
                 !settings.consentAccepted -> WelcomeScreen(onDecline = {
                     (context as? android.app.Activity)?.finish()
-                }) {
+                }, onPrivacy = { openPrivacyPolicy(context) }) {
                     update { current -> current.copy(consentAccepted = true) }
                 }
                 request != null -> RedirectPickerScreen(
