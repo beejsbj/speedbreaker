@@ -108,8 +108,10 @@ phone has been tested.
 
 ## Help improve Speedbreaker
 
-If Speedbreaker helps, you can [buy me a coffee](https://buymeacoffee.com/beejsbj).
-Support is optional; every feature stays free.
+<a href="https://buymeacoffee.com/beejsbj"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" width="162" height="45"></a>
+
+If Speedbreaker helps, you can support its development. Support is optional;
+every feature stays free.
 
 Found something unexpected? [Report a bug](https://github.com/beejsbj/speedbreaker/issues/new/choose)
 with your phone model, Android and app versions, steps, and what happened.

@@ -62,7 +62,7 @@ Future note only: V2 may allow stricter policy during selected windows, such as 
 
 * BJS-347 proved selected-window observation and a service-owned accessibility overlay on the Galaxy S23+, including foreground, split-screen, picture-in-picture, Home/Recents/Back persistence, screen-interactive gating, and dialer yield.
 * Before the one-day trial, physically prove reboot reconnection, Samsung idle/battery survival, normal incoming-call yield, immediate safety escape, screen-lock yield, Accessibility-disable escape, and navigation release exactly after eight seconds.
-* one sec's first-party Android behavior validates the opening + interval + quick-return product shape. Research handhold: branch `research/bjs-346-one-sec`, commit `51d3835`, `research/one-sec-android.md`.
+* one sec's first-party Android behavior validates the opening + interval + quick-return product shape. Research handhold: archive tag `archive/research/bjs-346-one-sec`, commit `51d3835`, `research/one-sec-android.md`.
 * The recovered AI Studio export is visual reference only. Do not extend its source structure or shallow state model.
 * Production architecture is settled in BJS-345; this artifact is throwaway interaction evidence.
 
