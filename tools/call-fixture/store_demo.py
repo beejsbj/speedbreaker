@@ -619,10 +619,11 @@ class Demo:
         self.listing_jpeg("04-choices.jpg")
         self.require(time.monotonic() - overlay_seen >= 12,
                      "ready capture follows full 12-second visible breath")
-        # Preflight the native shade on this exact AVD profile. The timed second
-        # launch uses its observed gear bounds without expensive XML dumps.
-        # Preflight from the visible overlay itself, matching the protected
-        # second launch's touch context. Home-only shade behavior is insufficient.
+        # Calibrate the actual SystemUI gesture from Launcher. This establishes
+        # the AVD's native gear, but makes no claim about access during lock.
+        self.shell("input", "keyevent", "KEYCODE_HOME")
+        self.wait_overlay(False, timeout=3)
+        self.wait_service_bound()
         gestures = []
         gear = None
         for gesture in ("shade", "expand_shade"):
@@ -663,17 +664,41 @@ class Demo:
         self.shell("input", "keyevent", "KEYCODE_HOME")
         self.wait_overlay(False, timeout=3)
         self.wait_service_bound()
-        # Start a second protected launch to test the SystemUI escape within hard lock.
+        # Start a second protected launch to measure actual SystemUI access in
+        # its own initial hard-lock interval.
         second_launch = time.monotonic()
         self.shell("am", "start", "-W", "-n", FIXTURE + "/.TargetActivity")
         self.wait_overlay(True, timeout=5)
+        timed_gear = None
         for gesture in gestures:
             self.swipe(gesture)
-        timed_shade = self.dump()
-        timed_gear = next((node for node in timed_shade.iter("node")
-                           if node.get("package") == "com.android.systemui"
-                           and self.label(node).rstrip(".").casefold() in ("settings", "open settings")
-                           and node.get("bounds")), None)
+            timed_shade = self.dump()
+            timed_gear = next((node for node in timed_shade.iter("node")
+                               if node.get("package") == "com.android.systemui"
+                               and self.label(node).rstrip(".").casefold() in ("settings", "open settings")
+                               and node.get("bounds")), None)
+            elapsed = time.monotonic() - second_launch
+            self.mark("initial_lock_shade_observed", {"gesture": gesture,
+                                                      "seconds_after_target_launch": round(elapsed, 2),
+                                                      "gear_visible": timed_gear is not None,
+                                                      "active_packages": sorted({n.get("package", "")
+                                                                                 for n in timed_shade.iter("node")})})
+            if timed_gear is not None:
+                break
+            if self.args.policy_diagnostic_tall:
+                step = gestures.index(gesture) + 1
+                (self.out / f"locked-shade-{step}.xml").write_bytes(ET.tostring(timed_shade))
+                (self.out / f"locked-windows-{step}.xml").write_bytes(
+                    ET.tostring(self.dump(all_windows=True)))
+                self.screenshot(f"locked-shade-{step}.png")
+                (self.out / f"locked-window-{step}.txt").write_text(
+                    self.shell("dumpsys", "window", "windows"))
+                self.mark("initial_lock_window_snapshot", {"step": step,
+                                                             "seconds_after_target_launch":
+                                                             round(time.monotonic() - second_launch, 2)})
+            if not any(node.get("package") == "com.android.systemui"
+                       for node in timed_shade.iter("node")):
+                break
         if timed_gear is None:
             self.mark("timed_gear_absent", {"seconds_after_target_launch":
                                              round(time.monotonic() - second_launch, 2)})
