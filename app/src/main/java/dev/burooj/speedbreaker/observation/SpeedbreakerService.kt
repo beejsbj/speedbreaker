@@ -98,7 +98,9 @@ internal class SpeedbreakerService : AccessibilityService() {
         ) return
         val windowTransition = event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             event.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
-        if (overlay.hasBreaker && windowTransition && packageName != "com.android.systemui" &&
+        val applicationTransition = packageName != "com.android.systemui" ||
+            windowReader.isApplicationTransition(event.windowId, SystemClock.elapsedRealtime())
+        if (overlay.hasBreaker && windowTransition && applicationTransition &&
             safetyPolicy.isNavigationPackage(packageName)
         ) {
             navigationAwayLatched = true

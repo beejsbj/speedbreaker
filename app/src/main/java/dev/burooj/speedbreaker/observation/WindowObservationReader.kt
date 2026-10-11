@@ -14,6 +14,23 @@ internal data class WindowSnapshot(
     val systemUiApplicationVisible: Boolean,
 )
 
+/** Retain type attribution briefly when a transition removes its source window. */
+internal class WindowTypeHistory(private val graceMs: Long = 750L) {
+    private data class Seen(val type: Int, val atElapsedMs: Long)
+    private val seen = mutableMapOf<Int, Seen>()
+
+    fun record(types: Map<Int, Int>, nowElapsedMs: Long) {
+        seen.entries.removeAll { nowElapsedMs - it.value.atElapsedMs > graceMs }
+        types.forEach { (id, type) -> if (id >= 0) seen[id] = Seen(type, nowElapsedMs) }
+    }
+
+    fun isApplicationTransition(id: Int, nowElapsedMs: Long): Boolean {
+        val previous = seen[id] ?: return false
+        return id >= 0 && nowElapsedMs - previous.atElapsedMs in 0..graceMs &&
+            previous.type == AccessibilityWindowInfo.TYPE_APPLICATION
+    }
+}
+
 /** Bars, small system popups and application windows cannot suspend the overlay. */
 internal fun systemPanelOwnsDisplay(
     type: Int,
@@ -39,6 +56,12 @@ internal class WindowObservationReader(
 ) {
     private var lastNonEmpty: Set<String> = emptySet()
     private var lastNonEmptyElapsedMs: Long = 0L
+    private val typeHistory = WindowTypeHistory()
+
+    fun isApplicationTransition(windowId: Int, nowElapsedMs: Long): Boolean {
+        typeHistory.record(service.windows.associate { it.id to it.type }, nowElapsedMs)
+        return typeHistory.isApplicationTransition(windowId, nowElapsedMs)
+    }
 
     @Suppress("DEPRECATION")
     fun snapshot(nowElapsedMs: Long): WindowSnapshot {
@@ -47,7 +70,9 @@ internal class WindowObservationReader(
         val screen = Rect(0, 0, metrics.widthPixels, metrics.heightPixels)
         val packages = mutableSetOf<String>()
         var panelOwnsDisplay = false
-        service.windows.forEach { window ->
+        val windows = service.windows
+        typeHistory.record(windows.associate { it.id to it.type }, nowElapsedMs)
+        windows.forEach { window ->
             if (window.type != AccessibilityWindowInfo.TYPE_APPLICATION &&
                 window.type != AccessibilityWindowInfo.TYPE_SYSTEM
             ) return@forEach
