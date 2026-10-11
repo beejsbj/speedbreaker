@@ -3,8 +3,6 @@ package dev.burooj.speedbreaker.presentation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.MutableTransitionState
@@ -86,8 +84,8 @@ internal data class RedirectDestination(
 
 /*
  * The breath is the whole screen for the first eight seconds. When the hard
- * lock lifts, the orb draws back, the reflection arrives, and only then do
- * the choices rise into place — one idea at a time.
+ * lock lifts, controls become available immediately while the orb draws back
+ * and the reflection arrives.
  */
 @Composable
 internal fun BreakerOverlay(
@@ -257,7 +255,7 @@ private fun OverlayHeader(
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
-        Reveal(visible = unlocked, delayMs = 900, motionEnabled = motionEnabled, rise = false) {
+        if (unlocked) {
             PausePill(pauseTokensLeft, pauseResetLabel, pauseAvailable, onPause)
         }
     }
@@ -449,18 +447,9 @@ private fun Choices(
     motionEnabled: Boolean,
     onChoice: (Choice) -> Unit,
 ) {
-    // The block's height springs open so the orb glides up instead of jumping;
-    // inside it, each idea fades in after the one before.
-    val block = remember { MutableTransitionState(moment.unlocked) }
-    block.targetState = moment.unlocked
-    AnimatedVisibility(
-        visibleState = block,
-        enter = if (motionEnabled) {
-            expandVertically(Motion.spatialSlow(), expandFrom = Alignment.Top)
-        } else {
-            EnterTransition.None
-        },
-    ) {
+    // Controls enter at the hard-lock boundary. Motion must never add waiting
+    // time or collapse the hit areas after the engine has unlocked choices.
+    if (moment.unlocked) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Reveal(visible = true, initiallyVisible = false, delayMs = 150, motionEnabled = motionEnabled) {
                 Text(
@@ -473,44 +462,40 @@ private fun Choices(
                         .semantics { heading() },
                 )
             }
-            Reveal(visible = true, initiallyVisible = false, delayMs = 650, motionEnabled = motionEnabled) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    ChoiceButton(
-                        text = if (moment.breathComplete) {
-                            "Continue"
-                        } else {
-                            "Continue in ${secondsLabel(moment.breathRemainingMs)}"
-                        },
-                        enabled = moment.breathComplete,
-                        onClick = { onChoice(Choice.Continue) },
-                        modifier = Modifier.weight(1f),
-                    )
-                    ChoiceButton(
-                        text = "Leave",
-                        enabled = true,
-                        onClick = { onChoice(Choice.Leave) },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                ChoiceButton(
+                    text = if (moment.breathComplete) {
+                        "Continue"
+                    } else {
+                        "Continue in ${secondsLabel(moment.breathRemainingMs)}"
+                    },
+                    enabled = moment.breathComplete,
+                    onClick = { onChoice(Choice.Continue) },
+                    modifier = Modifier.weight(1f),
+                )
+                ChoiceButton(
+                    text = "Leave",
+                    enabled = true,
+                    onClick = { onChoice(Choice.Leave) },
+                    modifier = Modifier.weight(1f),
+                )
             }
             if (redirects.isNotEmpty()) {
-                Reveal(visible = true, initiallyVisible = false, delayMs = 950, motionEnabled = motionEnabled) {
-                    Column(Modifier.fillMaxWidth().padding(top = 24.dp)) {
-                        Eyebrow("Or go to", Modifier.padding(start = 4.dp, bottom = 10.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            redirects.forEach { destination ->
-                                RedirectTile(
-                                    destination = destination,
-                                    onClick = { onChoice(Choice.Redirect(destination.packageName)) },
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
+                Column(Modifier.fillMaxWidth().padding(top = 24.dp)) {
+                    Eyebrow("Or go to", Modifier.padding(start = 4.dp, bottom = 10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        redirects.forEach { destination ->
+                            RedirectTile(
+                                destination = destination,
+                                onClick = { onChoice(Choice.Redirect(destination.packageName)) },
+                                modifier = Modifier.weight(1f),
+                            )
                         }
                     }
                 }

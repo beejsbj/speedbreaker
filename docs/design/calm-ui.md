@@ -7,8 +7,8 @@ overlay keeps its existing `BreakerOverlay` signature.
 ## Principles
 
 - **The breath is the whole screen for the first eight seconds.** Then the orb
-  draws back, the reflection arrives, and the choices rise — one idea at a time
-  (staggered 150 / 650 / 950 ms; Pause fades in last).
+  draws back and the reflection arrives. Controls appear immediately at the
+  eight-second boundary; decorative motion never extends the lock.
 - **Ink and ivory, dark by default.** Two neutrals carry everything. Moss marks
   "on", brick marks "needs repair"; nothing else is colored. The app and overlay
   are always dark; the ivory scheme stays in `Theme.kt` for a later choice.
@@ -79,8 +79,8 @@ Four Expressive behaviors, chosen because they act on feel rather than look:
 
 - **Spring motion** — the standard scheme's springs (`theme/Motion.kt`)
   replace timed curves for the unlock: the orb draws back on a slow spatial
-  spring, the choices' block springs open, and each idea fades in on an
-  effects spring. Stagger is kept by holding each target back briefly. The
+  spring and the reflection fades in on an effects spring. Actionable controls
+  appear without a stagger or a collapsing hit area. The
   bouncier *expressive* scheme is not used. The breath itself stays on its
   eased 4-second rhythm: it is a breathing pace, not a UI transition.
 - **Press shape morph** — Continue, Leave, Pause, redirect tiles, and the
