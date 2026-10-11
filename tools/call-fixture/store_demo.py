@@ -87,10 +87,11 @@ class Demo:
         suffix = str(self.observer_sequence)
         self.shell("run-as", FIXTURE, "touch", "files/ui-request-" + suffix)
         deadline = time.monotonic() + 12
+        last_response = b""
         while time.monotonic() < deadline:
             raw = self.adb_call("exec-out", "run-as", FIXTURE, "cat",
                                 "files/ui-response-" + suffix + ".xml", binary=True, check=False)
-            if raw:
+            if raw.lstrip().startswith(b"<?xml"):
                 try:
                     root = ET.fromstring(raw)
                 except ET.ParseError as error:
@@ -98,10 +99,12 @@ class Demo:
                 if root.tag == "error":
                     raise AssertionError("UI observer response: " + root.get("message", "unknown error"))
                 return root
+            if raw:
+                last_response = raw[:200]
             if self.observer.poll() is not None:
                 raise AssertionError("Persistent UI observer exited during hierarchy query")
             time.sleep(.1)
-        raise AssertionError(f"UI observer response {suffix} timed out")
+        raise AssertionError(f"UI observer response {suffix} timed out; last={last_response!r}")
 
     def stop_observer(self):
         if self.observer is None:
@@ -528,6 +531,7 @@ class Demo:
                     self.mark("failure_capture_error", {"file": name, "error": str(capture_error)})
             raise
         finally:
+            prior_failure = sys.exc_info()[0] is not None
             if self.video:
                 # End the Android encoder itself so it writes the MP4 moov atom.
                 for pid in self.shell("pidof", "screenrecord", check=False).split():
@@ -549,9 +553,10 @@ class Demo:
                 "events": self.events, "assertions": self.assertions,
                 "capture_sha256": captures,
             }, indent=2) + "\n")
-            if not video_valid:
+            if not video_valid and not prior_failure:
                 raise AssertionError("Screen recording did not finalize; first-run.mp4 is not a valid MP4")
-            if self.observer and not self.assertions["persistent UI observer finished cleanly"]:
+            if (self.observer and not self.assertions["persistent UI observer finished cleanly"]
+                    and not prior_failure):
                 raise AssertionError("Persistent UI observer did not finish cleanly")
 
 
