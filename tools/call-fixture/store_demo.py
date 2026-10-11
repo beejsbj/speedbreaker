@@ -29,6 +29,7 @@ class Demo:
         self.observer = None
         self.observer_sequence = 0
         self.recording = False
+        self.listing_failures = []
 
     def adb_call(self, *parts, timeout=30, binary=False, check=True):
         result = subprocess.run(self.adb + list(parts), capture_output=True,
@@ -125,11 +126,21 @@ class Demo:
     def label(node):
         return " ".join((node.get("text", ""), node.get("content-desc", ""))).strip()
 
+    @staticmethod
+    def onscreen(node):
+        bounds = list(map(int, re.findall(r"-?\d+", node.get("bounds", ""))))
+        return (node.get("visible-to-user") == "true" and len(bounds) == 4
+                and bounds[2] > bounds[0] and bounds[3] > bounds[1]
+                and bounds[0] < 1080 and bounds[2] > 0
+                and bounds[1] < 1920 and bounds[3] > 0)
+
     def find(self, phrase, timeout=12, exact=False, tappable=False):
         end = time.monotonic() + timeout
         while time.monotonic() < end:
             root = self.dump()
             for node in root.iter("node"):
+                if not self.onscreen(node):
+                    continue
                 label = self.label(node)
                 if (label == phrase if exact else phrase.casefold() in label.casefold()):
                     if tappable:
@@ -142,6 +153,7 @@ class Demo:
         raise AssertionError(f"UI did not show {phrase!r}; see last-ui.xml")
 
     def tap_node(self, node):
+        self.require(self.onscreen(node), "tapped node visible on actual 1080x1920 display")
         bounds = node.get("bounds", "")
         coords = list(map(int, re.findall(r"\d+", bounds)))
         if len(coords) != 4 or coords[2] <= coords[0] or coords[3] <= coords[1]:
@@ -155,7 +167,8 @@ class Demo:
         self.mark("tap", phrase)
 
     def visible(self, phrase):
-        return any(phrase.casefold() in self.label(n).casefold() for n in self.dump().iter("node"))
+        return any(self.onscreen(n) and phrase.casefold() in self.label(n).casefold()
+                   for n in self.dump().iter("node"))
 
     def swipe(self, direction="up"):
         if direction == "up":
@@ -175,7 +188,7 @@ class Demo:
             for _ in range(tries):
                 root = self.dump()
                 for node in root.iter("node"):
-                    if phrase.casefold() in self.label(node).casefold():
+                    if self.onscreen(node) and phrase.casefold() in self.label(node).casefold():
                         return node
                 self.swipe(direction)
         (self.out / "last-ui.xml").write_bytes(ET.tostring(self.dump()))
@@ -188,9 +201,37 @@ class Demo:
         self.mark("screenshot", name)
 
     def listing_jpeg(self, name):
-        data = self.adb_call("exec-out", "screencap", "-j", binary=True)
-        self.require(data.startswith(b"\xff\xd8\xff") and data.endswith(b"\xff\xd9"),
-                     f"native JPEG capture {name}")
+        data = b""
+        if int(self.source["api"]) < 36:
+            self.observer_sequence += 1
+            suffix = str(self.observer_sequence)
+            self.shell("run-as", FIXTURE, "touch", "files/ui-jpeg-" + suffix)
+            deadline = time.monotonic() + 12
+            while time.monotonic() < deadline:
+                data = self.adb_call("exec-out", "run-as", FIXTURE, "cat",
+                                     "files/ui-image-" + suffix + ".jpg", binary=True, check=False)
+                if data.startswith(b"\xff\xd8\xff") and data.endswith(b"\xff\xd9"):
+                    break
+                if self.observer.poll() is not None:
+                    break
+                time.sleep(.1)
+            method = "UiAutomation.takeScreenshot + Android Bitmap JPEG"
+        else:
+            for attempt in range(3):
+                data = self.adb_call("exec-out", "screencap", "-j", binary=True, check=False)
+                if data.startswith(b"\xff\xd8\xff") and data.endswith(b"\xff\xd9"):
+                    break
+                self.mark("native_jpeg_retry", {"file": name, "attempt": attempt + 1,
+                                                 "bytes": len(data), "head": data[:24].hex(),
+                                                 "tail": data[-24:].hex()})
+                time.sleep(.3)
+            method = "Android shell screencap -j"
+        if not (data.startswith(b"\xff\xd8\xff") and data.endswith(b"\xff\xd9")):
+            self.mark("native_jpeg_failure", {"file": name, "method": method,
+                                               "bytes": len(data), "head": data[:24].hex(),
+                                               "tail": data[-24:].hex()})
+            self.listing_failures.append(name + ": native JPEG unavailable through " + method)
+            return
         dimensions = None
         offset = 2
         while offset + 4 < len(data):
@@ -205,11 +246,15 @@ class Demo:
                 offset += 2
             else:
                 offset += 2 + int.from_bytes(data[offset + 2:offset + 4], "big")
-        self.require(dimensions == (1080, 1920), f"native JPEG 1080x1920 {name}")
+        if dimensions != (1080, 1920):
+            self.listing_failures.append(f"{name}: native dimensions {dimensions}")
+            self.mark("native_jpeg_wrong_dimensions", {"file": name, "dimensions": dimensions})
+            return
         destination = self.out / "listing" / name
         destination.parent.mkdir(exist_ok=True)
         destination.write_bytes(data)
         self.mark("native_listing_capture", {"file": str(destination.relative_to(self.out)),
+                                              "method": method,
                                               "sha256": hashlib.sha256(data).hexdigest()})
 
     def overlay_visible(self):
@@ -417,8 +462,8 @@ class Demo:
     def verify_defaults(self):
         self.tap_node(self.seek("Defaults"))
         self.find("12 seconds")
-        self.find("Always on")
         self.require(self.visible("12 seconds"), "12 second default breath")
+        self.seek("Always on")
         self.require(self.visible("Always on"), "all-hours default displayed")
         self.screenshot("defaults.png")
         self.listing_jpeg("03-defaults.jpg")
@@ -598,6 +643,8 @@ class Demo:
                            "No screen text or typed input", "No analytics, no cloud"):
                 self.seek(phrase)
                 self.mark("disclosure_seen", phrase)
+            self.seek("I understand")
+            self.mark("disclosure_footer_visible")
             self.screenshot("full-disclosure.png")
             self.tap_node(self.seek("Not now"))
             self.mark("tap", "Not now — close")
@@ -616,6 +663,8 @@ class Demo:
             self.select_target()
             self.verify_defaults()
             self.exercise_overlay()
+            self.require(not self.listing_failures and len(list((self.out / "listing").glob("*.jpg"))) == 4,
+                         "four native 1080x1920 JPEG listing captures")
             self.require(time.monotonic() - self.started < 180,
                          "full demo completed within screen recording limit")
             self.mark("demo_complete")

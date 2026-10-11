@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.Instrumentation;
 import android.app.UiAutomation;
 import android.graphics.Rect;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Xml;
@@ -40,6 +41,24 @@ public final class UiHierarchy extends Instrumentation {
                 if (new File(directory, "ui-stop").exists()) break;
                 File[] files = directory.listFiles();
                 if (files != null) for (File request : files) {
+                    if (request.getName().startsWith("ui-jpeg-")) {
+                        String suffix = request.getName().substring("ui-jpeg-".length());
+                        File temporary = new File(directory, "ui-image-" + suffix + ".tmp");
+                        File response = new File(directory, "ui-image-" + suffix + ".jpg");
+                        Bitmap screenshot = automation.takeScreenshot();
+                        if (screenshot == null) throw new IllegalStateException("UiAutomation screenshot unavailable");
+                        try (FileOutputStream stream = new FileOutputStream(temporary)) {
+                            if (!screenshot.compress(Bitmap.CompressFormat.JPEG, 95, stream))
+                                throw new IllegalStateException("Android JPEG compression failed");
+                            stream.flush();
+                        } finally {
+                            screenshot.recycle();
+                        }
+                        if (!temporary.renameTo(response))
+                            throw new IllegalStateException("Could not publish " + response);
+                        request.delete();
+                        continue;
+                    }
                     if (!request.getName().startsWith("ui-request-")) continue;
                     String suffix = request.getName().substring("ui-request-".length());
                     boolean allWindows = suffix.startsWith("all-");
@@ -117,6 +136,7 @@ public final class UiHierarchy extends Instrumentation {
         attribute(xml, "bounds", "[" + rect.left + "," + rect.top + "]["
                 + rect.right + "," + rect.bottom + "]");
         attribute(xml, "enabled", Boolean.toString(node.isEnabled()));
+        attribute(xml, "visible-to-user", Boolean.toString(node.isVisibleToUser()));
         attribute(xml, "clickable", Boolean.toString(node.isClickable()));
         attribute(xml, "checked", Boolean.toString(node.isChecked()));
         for (int i = 0; i < node.getChildCount(); i++) {
