@@ -7,6 +7,7 @@ private signing host. Store status still requires actual host evidence.
 | --- | --- |
 | `android.yml` | App PR/main changes or manual dispatch. Community/Play unsigned APKs, Play AAB, unit/UI tests, release lint, resolved dependency/license inventory, final manifest assertions, exact-source artifact hashes. |
 | `android-device.yml` | Current manual/isolated tooling workflow; PR/main triggers, historical task selection and fresh-install captures are being integrated by the store-demo worker. API 35/36 Telecom/SystemUI/navigation regression is separate from the unverified final consent video. |
+| `android-pages.yml` | App/build/native/fixture PR/main changes or manual dispatch. Checks all packaged native ABIs statically, then boots explicit API 36 x86_64 16 KB AVD with compatibility mode off, exercises the actual packaged JNI conversion, verifies native mappings and app launch, and retains failure/success evidence. No ARM64 hardware certification claim. |
 | `store-metadata.yml` | Listing/artwork PR/main changes. Character/image limits, deterministic committed-export freshness, generated 512px icon and 1024×500 feature graphic artifacts. |
 | `reproducible.yml` | Manual published-APK check. Immutable 1.0.1 clean source rebuild and actual signature-copy verification, with pinned historical padding/tool inputs. |
 | `pages.yml` | Public-document changes or dispatch. Render privacy/help and deploy GitHub Pages. |

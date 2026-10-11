@@ -137,10 +137,12 @@ proof this compatibility is solved.
 
 First use internal testing for installation, consent, Phone permission, target
 selection, safety escapes, local retention and update compatibility. Verify any
-external tip checkout separately before enabling its link. Then meet the actual account's production-access requirements. New personal
-accounts may require **12 opted-in testers for 14 continuous days**;
+external tip checkout separately before enabling its link. This newly created
+personal account falls under Google's published requirement for **12 opted-in
+testers for 14 continuous days** before applying for production access;
 [official testing rules](https://support.google.com/googleplay/android-developer/answer/14151465?hl=en).
-A CI run does not start this clock or replace real testers.
+The actual track setup becomes available after account verification and app
+creation. A CI run or GitHub APK does not start this clock or replace real testers.
 
 ## Exact access dependencies
 
