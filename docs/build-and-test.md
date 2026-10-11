@@ -1,0 +1,46 @@
+# Build and verify on bjslab
+
+Use Java 17 and the shared Android SDK. Run these commands sequentially from
+the production worktree; never run multiple Gradle processes concurrently.
+
+```sh
+export ANDROID_SDK_ROOT=/usr/lib/android-sdk
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+./gradlew assembleDebug testDebugUnitTest --no-daemon --no-configuration-cache --max-workers=1
+./gradlew lintDebug --no-daemon --no-configuration-cache --max-workers=1 \
+  '-Dorg.gradle.jvmargs=-Xmx1g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8'
+```
+
+Run lint in its own process. Combining compilation, tests, and lint retained
+enough compiler classes to exhaust the 512 MiB metaspace budget during the
+September 19 validation and contributed to host memory pressure. The separate
+lint invocation passed in 2 minutes 20 seconds with a 1 GiB heap.
+
+The APK is `app/build/outputs/apk/debug/app-debug.apk`. Before transferring it,
+verify its signature with the SDK's `apksigner verify` and record its SHA-256.
+Unit reports are under `app/build/test-results/testDebugUnitTest`; lint reports
+are under `app/build/reports/`. Generated APKs and Kotlin caches stay untracked.
+
+Phone validation follows `device-acceptance.md`. A successful build and test
+suite do not establish that Samsung's windows, gestures, calls, or background
+management behave as expected.
+
+For repeated phone MCP calls, reuse the initialized session within a sequence
+and send authenticated `DELETE /mcp` with its `Mcp-Session-Id` when finished,
+including error exits. Closing an HTTP connection alone does not release the
+MCP session. The phone server's [v1.11.1 transport](https://github.com/danielealbano/android-remote-control-mcp/blob/v1.11.1/app/src/main/kotlin/com/danielealbano/androidremotecontrolmcp/mcp/McpStreamableHttpExtension.kt)
+caps sessions at 100 and retains idle sessions for seven days. Omitting cleanup
+exhausted that limit during September 20 testing and required an owner-operated
+server restart. The task-scoped Python helper now closes sessions on exit.
+
+## Release builds on the shared host
+
+Build `assembleRelease` and run `testDebugUnitTest` in separate Gradle
+processes. The first release DEX compilation retained enough compiler state
+to make the combined release/test run take 29 minutes under host memory
+pressure on October 11. The suite ultimately passed, but this is avoidable
+resource contention. Keep the same single-worker/1 GiB heap limits and run
+`lintRelease` separately. Do not launch concurrent Gradle processes.
+
+Package the resulting release using [release signing](release.md). The
+non-debuggable release does not include Compose's debug tooling.

@@ -1,5 +1,34 @@
+*.iml
+.gradle
+.kotlin/
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+bin/
+gen/
+out/
+app/build/
+
+# Signing keys stay in the encrypted credential store.
+*.jks
+*.keystore
+*.p12
+/signing/*.properties
+/dist/
+__pycache__/
+*.pyc
+
+# Preserve baseline ignores for nested Android reference builds.
 build/
 .gradle/
 local.properties
-*.apk
 .idea/
