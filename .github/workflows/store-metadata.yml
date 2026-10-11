@@ -7,6 +7,9 @@ on:
       - 'distribution/store-assets/**'
       - 'scripts/export_store_assets.py*'
       - 'scripts/check_store_metadata.py*'
+      - 'scripts/fetch_store_artifacts.py'
+      - 'scripts/package_release.py'
+      - 'scripts/tests/**'
       - 'app/src/main/AndroidManifest.xml'
       - 'app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'
       - 'app/src/main/res/drawable/ic_launcher_foreground.xml'
@@ -22,6 +25,9 @@ on:
       - 'distribution/store-assets/**'
       - 'scripts/export_store_assets.py*'
       - 'scripts/check_store_metadata.py*'
+      - 'scripts/fetch_store_artifacts.py'
+      - 'scripts/package_release.py'
+      - 'scripts/tests/**'
       - 'app/src/main/AndroidManifest.xml'
       - 'app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'
       - 'app/src/main/res/drawable/ic_launcher_foreground.xml'
@@ -39,6 +45,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Check artifact trust boundary
+        run: python3 -m unittest discover -s scripts/tests -v
       - name: Install uv
         run: python3 -m pip install uv==0.12.3
       - name: Check committed export freshness
