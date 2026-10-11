@@ -58,7 +58,8 @@ def pom_evidence(coordinate, root, cache, depth=0):
               "pomSha256": digest(data), "pomSource": source, "candidateUrls": [url for url, _ in candidates], "licenses": []}
     try:
         doc = ET.fromstring(data)
-        ns = {"m": "http://maven.apache.org/POM/4.0.0"}
+        namespace = doc.tag[1:].split("}", 1)[0] if doc.tag.startswith("{") else ""
+        ns = {"m": namespace}
         licenses = doc.findall("m:licenses/m:license", ns)
         if not licenses:
             parent = doc.find("m:parent", ns)
@@ -182,6 +183,8 @@ def verify(args):
 def self_test(_args):
     sample = b'<project xmlns="http://maven.apache.org/POM/4.0.0"><licenses><license><name>Test</name><url>https://example.org/license</url></license></licenses></project>'
     assert ET.fromstring(sample).findtext("m:licenses/m:license/m:name", namespaces={"m": "http://maven.apache.org/POM/4.0.0"}) == "Test"
+    plain = b"<project><licenses><license><name>Apache-2.0</name></license></licenses></project>"
+    assert ET.fromstring(plain).findtext("m:licenses/m:license/m:name", namespaces={"m": ""}) == "Apache-2.0"
     assert digest(b"abc") == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
     print("self-test passed")
 
