@@ -8,6 +8,7 @@ on:
       - 'scripts/export_store_assets.py*'
       - 'scripts/check_store_metadata.py*'
       - 'scripts/fetch_store_artifacts.py'
+      - 'scripts/check_native_pages.py'
       - 'scripts/package_release.py'
       - 'scripts/tests/**'
       - 'app/src/main/AndroidManifest.xml'
@@ -26,6 +27,7 @@ on:
       - 'scripts/export_store_assets.py*'
       - 'scripts/check_store_metadata.py*'
       - 'scripts/fetch_store_artifacts.py'
+      - 'scripts/check_native_pages.py'
       - 'scripts/package_release.py'
       - 'scripts/tests/**'
       - 'app/src/main/AndroidManifest.xml'
@@ -47,7 +49,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install uv
         run: python3 -m pip install uv==0.12.3
-      - name: Check artifact trust boundary and screenshot decoding
+      - name: Check artifact trust, native collection, and screenshot decoding
         run: uv run --with pillow==11.3.0 python3 -m unittest discover -s scripts/tests -v
       - name: Check committed export freshness
         run: uv run --locked scripts/export_store_assets.py --check

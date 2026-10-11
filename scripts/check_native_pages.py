@@ -66,6 +66,16 @@ class Audit:
     def adb(self, *args, **kwargs):
         return self.command([self.args.adb, '-s', 'emulator-5554', *args], **kwargs)
 
+    def collect_native_evidence(self):
+        # command() retains stdout/stderr even when the shell loses its exit packet.
+        # Complete-looking payloads cannot stand in for successful collection.
+        collected = []
+        for filename in ('native-pages.json', 'native-pages-maps.txt'):
+            payload = self.adb('shell', 'run-as', PACKAGE, 'cat', 'files/' + filename)
+            (self.output / filename).write_text(payload + '\n')
+            collected.append(payload)
+        return collected
+
     def static(self):
         findings = []
         with zipfile.ZipFile(self.args.apk) as apk:
@@ -164,10 +174,7 @@ class Audit:
                                    'dev.burooj.speedbreaker.fixture/.PageSizeRegression', timeout=180)
         (self.output / 'instrumentation.txt').write_text(instrumentation + '\n')
         # Collect Java failure evidence before interpreting am's result (its exit code is insufficient).
-        native = self.adb('shell', 'run-as', PACKAGE, 'cat', 'files/native-pages.json', check=False)
-        (self.output / 'native-pages.json').write_text(native + '\n')
-        maps = self.adb('shell', 'run-as', PACKAGE, 'cat', 'files/native-pages-maps.txt', check=False)
-        (self.output / 'native-pages-maps.txt').write_text(maps + '\n')
+        native, maps = self.collect_native_evidence()
         require(re.search(r'^INSTRUMENTATION_RESULT: result=PASS$', instrumentation, re.M),
                 'Native instrumentation did not explicitly pass')
         evidence = json.loads(native)
