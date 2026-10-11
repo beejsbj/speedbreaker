@@ -107,7 +107,9 @@ internal fun SpeedbreakerApp() {
             when {
                 repositoryError != null -> StorageFailureScreen(repositoryError)
                 !ready -> LoadingScreen()
-                !settings.consentAccepted -> WelcomeScreen {
+                !settings.consentAccepted -> WelcomeScreen(onDecline = {
+                    (context as? android.app.Activity)?.finish()
+                }) {
                     update { current -> current.copy(consentAccepted = true) }
                 }
                 request != null -> RedirectPickerScreen(

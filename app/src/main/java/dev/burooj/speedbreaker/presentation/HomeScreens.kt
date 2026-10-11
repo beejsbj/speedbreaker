@@ -50,7 +50,7 @@ import dev.burooj.speedbreaker.presentation.components.appCatalog
 
 /** One calm page that says what Speedbreaker does, what it cannot do, and what it keeps. */
 @Composable
-internal fun WelcomeScreen(onAccept: () -> Unit) {
+internal fun WelcomeScreen(onDecline: () -> Unit = {}, onAccept: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -83,18 +83,14 @@ internal fun WelcomeScreen(onAccept: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
                 Promise(
                     heading = "What it sees",
-                    body = "Visible app identities, read on this phone through Accessibility. No screen text or typed input.",
+                    body = "Accessibility reads visible app identities, including system screens, to recognize " +
+                        "your chosen apps and show the breath. No screen text or typed input is read. " +
+                        "These identities stay on this phone and are not shared.",
                 )
                 Promise(
                     heading = "The first eight seconds",
                     body = "Back, Home, and Recents can’t dismiss the breath. The dialer, lock screen, " +
                         "and Accessibility settings get through. Android-reported calls suspend breaths.",
-                )
-                Promise(
-                    heading = "Call safety",
-                    body = "Phone permission lets Speedbreaker check whether a call is ringing or active. " +
-                        "No phone numbers, call history, or audio are read. Breaths stay off without this permission. " +
-                        "Calling apps that don’t report their calls to Android may not be detected.",
                 )
                 Promise(
                     heading = "What it keeps",
@@ -104,6 +100,7 @@ internal fun WelcomeScreen(onAccept: () -> Unit) {
             }
             Spacer(Modifier.height(40.dp))
             PrimaryAction("I understand — continue", onAccept, Modifier.fillMaxWidth())
+            QuietAction("Not now — close", onDecline, Modifier.fillMaxWidth())
         }
     }
 }
