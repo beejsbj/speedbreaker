@@ -16,19 +16,16 @@ that same pause back during continuous use.
 Android 8.0 or newer. Installed from an APK; not currently on Google Play,
 F-Droid, or iOS.
 
-**Testing prerelease:** an incoming call displayed as a system notification may
-remain behind the breathing overlay instead of interrupting it immediately.
-[Call-handling issue #6](https://github.com/beejsbj/speedbreaker/issues/6) must be
-fixed and checked on a phone before a stable release. Review the
-[release notes](https://github.com/beejsbj/speedbreaker/releases/tag/v1.0.0)
-before installing.
+Version **1.0.1** fixes incoming-call interruption, keeps active pause controls
+available in the app, and protects saved settings during screen changes.
+See the [release notes](https://github.com/beejsbj/speedbreaker/releases/tag/v1.0.1).
 
 ## A little room to choose
 
 - **Choose your own apps.** Nothing is selected for you.
 - **Take a breath.** Twelve seconds by default, adjustable from 8 to 60 seconds.
 - **Decide what comes next.** Continue in the app, Leave for your home screen,
-  or choose one of four optional redirect apps.
+  or choose one of four optional redirect apps, with their own icons.
 - **Check in again.** By default, another breath follows ten minutes of
   continuous use. Change the interval or turn check-ins off for each app.
 - **Set your hours.** Stay active all day or choose a weekly schedule, with
@@ -56,7 +53,9 @@ own apps and redirects.
 3. Open Speedbreaker, read the Accessibility disclosure, and tap
    **I understand — continue**.
 4. Tap **Turn on in Accessibility** and enable **Speedbreaker attention pauses**.
-5. Return to Speedbreaker and tap **Choose apps**. Open a chosen app to try it.
+5. Return to Speedbreaker, tap **Allow call-state access**, and allow Phone
+   permission. Breaths stay off without it so silent calls are not hidden.
+6. Tap **Choose apps**. Open a chosen app to try it.
 
 If Android says the Accessibility setting is restricted, open Speedbreaker's
 **App info → ⋮ → Allow restricted settings**, confirm your identity, and return
@@ -73,33 +72,43 @@ and Recents cannot dismiss it during that time. At eight seconds, Leave,
 configured redirects, and Pause become available; Continue waits until the full
 breath finishes. Ordinary navigation can leave after eight seconds.
 
-Each chosen app gets two fifteen-minute pauses per local day. Its notification
-contains **End now**. On Android 14+, dismissing that notification currently
-removes this early-ending control; see [issue #5](https://github.com/beejsbj/speedbreaker/issues/5). After Continue, returning within sixty
+Each chosen app gets two fifteen-minute pauses per local day. **Active pauses**
+on the home screen and the pause notification both offer **End now**; the in-app
+control remains available if the notification is dismissed. After Continue, returning within sixty
 seconds resumes the session; a longer absence starts a new opening breath.
 Visible apps in split-screen and picture-in-picture count toward check-ins.
 
-The app is designed to yield to calls, the dialer, the lock screen, screen-off,
-and Android Settings. One Hand Operation+ edge gestures are unavailable while
+The app yields to Android-reported calls, communication audio, the dialer, the
+lock screen, screen-off, and Android Settings. Calling apps that do not report
+their calls to Android may not be detected while ringing. One Hand Operation+ edge gestures are unavailable while
 the overlay is visible; use Leave, a redirect, or ordinary navigation once
 choices unlock. You can turn Speedbreaker off in Android Accessibility settings.
 
 ## Privacy and device support
 
 Accessibility lets Speedbreaker identify visible apps and display its pause.
-The app does not read message text, take screenshots, or store usage history.
+Phone permission supports a call-state check, without reading numbers, call
+history, or audio. The app does not read message text, take screenshots, or store
+usage history.
 Settings and pause state stay on the phone. It requests no Internet, Usage
 Access, or separate “display over other apps” permission. Android backup and
 device transfer of app data are disabled in its configuration.
 [Read the full privacy details](docs/privacy.md).
 
-The 1.0.0 release build was installed and checked on a Samsung Galaxy S23+.
-Opening pauses, Continue, a timed check-in, Leave, and the Settings escape were
-verified. Calls, reboot/recovery, extended idle, and other manufacturers have
-**not been verified on this release**. Android 8.0 is the minimum supported OS,
-not a claim that every compatible phone has been tested.
+The 1.0.1 candidate was checked on a Samsung Galaxy S23+: opening pauses,
+Phone permission setup, a silent incoming call during the initial lock, and
+ending a pause after swiping away its notification. Android API 35 emulator
+checks also cover audible/silent calls, touching Answer, ordinary navigation,
+and a fresh breath after the call ends. See the
+[verification record](docs/reviews/2026-10-11-1.0.1.md) for precise scope.
+Reboot/recovery, extended idle, and other manufacturers remain unverified.
+Android 8.0 is the minimum supported OS, not a claim that every compatible
+phone has been tested.
 
 ## Help improve Speedbreaker
+
+If Speedbreaker helps, you can [buy me a coffee](https://buymeacoffee.com/beejsbj).
+Support is optional; every feature stays free.
 
 Found something unexpected? [Report a bug](https://github.com/beejsbj/speedbreaker/issues/new/choose)
 with your phone model, Android and app versions, steps, and what happened.

@@ -1,0 +1,75 @@
+name: Android device regression
+
+on:
+  # Registers this new workflow without changing the default branch or the main checks.
+  push:
+    branches: [test/device-regression]
+  workflow_dispatch:
+    inputs:
+      app_ref:
+        description: 'App source revision to test; empty uses this workflow revision'
+        type: string
+        default: ''
+      baseline_without_phone_permission:
+        description: 'Pre-fix negative control only: allow absent phone permission (call tests must still fail)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-device-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  incoming-call:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Check out app candidate separately
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # The isolated tooling branch validates the explicitly requested candidate.
+          ref: ${{ inputs.app_ref || (github.ref == 'refs/heads/test/device-regression' && '2b0bbddbd3ce647c67282a6c6680d072421a647f') || github.sha }}
+          path: source-app
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
+      - name: Install build SDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;36.0.0"'
+      - name: Build app candidate
+        working-directory: source-app
+        run: ./gradlew :app:assembleDebug --no-daemon --no-configuration-cache --max-workers=2
+      - name: Build isolated fixture
+        run: ./gradlew -PcallFixture=true :call-fixture:assembleDebug --no-daemon --no-configuration-cache --max-workers=2
+      - name: Enable KVM for the runner
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Test real Telecom and SystemUI on API 35
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        env:
+          BASELINE_WITHOUT_PHONE_PERMISSION: ${{ inputs.baseline_without_phone_permission }}
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          script: python3 tools/call-fixture/ci.py
+      - name: Preserve emulator evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: android-device-${{ github.sha }}
+          path: |
+            build/device-regression/
+            tools/call-fixture/build/outputs/apk/debug/
+            source-app/app/build/outputs/apk/debug/
+          retention-days: 7

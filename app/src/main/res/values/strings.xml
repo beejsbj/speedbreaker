@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Speedbreaker</string>
     <string name="accessibility_service_label">Speedbreaker attention pauses</string>
-    <string name="accessibility_service_description">Observes only apps you select and briefly keeps a Speedbreaker visible while you pause.</string>
+    <string name="accessibility_service_description">Reads visible app identities to recognize chosen targets and show a short breathing pause. Does not read screen text or typed input.</string>
     <string name="pause_notification_channel">Active pauses</string>
     <string name="pause_notification_channel_description">Ongoing notifications for target apps whose enforcement is temporarily paused.</string>
     <string name="pause_notification_title">%1$s is paused</string>

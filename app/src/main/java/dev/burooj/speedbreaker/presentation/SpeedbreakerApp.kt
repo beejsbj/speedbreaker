@@ -1,8 +1,11 @@
 package dev.burooj.speedbreaker.presentation
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.widget.Toast
 import android.provider.Settings as AndroidSettings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,6 +17,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -22,14 +26,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.burooj.speedbreaker.observation.PauseNotifications
+import dev.burooj.speedbreaker.observation.PauseEndReceiver
+import dev.burooj.speedbreaker.observation.CallSafety
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.observation.ServiceStatus
 import dev.burooj.speedbreaker.persistence.SpeedbreakerRepository
 import dev.burooj.speedbreaker.presentation.theme.SpeedbreakerTheme
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 /** Owns state and navigation; every screen it shows is stateless and previewable. */
 @Composable
@@ -38,6 +47,7 @@ internal fun SpeedbreakerApp() {
         val context = LocalContext.current
         val repository = remember(context) { SpeedbreakerRepository.get(context) }
         val settings by repository.settings.collectAsStateWithLifecycle()
+        val pauses by repository.pauses.collectAsStateWithLifecycle()
         val ready by repository.ready.collectAsStateWithLifecycle()
         val repositoryError by repository.error.collectAsStateWithLifecycle()
         val connected by ServiceStatus.connected.collectAsStateWithLifecycle()
@@ -47,6 +57,11 @@ internal fun SpeedbreakerApp() {
         var resumeTick by remember { mutableIntStateOf(0) }
         var redirectRequest by remember { mutableStateOf<RedirectRequest?>(null) }
         var notificationRequestAttempted by rememberSaveable { mutableStateOf(false) }
+        var phoneRequestAttempted by rememberSaveable { mutableStateOf(false) }
+        val phonePermission = rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) { resumeTick++ }
+        val callSafety = remember(context) { CallSafety(context.applicationContext) }
         val notificationPermission = rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission(),
         ) { resumeTick++ }
@@ -60,6 +75,16 @@ internal fun SpeedbreakerApp() {
         }
 
         val lifecycle = LocalLifecycleOwner.current.lifecycle
+        // Expiry must advance even when persisted pause state does not change (or the service is off).
+        val nowEpochMs by produceState(System.currentTimeMillis(), lifecycle) {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (isActive) {
+                    value = System.currentTimeMillis()
+                    delay(1_000L)
+                }
+            }
+        }
+        val callStatus = remember(resumeTick, nowEpochMs) { callSafety.status() }
         DisposableEffect(lifecycle) {
             val observer = LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) resumeTick++
@@ -100,14 +125,37 @@ internal fun SpeedbreakerApp() {
                     protection = when {
                         !accessibilityEnabled -> Protection.Off
                         !connected || runtimeError != null -> Protection.Broken
+                        callStatus == CallSafety.Status.PermissionRequired -> Protection.CallPermission
+                        callStatus == CallSafety.Status.Unavailable -> Protection.CallUnavailable
+                        callStatus == CallSafety.Status.InCall -> Protection.CallActive
                         else -> Protection.On
                     },
                     runtimeError = runtimeError,
                     notificationsAllowed = notificationsAllowed,
+                    pauses = pauses,
+                    nowEpochMs = nowEpochMs,
+                    onEndPause = { packageName ->
+                        // Share the notification action's service coordination and durable transaction.
+                        context.sendBroadcast(
+                            Intent(context, PauseEndReceiver::class.java)
+                                .putExtra(PauseEndReceiver.EXTRA_PACKAGE_NAME, packageName),
+                        )
+                    },
                     onEnableAccessibility = {
                         context.startActivity(Intent(AndroidSettings.ACTION_ACCESSIBILITY_SETTINGS))
                     },
                     onOpenAppInfo = { openAppDetails(context) },
+                    onCallAccess = {
+                        if (!phoneRequestAttempted &&
+                            context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) !=
+                            PackageManager.PERMISSION_GRANTED
+                        ) {
+                            phoneRequestAttempted = true
+                            phonePermission.launch(Manifest.permission.READ_PHONE_STATE)
+                        } else {
+                            openAppDetails(context)
+                        }
+                    },
                     onNotifications = {
                         val canAsk = android.os.Build.VERSION.SDK_INT >= 33 &&
                             !notificationRequestAttempted &&
@@ -123,6 +171,20 @@ internal fun SpeedbreakerApp() {
                     onChooseApps = { route = Route.Apps },
                     onDefaults = { route = Route.Defaults },
                     onApp = { route = Route.App(it) },
+                    onSupport = {
+                        try {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse("https://buymeacoffee.com/beejsbj"))
+                                    .addCategory(Intent.CATEGORY_BROWSABLE),
+                            )
+                        } catch (_: ActivityNotFoundException) {
+                            Toast.makeText(
+                                context,
+                                "Open buymeacoffee.com/beejsbj in a browser to support Speedbreaker.",
+                                Toast.LENGTH_LONG,
+                            ).show()
+                        }
+                    },
                 )
                 currentRoute == Route.Apps -> AppPickerScreen(
                     apps = launchableApps,

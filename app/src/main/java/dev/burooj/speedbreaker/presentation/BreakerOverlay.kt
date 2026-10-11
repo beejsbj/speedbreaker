@@ -558,7 +558,7 @@ private fun RedirectTile(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            AppGlyph(destination.packageName, destination.label, size = 36.dp)
+            AppGlyph(destination.packageName, destination.label, size = 44.dp)
             Spacer(Modifier.height(8.dp))
             Text(
                 text = destination.label,

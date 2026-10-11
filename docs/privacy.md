@@ -1,6 +1,6 @@
 # Privacy
 
-Applies to Speedbreaker **1.0.0**. Last reviewed: **October 11, 2026**.
+Applies to Speedbreaker **1.0.1**. Last reviewed: **October 11, 2026**.
 
 Speedbreaker runs on your Android phone. It has no account, analytics, ads,
 cloud sync, or Internet permission. The app does not send your settings or app
@@ -22,6 +22,24 @@ input, capture screenshots, or record the contents of other apps.
 
 Current visibility and continuous-use timers are held in memory. They are not
 saved as a usage log. Screen-off time does not count toward check-ins.
+
+## Call safety
+
+Speedbreaker checks Android’s aggregate call-state boolean through
+`TelecomManager.isInCall()`, including silent ringing and calls registered by
+third-party calling apps. It also checks the current audio mode as a secondary
+signal for communication audio. These values are not logged or stored.
+
+Android calls the required runtime permission **Phone**. Speedbreaker uses it
+only for the call-state check; it does not request contacts, call logs, microphone
+access, or permission to place or answer calls. It does not read phone numbers,
+caller identity, call history, notification contents, or audio.
+
+If permission is denied or revoked, or a detectable system-service error occurs,
+breathing overlays stay off. Existing settings and pause allowances remain.
+Android’s APIs cannot identify every failure, and calling apps that do not
+register calls with Android may not be detected before communication audio starts.
+See [Android’s call-state API](https://developer.android.com/reference/android/telecom/TelecomManager#isInCall()).
 
 ## Installed apps
 
@@ -50,6 +68,7 @@ The reflection asks for no input, so no answer is collected or stored.
 | Permission or capability | Purpose |
 | --- | --- |
 | Accessibility service | Identify visible apps, show the breathing overlay, and perform the user's navigation choices. You enable it in Android Settings. |
+| Phone state | Check whether Android reports a ringing, active, dialing, or held call. Breaths stay off if this permission is denied or revoked. |
 | Notifications | Show each active fifteen-minute pause and its **End now** action. Pause requires notifications to be available. |
 | Receive boot completed | Support recovery of locally stored pause state after the phone restarts. |
 
@@ -73,6 +92,13 @@ Speedbreaker cloud backup or account to delete.
 
 ## Downloads and reports
 
+The optional **Buy me a coffee** action opens
+[buymeacoffee.com/beejsbj](https://buymeacoffee.com/beejsbj) outside Speedbreaker.
+That website and its payment providers handle any visit or contribution under
+their own privacy terms. Speedbreaker sends no settings or app-usage data with
+the link, embeds no payment SDK, and does not receive or store payment details.
+Contributing does not unlock features.
+
 GitHub hosts this repository, releases, and issue reports. Visiting GitHub or
 posting there is separate from using the offline app. Anything you include in
 a public issue is public; redact notifications, account details, personal app
@@ -93,5 +119,6 @@ These source files define the behavior described above:
 - [App discovery](../app/src/main/java/dev/burooj/speedbreaker/presentation/AppDiscovery.kt).
 - [Stored settings and pause state](../app/src/main/java/dev/burooj/speedbreaker/model/Settings.kt)
   and [local database access](../app/src/main/java/dev/burooj/speedbreaker/persistence/SpeedbreakerRepository.kt).
+- [Call-state checks](../app/src/main/java/dev/burooj/speedbreaker/observation/CallSafety.kt).
 - [Notification content](../app/src/main/java/dev/burooj/speedbreaker/observation/PauseNotifications.kt)
   and [backup exclusions](../app/src/main/res/xml/data_extraction_rules.xml).

@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import dev.burooj.speedbreaker.R
+import dev.burooj.speedbreaker.MainActivity
 import dev.burooj.speedbreaker.model.PauseState
 import java.text.DateFormat
 import java.util.Date
@@ -37,6 +38,7 @@ internal class PauseNotifications(context: Context) {
         val active = pauses.filterValues { it.untilEpochMs > nowEpochMs }
         (shown.keys - active.keys).forEach(::cancel)
         active.forEach { (packageName, pause) ->
+            // A successful post may have been swiped away. Respect that dismissal until a new pause.
             if (shown[packageName] != pause.untilEpochMs && show(packageName, pause, nowEpochMs)) {
                 shown[packageName] = pause.untilEpochMs
             }
@@ -80,10 +82,18 @@ internal class PauseNotifications(context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val remainingMs = (pause.untilEpochMs - nowEpochMs).coerceAtLeast(1L)
+        val openApp = PendingIntent.getActivity(
+            appContext,
+            0,
+            Intent(appContext, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
         val notification = NotificationCompat.Builder(appContext, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(appContext.getString(R.string.pause_notification_title, label))
             .setContentText(appContext.getString(R.string.pause_notification_until, until))
+            .setContentIntent(openApp)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)

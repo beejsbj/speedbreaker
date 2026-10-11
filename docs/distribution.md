@@ -1,8 +1,9 @@
 # Discovery and future store distribution
 
 Status checked October 11, 2026. GitHub Releases is the current Android download
-channel, currently a testing prerelease while [incoming-call handling](https://github.com/beejsbj/speedbreaker/issues/6)
-is corrected and device-tested. F-Droid, Google Play and the Apple App Store are future destinations;
+channel. Version 1.0.1 addresses the incoming-call defect found in the 1.0.0
+testing prerelease, with phone and emulator verification. F-Droid, Google Play
+and the Apple App Store are future destinations;
 no listing or approval is claimed for them.
 
 ## Helping people find Speedbreaker
@@ -88,3 +89,29 @@ distribution. See [Apple's entitlement instructions](https://developer.apple.com
 The practical order is an iOS feasibility prototype, entitlement request,
 real-device testing, then TestFlight and App Store submission. Store accounts,
 fees, legal declarations and submission approvals remain owner decisions.
+
+## Optional developer support
+
+The GitHub APK has a quiet **Buy me a coffee** link on Home to
+[the developer's page](https://buymeacoffee.com/beejsbj). It opens externally,
+provides no digital rewards or feature unlocks, and adds no billing SDK or
+Internet permission. It is never shown in the breathing overlay.
+
+Recheck each store's payment rules before submitting that store's build:
+
+- F-Droid supports public external donation URLs in its
+  [Donate metadata](https://f-droid.org/docs/Build_Metadata_Reference/#Donate).
+- Google exempts direct creator tips from Play Billing when 100% goes to the
+  creator and there is no digital benefit. Confirm how the actual Buy Me a
+  Coffee flow and fees fit that condition; do not assume that a generic support
+  button is automatically exempt. See
+  [Google's payment FAQ](https://support.google.com/googleplay/android-developer/answer/10281818?hl=en).
+- Apple explicitly supports developer tips through in-app purchases. External
+  payment links have storefront-specific rules, including a US exception;
+  a worldwide iOS release cannot simply assume the Android support link is
+  acceptable everywhere. Choose StoreKit tips or an appropriate regional link
+  policy during the iOS implementation. See
+  [App Review Guidelines 3.1.1](https://developer.apple.com/app-store/review/guidelines/#in-app-purchase).
+
+These notes were checked October 11, 2026. They are preparation for submission,
+not a claim that any store has approved this payment flow.

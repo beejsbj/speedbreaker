@@ -42,7 +42,23 @@ jobs:
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;36.0.0"'
       - name: Build unsigned release
         run: ./gradlew assembleRelease --no-daemon --no-configuration-cache --max-workers=2
+      - name: Preserve unsigned APK from this commit
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: unsigned-release-${{ github.sha }}
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
+          retention-days: 7
       - name: Unit and UI regression tests
         run: ./gradlew testDebugUnitTest --no-daemon --no-configuration-cache --max-workers=2
       - name: Release lint
         run: ./gradlew lintRelease --no-daemon --no-configuration-cache --max-workers=2
+      - name: Preserve verification reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: verification-${{ github.sha }}
+          path: |
+            app/build/test-results/
+            app/build/reports/
+          retention-days: 7

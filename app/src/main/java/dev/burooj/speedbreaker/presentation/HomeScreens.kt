@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.burooj.speedbreaker.model.Settings
+import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.presentation.components.AppGlyph
 import dev.burooj.speedbreaker.presentation.components.ContentMaxWidth
 import dev.burooj.speedbreaker.presentation.components.Eyebrow
@@ -82,12 +83,18 @@ internal fun WelcomeScreen(onAccept: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
                 Promise(
                     heading = "What it sees",
-                    body = "Only which chosen app is on screen, read on this phone through Accessibility.",
+                    body = "Visible app identities, read on this phone through Accessibility. No screen text or typed input.",
                 )
                 Promise(
                     heading = "The first eight seconds",
-                    body = "Back, Home, and Recents can’t dismiss the breath. Calls, the dialer, " +
-                        "the lock screen, and Accessibility settings always get through.",
+                    body = "Back, Home, and Recents can’t dismiss the breath. The dialer, lock screen, " +
+                        "and Accessibility settings get through. Android-reported calls suspend breaths.",
+                )
+                Promise(
+                    heading = "Call safety",
+                    body = "Phone permission lets Speedbreaker check whether a call is ringing or active. " +
+                        "No phone numbers, call history, or audio are read. Breaths stay off without this permission. " +
+                        "Calling apps that don’t report their calls to Android may not be detected.",
                 )
                 Promise(
                     heading = "What it keeps",
@@ -163,6 +170,10 @@ internal enum class Protection {
 
     /** Connected and able to pause chosen apps. */
     On,
+
+    CallPermission,
+    CallUnavailable,
+    CallActive,
 }
 
 /**
@@ -181,11 +192,18 @@ internal fun HomeScreen(
     onChooseApps: () -> Unit,
     onDefaults: () -> Unit,
     onApp: (String) -> Unit,
+    onCallAccess: () -> Unit = {},
+    pauses: Map<String, PauseState> = emptyMap(),
+    nowEpochMs: Long = System.currentTimeMillis(),
+    onEndPause: (String) -> Unit = {},
+    onSupport: () -> Unit = {},
 ) {
     val appCount = settings.apps.size
     val title = when (protection) {
         Protection.Off -> "Off for now"
-        Protection.Broken -> "Needs attention"
+        Protection.Broken, Protection.CallUnavailable -> "Needs attention"
+        Protection.CallPermission -> "One more step"
+        Protection.CallActive -> "Giving your call room"
         Protection.On -> when (appCount) {
             0 -> "Ready when you are"
             1 -> "On for 1 app"
@@ -193,6 +211,8 @@ internal fun HomeScreen(
         }
     }
     Page(title = title, onBack = null, eyebrow = "Speedbreaker") {
+        ActivePausesSection(pauses, nowEpochMs, onEndPause)
+
         StatusPanel(
             protection = protection,
             runtimeError = runtimeError,
@@ -201,6 +221,7 @@ internal fun HomeScreen(
             onEnableAccessibility = onEnableAccessibility,
             onOpenAppInfo = onOpenAppInfo,
             onChooseApps = onChooseApps,
+            onCallAccess = onCallAccess,
         )
 
         val catalog = appCatalog()
@@ -245,7 +266,7 @@ internal fun HomeScreen(
                 summary = if (notificationsAllowed) {
                     "Allowed"
                 } else {
-                    "Needed for Pause and its End now action"
+                    "Needed to start a pause; End now is also here"
                 },
                 onClick = onNotifications,
                 leading = {
@@ -264,6 +285,17 @@ internal fun HomeScreen(
                 summary = "Open Speedbreaker’s app info",
                 onClick = onOpenAppInfo,
                 leading = { StatusDot(Color.Transparent) },
+            )
+        }
+
+        Section(
+            title = "Support",
+            footnote = "If Speedbreaker helps, you can support its development. Always optional; every feature stays free.",
+        ) {
+            NavRow(
+                title = "Buy me a coffee",
+                summary = "Opens buymeacoffee.com in your browser",
+                onClick = onSupport,
             )
         }
     }
@@ -291,6 +323,7 @@ private fun StatusPanel(
     onEnableAccessibility: () -> Unit,
     onOpenAppInfo: () -> Unit,
     onChooseApps: () -> Unit,
+    onCallAccess: () -> Unit,
 ) {
     when (protection) {
         Protection.Off -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -315,6 +348,25 @@ private fun StatusPanel(
             )
             PrimaryAction("Open Accessibility", onEnableAccessibility, Modifier.fillMaxWidth())
         }
+        Protection.CallPermission -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Notice(
+                tone = NoticeTone.Repair,
+                text = "Breaths are off until call safety is ready. Phone permission lets Speedbreaker " +
+                    "check whether a call is ringing or active, including silent calls. " +
+                    "It doesn’t read phone numbers, call history, or audio.",
+            )
+            PrimaryAction("Allow call-state access", onCallAccess, Modifier.fillMaxWidth())
+        }
+        Protection.CallUnavailable -> Notice(
+            tone = NoticeTone.Repair,
+            text = "Android’s call-state check is unavailable, so breaths are off. " +
+                "Your settings are kept. Try restarting your phone.",
+        )
+        Protection.CallActive -> Notice(
+            tone = NoticeTone.Calm,
+            text = "Breaths are suspended while Android reports a call or communication audio. " +
+                "They resume when it ends.",
+        )
         Protection.On -> if (hasApps) {
             Notice(
                 tone = NoticeTone.Calm,

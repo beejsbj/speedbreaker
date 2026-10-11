@@ -32,7 +32,7 @@ apps. Redirects must be non-target apps. Per-app alternatives replace all four.
 
 **Pause**: one of two per-target, per-local-day tokens that grants fifteen
 minutes immediately. The active pause and today's token count persist locally;
-a notification's End now action resumes enforcement.
+End now on Home or the notification resumes enforcement.
 
 **Active schedule**: the optional hours when a target's policy applies.
 A per-app schedule replaces the global schedule. Outside it, enforcement and
@@ -51,10 +51,17 @@ visible. He configures his own targets and alternatives. The October 11 delivery
 is a signed, shareable release; a personal full-day verdict is subsequent use.
 Linear is the workflow record; device evidence lives in docs/reviews/.
 
-The subsequent public-review pass published the same APK as a **testing
-prerelease**, not stable. Incoming-call handling [GitHub #6](https://github.com/beejsbj/speedbreaker/issues/6)
-blocks stable release; [#4](https://github.com/beejsbj/speedbreaker/issues/4) and
-[#5](https://github.com/beejsbj/speedbreaker/issues/5) track settings cancellation
-and pause notification defects. These GitHub issues own the review follow-up.
-See [the publication receipt](docs/reviews/2026-10-11-publication.md) and
-[distribution guide](docs/distribution.md) before continuing release work.
+The 1.0.0 public-review pass exposed three defects and was published as a testing
+prerelease. Version 1.0.1 fixes [call interruption #6](https://github.com/beejsbj/speedbreaker/issues/6),
+[settings cancellation #4](https://github.com/beejsbj/speedbreaker/issues/4), and
+[pause controls #5](https://github.com/beejsbj/speedbreaker/issues/5). Review and
+verification receipts are in [the 1.0.1 record](docs/reviews/2026-10-11-1.0.1.md).
+Calls are detected through Android Telecom and communication audio; third-party
+calls exposing neither signal are outside that coverage. Phone permission is
+required, and missing access suspends breaths.
+
+Burooj requested visible app icons for redirects and a quiet optional support
+link in the app. He prefers the Mac for local heavy jobs; use hosted CI or the
+Mac for Gradle rather than bjslab. GitHub is the current distribution channel;
+F-Droid, Play and an iOS implementation remain future work described in the
+[distribution guide](docs/distribution.md).
