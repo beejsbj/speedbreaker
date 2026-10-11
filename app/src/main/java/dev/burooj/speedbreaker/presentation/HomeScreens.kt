@@ -194,6 +194,7 @@ internal fun HomeScreen(
     nowEpochMs: Long = System.currentTimeMillis(),
     onEndPause: (String) -> Unit = {},
     onSupport: () -> Unit = {},
+    onPrivacy: () -> Unit = {},
     supportLabel: String = "Buy me a coffee",
     supportSummary: String = "Opens buymeacoffee.com in your browser",
 ) {
@@ -295,6 +296,12 @@ internal fun HomeScreen(
                 title = supportLabel,
                 summary = supportSummary,
                 onClick = onSupport,
+            )
+            RowDivider()
+            NavRow(
+                title = "Privacy policy",
+                summary = "Opens the public policy in your browser",
+                onClick = onPrivacy,
             )
         }
     }

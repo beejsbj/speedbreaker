@@ -172,6 +172,7 @@ internal fun SpeedbreakerApp() {
                     onDefaults = { route = Route.Defaults },
                     onApp = { route = Route.App(it) },
                     onSupport = support.onClick,
+                    onPrivacy = { openPrivacyPolicy(context) },
                     supportLabel = support.label,
                     supportSummary = support.summary,
                 )

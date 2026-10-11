@@ -16,7 +16,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
 import kotlin.coroutines.resume
 
-internal data class PlayTipOffer(val details: ProductDetails, val token: String, val price: String)
+internal data class PlayTipOffer(val details: ProductDetails, val token: String?, val price: String)
 internal data class BillingReply<T>(val code: Int, val value: T)
 
 /** Callback-only Billing artifact: no billing-ktx dependency. Never logs billing responses. */
@@ -83,7 +83,10 @@ internal class PlayTipBilling(
         activity,
         BillingFlowParams.newBuilder().setProductDetailsParamsList(listOf(
             BillingFlowParams.ProductDetailsParams.newBuilder()
-                .setProductDetails(offer.details).setOfferToken(offer.token).build(),
+                .setProductDetails(offer.details).apply {
+                    // Legacy one-time products can have no offer token; don't invent one.
+                    offer.token?.let { setOfferToken(it) }
+                }.build(),
         )).build(),
     ).responseCode
 
