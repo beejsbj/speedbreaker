@@ -814,36 +814,29 @@ class Demo:
         self.mark("native_accessibility_disabled")
 
     def probe_first_lock(self, launched):
-        """Record window geometry during the *first* lock, before calibration.
-
-        This focused manual diagnostic does not claim the full declaration flow.
-        Every shade action is an actual input gesture, and a Settings result is
-        credited only if its resumed activity is observed within eight seconds.
-        """
+        """Exercise the native shade while the first protected launch is locked."""
         self.mark("first_lock_probe_started", {"seconds_after_target_launch":
                                                round(time.monotonic() - launched, 2)})
+        gear = None
         for step, gesture in enumerate(("shade", "expand_shade"), 1):
             if time.monotonic() - launched >= 8:
                 break
             self.swipe(gesture)
-            observed_at = time.monotonic() - launched
+            gesture_at = time.monotonic() - launched
             prefix = f"initial-lock-{step}"
             self.mark("first_lock_gesture_sent", {"step": step, "gesture": gesture,
                                                   "seconds_after_target_launch":
-                                                  round(observed_at, 2)})
-            # Capture WindowManager immediately. UiAutomation's all-window
-            # traversal can take seconds on a busy hosted AVD.
-            (self.out / f"{prefix}-window.txt").write_text(
-                self.shell("dumpsys", "window", "windows"))
-            self.screenshot(f"{prefix}-shade.png")
-            windows = self.dump(all_windows=True)
-            (self.out / f"{prefix}-windows.xml").write_bytes(ET.tostring(windows))
-            shade = self.dump()
+                                                  round(gesture_at, 2)})
+            try:
+                shade = self.dump()
+            except AssertionError as error:
+                if str(error) != "UI observer response: No active Accessibility window":
+                    raise
+                self.mark("first_lock_window_transition", {"step": step,
+                                                             "seconds_after_target_launch":
+                                                             round(time.monotonic() - launched, 2)})
+                continue
             (self.out / f"{prefix}-ui.xml").write_bytes(ET.tostring(shade))
-            (self.out / f"{prefix}-statusbar.txt").write_text(
-                self.shell("dumpsys", "statusbar"))
-            (self.out / f"{prefix}-activity.txt").write_text(
-                self.shell("dumpsys", "activity", "activities"))
             packages = sorted({node.get("package", "") for node in shade.iter("node")})
             gear = next((node for node in shade.iter("node")
                          if node.get("package") == "com.android.systemui"
@@ -851,34 +844,94 @@ class Demo:
                          and self.label(node).rstrip(".").casefold() in ("settings", "open settings")
                          and node.get("bounds")), None)
             self.mark("first_lock_shade_observed", {"step": step, "gesture": gesture,
-                                                    "seconds_after_target_launch": round(observed_at, 2),
-                                                    "snapshot_completed_after":
+                                                    "gesture_after_target_launch": round(gesture_at, 2),
+                                                    "ui_observed_after_target_launch":
                                                     round(time.monotonic() - launched, 2),
                                                     "packages": packages,
                                                     "gear_visible": gear is not None})
             if gear is not None:
-                self.tap_node(gear)
-                tapped_at = time.monotonic() - launched
-                self.mark("first_lock_native_gear_tapped", {"bounds": gear.get("bounds"),
-                                                            "seconds_after_target_launch":
-                                                            round(tapped_at, 2)})
-                self.require(tapped_at < 8, "native gear tapped within first lock")
-                while time.monotonic() - launched < 8:
-                    activity = self.shell("dumpsys", "activity", "activities")
-                    focused = [line for line in activity.splitlines()
-                               if "topResumedActivity=" in line or "mResumedActivity:" in line]
-                    if any("com.android.settings" in line for line in focused):
-                        self.mark("first_lock_settings_resumed", {
-                            "seconds_after_target_launch": round(time.monotonic() - launched, 2),
-                            "focused": focused})
-                        self.screenshot("initial-lock-settings.png")
-                        return
-                    time.sleep(.1)
-                raise AssertionError("Native Settings did not resume inside first eight seconds")
-            # A second pull is justified only after observing a native panel.
-            if "com.android.systemui" not in packages:
                 break
-        raise AssertionError("Native Settings gear absent during first protected lock; initial window snapshots saved")
+        if gear is None:
+            # This is diagnostic evidence collected *after* the timed decision;
+            # each timestamp states when it was actually observed.
+            self.mark("first_lock_negative_snapshot_started", {
+                "seconds_after_target_launch": round(time.monotonic() - launched, 2)})
+            self.screenshot("initial-lock-gear-absent.png")
+            (self.out / "initial-lock-windows.xml").write_bytes(
+                ET.tostring(self.dump(all_windows=True)))
+            (self.out / "initial-lock-window.txt").write_text(
+                self.shell("dumpsys", "window", "windows"))
+            (self.out / "initial-lock-statusbar.txt").write_text(
+                self.shell("dumpsys", "statusbar"))
+            (self.out / "initial-lock-activity.txt").write_text(
+                self.shell("dumpsys", "activity", "activities"))
+            self.mark("first_lock_negative_snapshot_complete", {
+                "seconds_after_target_launch": round(time.monotonic() - launched, 2)})
+            raise AssertionError("Native SystemUI gear absent during first protected lock")
+        self.tap_node(gear)
+        tapped_at = time.monotonic() - launched
+        self.mark("first_lock_native_gear_tapped", {"bounds": gear.get("bounds"),
+                                                    "seconds_after_target_launch": round(tapped_at, 2)})
+        self.require(tapped_at < 8, "native gear tapped within first lock")
+        while time.monotonic() - launched < 8:
+            activity = self.shell("dumpsys", "activity", "activities")
+            focused = [line for line in activity.splitlines()
+                       if "topResumedActivity=" in line or "mResumedActivity:" in line]
+            observed_at = time.monotonic() - launched
+            if observed_at < 8 and any("com.android.settings" in line for line in focused):
+                self.mark("first_lock_settings_resumed", {
+                    "seconds_after_target_launch": round(observed_at, 2), "focused": focused})
+                self.screenshot("initial-lock-settings.png")
+                self.probe_early_panel_close()
+                return
+            time.sleep(.1)
+        raise AssertionError("Native Settings did not resume inside first eight seconds")
+
+    def probe_early_panel_close(self):
+        """Close a native panel early and observe the original breath clock."""
+        self.wait_overlay(False, timeout=3)
+        launched = time.monotonic()
+        self.shell("am", "start", "-W", "-n", FIXTURE + "/.TargetActivity")
+        self.wait_overlay(True, timeout=5)
+        before = self.dump()
+        before_remaining = self.breath_remaining(before)
+        self.require(before_remaining is not None and before_remaining > 0,
+                     "second protected launch shows an incomplete breath")
+        self.mark("early_close_breath_before_panel", {"remaining_seconds": before_remaining,
+                                                       "seconds_after_target_launch":
+                                                       round(time.monotonic() - launched, 2)})
+        for gesture in ("shade", "expand_shade"):
+            self.swipe(gesture)
+        panel = self.dump()
+        self.require(any(node.get("package") == "com.android.systemui"
+                         for node in panel.iter("node")),
+                     "native SystemUI panel visible before early Back")
+        self.require(not self.overlay_visible(),
+                     "physical Accessibility overlay detached for native panel")
+        self.shell("input", "keyevent", "KEYCODE_BACK")
+        closed_at = time.monotonic() - launched
+        self.mark("early_panel_back_sent", {"seconds_after_target_launch": round(closed_at, 2)})
+        self.require(closed_at < 8, "native panel closed before initial hard-lock deadline")
+        self.wait_overlay(True, timeout=3)
+        after = self.dump()
+        after_remaining = self.breath_remaining(after)
+        self.require(after_remaining is not None and 0 < after_remaining < before_remaining,
+                     "original breath resumed with less time remaining")
+        self.require(bool(self.shell("pidof", FIXTURE)), "synthetic target remains alive after panel close")
+        self.screenshot("early-panel-closed-breath-resumed.png")
+        self.mark("early_panel_close_verified", {"before_remaining_seconds": before_remaining,
+                                                  "after_remaining_seconds": after_remaining,
+                                                  "seconds_after_target_launch":
+                                                  round(time.monotonic() - launched, 2)})
+
+    def breath_remaining(self, hierarchy):
+        for node in hierarchy.iter("node"):
+            if not self.onscreen(node):
+                continue
+            match = re.search(r"Breathing\. (\d+)s remaining", self.label(node))
+            if match:
+                return int(match.group(1))
+        return None
 
     def run(self):
         self.started = time.monotonic()
