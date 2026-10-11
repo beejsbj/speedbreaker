@@ -26,6 +26,8 @@ class Demo:
         self.events = []
         self.assertions = {}
         self.video = None
+        self.observer = None
+        self.observer_sequence = 0
         self.recording = False
 
     def adb_call(self, *parts, timeout=30, binary=False, check=True):
@@ -61,30 +63,77 @@ class Demo:
         locale = self.shell("getprop", "persist.sys.locale")
         self.require(not locale or locale.startswith("en"), "English UI")
 
+    def start_observer(self):
+        # Instrumentation starts and finishes by force-stopping its target package.
+        # Start it once before the fixture target is opened, and keep it alive.
+        self.observer = subprocess.Popen(self.adb + ["shell", "am", "instrument", "-w",
+                                                  FIXTURE + "/.UiHierarchy"],
+                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        deadline = time.monotonic() + 15
+        while time.monotonic() < deadline:
+            if self.shell("run-as", FIXTURE, "ls", "files/ui-ready", check=False):
+                self.mark("ui_observer_ready", "persistent nonsuppressing fixture instrumentation")
+                return
+            if self.observer.poll() is not None:
+                output, error = self.observer.communicate()
+                raise AssertionError(f"UI observer exited at start: {output!r} {error!r}")
+            time.sleep(.1)
+        raise AssertionError("UI observer did not become ready")
+
     def dump(self):
-        # The fixture's UiAutomation explicitly keeps other Accessibility services
-        # connected. Stock `uiautomator dump` disconnects the service under test.
-        report = self.shell("am", "instrument", "-w", FIXTURE + "/.UiHierarchy", timeout=20)
-        if "INSTRUMENTATION_RESULT: result=PASS" not in report:
-            raise AssertionError(f"Fixture UI observer failed: {report}")
-        raw = self.adb_call("exec-out", "run-as", FIXTURE, "cat", "files/ui-hierarchy.xml",
-                            binary=True)
+        if self.observer is None or self.observer.poll() is not None:
+            raise AssertionError("Persistent UI observer is not running")
+        self.observer_sequence += 1
+        suffix = str(self.observer_sequence)
+        self.shell("run-as", FIXTURE, "touch", "files/ui-request-" + suffix)
+        deadline = time.monotonic() + 12
+        while time.monotonic() < deadline:
+            raw = self.adb_call("exec-out", "run-as", FIXTURE, "cat",
+                                "files/ui-response-" + suffix + ".xml", binary=True, check=False)
+            if raw:
+                try:
+                    root = ET.fromstring(raw)
+                except ET.ParseError as error:
+                    raise AssertionError(f"UI observer response {suffix} invalid XML: {error}") from error
+                if root.tag == "error":
+                    raise AssertionError("UI observer response: " + root.get("message", "unknown error"))
+                return root
+            if self.observer.poll() is not None:
+                raise AssertionError("Persistent UI observer exited during hierarchy query")
+            time.sleep(.1)
+        raise AssertionError(f"UI observer response {suffix} timed out")
+
+    def stop_observer(self):
+        if self.observer is None:
+            return
+        if self.observer.poll() is None:
+            self.shell("run-as", FIXTURE, "touch", "files/ui-stop", check=False)
         try:
-            return ET.fromstring(raw)
-        except ET.ParseError as error:
-            raise AssertionError(f"Fixture UI observer returned invalid XML: {error}") from error
+            output, error = self.observer.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            self.observer.kill()
+            output, error = self.observer.communicate()
+        report = output.decode(errors="replace") + error.decode(errors="replace")
+        self.assertions["persistent UI observer finished cleanly"] = (
+            "INSTRUMENTATION_RESULT: result=PASS" in report)
+        self.mark("ui_observer_finished", report[-800:])
 
     @staticmethod
     def label(node):
         return " ".join((node.get("text", ""), node.get("content-desc", ""))).strip()
 
-    def find(self, phrase, timeout=12, exact=False):
+    def find(self, phrase, timeout=12, exact=False, tappable=False):
         end = time.monotonic() + timeout
         while time.monotonic() < end:
             root = self.dump()
             for node in root.iter("node"):
                 label = self.label(node)
                 if (label == phrase if exact else phrase.casefold() in label.casefold()):
+                    if tappable:
+                        coords = list(map(int, re.findall(r"\d+", node.get("bounds", ""))))
+                        if (len(coords) != 4 or coords[2] <= coords[0]
+                                or coords[3] <= coords[1] or node.get("enabled") != "true"):
+                            continue
                     return node, root
             time.sleep(.5)
         raise AssertionError(f"UI did not show {phrase!r}; see last-ui.xml")
@@ -98,7 +147,7 @@ class Demo:
                    str((coords[1] + coords[3]) // 2))
 
     def tap(self, phrase, **kw):
-        node, _ = self.find(phrase, **kw)
+        node, _ = self.find(phrase, tappable=True, **kw)
         self.tap_node(node)
         self.mark("tap", phrase)
 
@@ -259,11 +308,21 @@ class Demo:
         self.tap_node(self.seek("Choose apps"))
         self.find("Search apps")
         self.tap("Search apps")
-        self.shell("input", "text", "Speedbreaker%stest%starget")
+        # A short unique query avoids dropped/interleaved key events on the cold
+        # API 36 keyboard (observed with the full synthetic target name).
+        self.shell("input", "text", "target")
+        self.require(any(node.get("text") == "target" and "EditText" in node.get("class", "")
+                         for node in self.dump().iter("node")),
+                     "synthetic target search query entered exactly")
         # The query text itself is also an Accessibility node with this label.
-        target = next((node for node in self.dump().iter("node")
-                       if self.label(node) == "Speedbreaker test target"
-                       and "EditText" not in node.get("class", "")), None)
+        deadline = time.monotonic() + 8
+        target = None
+        while time.monotonic() < deadline and target is None:
+            target = next((node for node in self.dump().iter("node")
+                           if self.label(node) == "Speedbreaker test target"
+                           and "EditText" not in node.get("class", "")), None)
+            if target is None:
+                time.sleep(.3)
         self.require(target is not None, "synthetic target row visible apart from search field")
         self.tap_node(target)
         self.mark("selected_synthetic_target", FIXTURE)
@@ -287,20 +346,36 @@ class Demo:
         launched = time.monotonic()
         self.shell("am", "start", "-W", "-n", FIXTURE + "/.TargetActivity")
         self.wait_overlay(True, timeout=6)
+        overlay_seen = time.monotonic()
+        target_pid = self.shell("pidof", FIXTURE)
+        self.require(bool(target_pid), "synthetic target process alive under overlay")
         self.mark("overlay_started")
         self.screenshot("breath-locked.png")
         self.require(time.monotonic() - launched < 8,
                      "locked breath captured inside initial eight seconds")
-        time.sleep(max(0, 8.5 - (time.monotonic() - launched)))
+        time.sleep(max(0, 9.0 - (time.monotonic() - overlay_seen)))
         self.wait_overlay(True, timeout=2)
         self.screenshot("choices-after-eight-seconds.png")
-        self.require(time.monotonic() - launched >= 8,
-                     "choices capture follows initial eight-second lock")
-        time.sleep(max(0, 12.5 - (time.monotonic() - launched)))
+        self.require(time.monotonic() - overlay_seen >= 8,
+                     "choices capture follows eight seconds of visible overlay")
+        time.sleep(max(0, 14.0 - (time.monotonic() - overlay_seen)))
+        self.wait_overlay(True, timeout=2)
+        deadline = time.monotonic() + 5
+        continue_enabled = False
+        while time.monotonic() < deadline:
+            hierarchy = self.dump()
+            continue_enabled = any(self.label(node) == "Continue" and node.get("enabled") == "true"
+                                   for node in hierarchy.iter("node"))
+            if continue_enabled:
+                break
+            time.sleep(.3)
+        self.require(continue_enabled, "Continue enabled after full breath")
+        self.require(self.shell("pidof", FIXTURE) == target_pid,
+                     "UI observer kept synthetic target process alive")
         self.wait_overlay(True, timeout=2)
         self.screenshot("choices-ready.png")
-        self.require(time.monotonic() - launched >= 12,
-                     "ready capture follows full 12-second breath")
+        self.require(time.monotonic() - overlay_seen >= 12,
+                     "ready capture follows full 12-second visible breath")
         # Preflight the native shade on this exact AVD profile. The timed second
         # launch uses its observed gear bounds without expensive XML dumps.
         self.shell("input", "keyevent", "KEYCODE_HOME")
@@ -399,6 +474,7 @@ class Demo:
             self.shell("input", "keyevent", "KEYCODE_WAKEUP")
             self.shell("wm", "dismiss-keyguard")
             self.adb_call("logcat", "-c")
+            self.start_observer()
             self.video = subprocess.Popen(self.adb + ["shell", "screenrecord", "--time-limit", "180",
                                                      "/sdcard/sb-store-demo.mp4"],
                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -463,6 +539,7 @@ class Demo:
                     self.video.communicate()
                 self.adb_call("pull", "/sdcard/sb-store-demo.mp4", str(self.out / "first-run.mp4"), check=False)
                 self.shell("rm", "/sdcard/sb-store-demo.mp4", check=False)
+            self.stop_observer()
             video_valid = self.finalized_mp4(self.out / "first-run.mp4")
             self.assertions["finalized screen recording"] = video_valid
             captures = {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
@@ -474,6 +551,8 @@ class Demo:
             }, indent=2) + "\n")
             if not video_valid:
                 raise AssertionError("Screen recording did not finalize; first-run.mp4 is not a valid MP4")
+            if self.observer and not self.assertions["persistent UI observer finished cleanly"]:
+                raise AssertionError("Persistent UI observer did not finish cleanly")
 
 
 def main():

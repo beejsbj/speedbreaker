@@ -15,7 +15,7 @@ import org.xmlpull.v1.XmlSerializer;
 import java.io.File;
 import java.io.FileOutputStream;
 
-/** One short, read-only hierarchy snapshot that leaves other Accessibility services connected. */
+/** Persistent, read-only observer: starting/stopping instrumentation kills its target package. */
 public final class UiHierarchy extends Instrumentation {
     @Override public void onCreate(Bundle arguments) {
         super.onCreate(arguments);
@@ -31,26 +31,48 @@ public final class UiHierarchy extends Instrumentation {
             info.flags |= AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
                     | AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS;
             automation.setServiceInfo(info);
-            AccessibilityNodeInfo root = null;
-            long deadline = SystemClock.uptimeMillis() + 2_000;
-            while (root == null && SystemClock.uptimeMillis() < deadline) {
-                root = automation.getRootInActiveWindow();
-                if (root == null) SystemClock.sleep(100);
+            File directory = getTargetContext().getFilesDir();
+            new File(directory, "ui-ready").createNewFile();
+            long deadline = SystemClock.uptimeMillis() + 240_000;
+            while (SystemClock.uptimeMillis() < deadline) {
+                if (new File(directory, "ui-stop").exists()) break;
+                File[] files = directory.listFiles();
+                if (files != null) for (File request : files) {
+                    if (!request.getName().startsWith("ui-request-")) continue;
+                    String suffix = request.getName().substring("ui-request-".length());
+                    File temporary = new File(directory, "ui-response-" + suffix + ".tmp");
+                    File response = new File(directory, "ui-response-" + suffix + ".xml");
+                    try (FileOutputStream stream = new FileOutputStream(temporary)) {
+                        XmlSerializer xml = Xml.newSerializer();
+                        xml.setOutput(stream, "UTF-8");
+                        xml.startDocument("UTF-8", true);
+                        AccessibilityNodeInfo root = null;
+                        long rootDeadline = SystemClock.uptimeMillis() + 1_000;
+                        while (root == null && SystemClock.uptimeMillis() < rootDeadline) {
+                            root = automation.getRootInActiveWindow();
+                            if (root == null) SystemClock.sleep(50);
+                        }
+                        if (root == null) {
+                            xml.startTag(null, "error");
+                            attribute(xml, "message", "No active Accessibility window");
+                            xml.endTag(null, "error");
+                        } else {
+                            xml.startTag(null, "hierarchy");
+                            writeNode(xml, root);
+                            xml.endTag(null, "hierarchy");
+                        }
+                        xml.endDocument();
+                        stream.flush();
+                    }
+                    if (!temporary.renameTo(response)) {
+                        throw new IllegalStateException("Could not publish " + response);
+                    }
+                    request.delete();
+                }
+                SystemClock.sleep(50);
             }
-            if (root == null) throw new IllegalStateException("No active Accessibility window");
-            File file = new File(getTargetContext().getFilesDir(), "ui-hierarchy.xml");
-            try (FileOutputStream stream = new FileOutputStream(file)) {
-                XmlSerializer xml = Xml.newSerializer();
-                xml.setOutput(stream, "UTF-8");
-                xml.startDocument("UTF-8", true);
-                xml.startTag(null, "hierarchy");
-                writeNode(xml, root);
-                xml.endTag(null, "hierarchy");
-                xml.endDocument();
-                stream.flush();
-            }
+            if (SystemClock.uptimeMillis() >= deadline) throw new IllegalStateException("Observer timed out");
             result.putString("result", "PASS");
-            result.putString("file", file.getName());
         } catch (Throwable failure) {
             result.putString("result", "FAIL");
             result.putString("failure", failure.toString());
