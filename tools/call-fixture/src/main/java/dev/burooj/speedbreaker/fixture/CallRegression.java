@@ -146,6 +146,8 @@ public final class CallRegression extends Instrumentation {
         }
         require(sawRinging, "No real Telecom RINGING state before the hard-lock deadline");
         require(accessible != null, "No unobstructed SystemUI Answer/Decline before eight seconds");
+        require(yieldedAt - firstLaunchAt < HARD_LOCK_MS,
+                "Window sampling completed after the eight-second hard lock");
         screenshot("systemui-incoming.png");
         // Keep ringing briefly: a one-shot yield followed by re-entry must fail.
         long holdUntil = SystemClock.elapsedRealtime() + 700;
