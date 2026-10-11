@@ -19,9 +19,12 @@ Tracking: Linear BJS-532. Working branch: `release/store-distribution`.
 
 - Preserve Android 8 on F-Droid; wait for rotation support instead of changing
   minimum SDK or signing identity.
-- GitHub/community BMC link remains. Play build implements native optional
-  Google Play Billing tips with no rewards or unlocks. Fees still apply; never
-  market the native flow as “100% reaches the creator.”
+- GitHub/community BMC link remains. The owner asked for Play direct tips and
+  was unsure after native fees/SDK processing were explained. The recommendation
+  is an external direct-tip route, with no Billing/diagnostics SDK. Its link is
+  hidden until actual destination, no-reward behavior and policy eligibility are
+  verified. Ko-fi Free's zero platform commission does not resolve Google's
+  processor-fee interpretation.
 - Apple Developer/App Store work stopped; keep the prototype as recoverable work.
 - A dedicated public support mailbox is being chosen; no invented email/contact.
 - Heavy Android builds/emulators use hosted CI; full Xcode was absent on the Mac.

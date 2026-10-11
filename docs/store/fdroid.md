@@ -33,7 +33,10 @@ The Donate URL remains the authorized BMC page.
 The tested fdroidserver version is a concrete local compatibility result; the
 production server's installed version has not been authenticated or inspected.
 Maintainers must confirm when their complete build/index/client pipeline accepts
-this lineage before inclusion can proceed.
+this lineage before inclusion can proceed. Their open [rotation support issue
+#1296](https://gitlab.com/fdroid/fdroidserver/-/issues/1296) addresses the signer
+index and AllowedAPKSigningKeys data model; the related [#1342 discussion](https://gitlab.com/fdroid/fdroidserver/-/work_items/1342) separates safe signature copying from missing rotation metadata support.
+A ready comment for that existing issue is in [the public reproduction packet](fdroid-rotation-report.md).
 
 ## Historical reproduction recipe
 

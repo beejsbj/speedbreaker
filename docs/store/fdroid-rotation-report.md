@@ -1,8 +1,10 @@
 # Ready upstream compatibility report
 
-**Draft; not filed.** Destination: fdroidserver issue tracker. Search existing
-rotation issues first and append the reproduction to the matching issue when a
-GitLab account is available, rather than filing duplicates.
+**Draft; not filed.** Destination: existing [fdroidserver #1296 — signing key rotation support](https://gitlab.com/fdroid/fdroidserver/-/issues/1296).
+Related [#1342 — rotation/signature copying](https://gitlab.com/fdroid/fdroidserver/-/work_items/1342)
+distinguishes signature-block copying from the signer/index/schema support.
+Append this concrete reproduction to the relevant existing issue after obtaining
+a GitLab account; do not file a duplicate rotation request.
 
 ## Title
 
