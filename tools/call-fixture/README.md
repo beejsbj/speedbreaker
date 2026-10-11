@@ -29,11 +29,13 @@ The script grants that permission to both APKs before enabling the service.
 It does not request notification-listener access. The fixture alone receives
 notification-policy access to enter silent mode reproducibly.
 
-The separate `Android device regression` workflow runs on pushes to the isolated
-`test/device-regression` branch and supports manual dispatch:
+The separate `Android device regression` workflow checks out the app candidate
+separately from the fixture. No production source is copied into this test branch.
+It runs on pushes to the isolated `test/device-regression` branch and supports
+manual dispatch with an independent app revision:
 
 ```sh
-gh workflow run android-device.yml --ref <branch-containing-fixture-and-call-fix>
+gh workflow run android-device.yml --ref test/device-regression -f app_ref=2b0bbddbd3ce647c67282a6c6680d072421a647f
 gh run list --workflow android-device.yml --limit 3
 gh run watch <run-id> --exit-status
 gh run download <run-id> --dir build/device-evidence
@@ -41,10 +43,13 @@ gh run download <run-id> --dir build/device-evidence
 
 GitHub requires a workflow to be registered before manual dispatch. The isolated
 branch push trigger permits initial registration without editing the main Android
-workflow. Those branch pushes allow the old APK's absent phone permission so the
-call assertion can demonstrate the baseline failure. Manual runs require the
-permission unless `-f baseline_without_phone_permission=true` is explicitly set.
-This switch never makes a failed call assertion pass.
+workflow. On that isolated branch the default candidate is pinned to `2b0bbdd`;
+elsewhere an empty `app_ref` tests the workflow's own revision. APK SHA-256 values
+and the separate app commit are recorded in `environment.json`.
+
+For a pre-fix negative control, select the old app revision and explicitly set
+`-f baseline_without_phone_permission=true`. This allows the old APK's absent
+permission but never makes a failed call assertion pass.
 
 `--scenario navigation|ringing|silent` runs a single case; the default runs all
 three and returns failure if any case fails. `--app-apk` can select a separately
@@ -53,9 +58,14 @@ APK to demonstrate the regression.
 
 ## Assertions and evidence
 
+- Setup warms one untimed overlay and, for call cases, a simulated incoming call
+  with SystemUI controls. Cold ART/Compose/dialer startup is outside the measured
+  window. The measured case then starts a fresh target session; its eight-second
+  deadline is unchanged. Trace rows distinguish `warmup` from `test`.
 - Navigation: first prove the overlay exists, inject Home and Recents, sample
   that it remains until at least 7.5 seconds after target launch, then require
-  release by ten seconds. This is a device-level coarse timing check; exact
+  release by ten seconds after the first observed overlay (launch can precede
+  creation by seconds on a cold renderer). This is a device-level coarse timing check; exact
   7,999/8,000 ms boundaries belong in deterministic engine tests.
 - Ringing and silent: first prove the overlay exists. The host injects a GSM
   call only after the fixture signals readiness. Require independent Telecom
@@ -84,6 +94,10 @@ Samsung behavior, every supported Android release, multi-SIM, VoIP outside
 Telecom, or a hard real-time response bound. Physical-device validation remains
 separate. The silent case checks silent ringer mode; it does not assume that
 every emulator build leaves `AudioManager.mode` normal while ringing.
+It explicitly permits call notifications and their visual effects in the AVD's
+DND policy: otherwise silent mode can hide the heads-up independently of the
+overlay. The fixture targets SDK 34 to configure that global test policy on
+Android 15; the product APK retains its own target SDK unchanged.
 
 ## Database seed
 

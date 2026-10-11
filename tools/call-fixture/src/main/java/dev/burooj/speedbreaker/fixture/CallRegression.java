@@ -43,6 +43,7 @@ public final class CallRegression extends Instrumentation {
     private long firstLaunchAt;
     private long readyAt;
     private long yieldedAt;
+    private long overlayObservedAt;
     private String stage = "warmup";
 
     @Override public void onCreate(Bundle arguments) {
@@ -88,7 +89,7 @@ public final class CallRegression extends Instrumentation {
             stage = "test";
             firstLaunchAt = 0;
             launchTarget();
-            awaitOverlay(true, launchedAt + 4_000);
+            overlayObservedAt = awaitOverlay(true, launchedAt + 4_000);
             screenshot("locked.png");
             if (scenario.equals("navigation")) testNavigation();
             else testCall();
@@ -157,7 +158,10 @@ public final class CallRegression extends Instrumentation {
         holdOverlayUntil(launchedAt + 3_000);
         sendKey(KeyEvent.KEYCODE_APP_SWITCH);
         holdOverlayUntil(launchedAt + 7_500);
-        awaitOverlay(false, launchedAt + 10_000);
+        // Launch can precede actual breaker creation by seconds on software-rendered CI.
+        // Lower-bound checks use launch (conservative); the release upper bound uses the
+        // first observed overlay, which is necessarily at/after its real creation.
+        awaitOverlay(false, overlayObservedAt + 10_000);
         screenshot("navigation-released.png");
     }
 
@@ -241,9 +245,9 @@ public final class CallRegression extends Instrumentation {
         }
     }
 
-    private void awaitOverlay(boolean expected, long deadline) throws Exception {
+    private long awaitOverlay(boolean expected, long deadline) throws Exception {
         while (SystemClock.elapsedRealtime() < deadline) {
-            if (snapshot().overlay == expected) return;
+            if (snapshot().overlay == expected) return SystemClock.elapsedRealtime();
             SystemClock.sleep(40);
         }
         throw new AssertionError("Timed out waiting for overlay=" + expected);
