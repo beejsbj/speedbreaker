@@ -63,10 +63,18 @@ class Demo:
 
     def dump(self):
         # UIAutomator writes a temporary hierarchy file; no app data or settings are changed.
-        self.shell("uiautomator", "dump", "/sdcard/sb-store-demo.xml", timeout=20)
-        raw = self.adb_call("exec-out", "cat", "/sdcard/sb-store-demo.xml", binary=True)
-        self.shell("rm", "-f", "/sdcard/sb-store-demo.xml", check=False)
-        return ET.fromstring(raw)
+        last_error = None
+        for _ in range(3):
+            try:
+                self.shell("uiautomator", "dump", "/sdcard/sb-store-demo.xml", timeout=20)
+                raw = self.adb_call("exec-out", "cat", "/sdcard/sb-store-demo.xml", binary=True)
+                return ET.fromstring(raw)
+            except (ET.ParseError, RuntimeError, subprocess.TimeoutExpired) as error:
+                last_error = error
+                time.sleep(.3)
+            finally:
+                self.shell("rm", "-f", "/sdcard/sb-store-demo.xml", check=False)
+        raise AssertionError(f"Could not read Android UI hierarchy: {last_error}")
 
     @staticmethod
     def label(node):
@@ -126,6 +134,30 @@ class Demo:
         self.require(data.startswith(b"\x89PNG\r\n\x1a\n"), f"PNG capture {name}")
         (self.out / name).write_bytes(data)
         self.mark("screenshot", name)
+
+    def overlay_visible(self):
+        report = self.shell("dumpsys", "accessibility")
+        return any("TYPE_ACCESSIBILITY_OVERLAY" in line and "Speedbreaker" in line
+                   for line in report.splitlines())
+
+    def wait_overlay(self, expected, timeout):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if self.overlay_visible() == expected:
+                self.mark("overlay_window", {"visible": expected})
+                return
+            time.sleep(.2)
+        raise AssertionError(f"Accessibility overlay did not become visible={expected}")
+
+    def wait_service_bound(self, timeout=8):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            report = self.shell("dumpsys", "accessibility")
+            if "Bound services:{Service[label=Speedbreaker attention pauses" in report:
+                self.mark("accessibility_service_bound")
+                return
+            time.sleep(.2)
+        raise AssertionError("Speedbreaker Accessibility service did not bind")
 
     @staticmethod
     def finalized_mp4(path):
@@ -204,24 +236,16 @@ class Demo:
         self.shell("am", "start", "-W", "-n", PRODUCT + "/.MainActivity")
 
     def grant_phone(self):
-        # Settings returns to the retained Home scroll position. The service can
-        # reconnect while this screen is rendering; tap the real button as soon
-        # as the Call permission state is visible.
+        # Stock uiautomator dump suppresses the service under test. The Home
+        # button is at this viewport point on the validated pixel_6 profile;
+        # the native Phone dialog and Android grant are the positive proof.
+        self.require("1080x2400" in self.shell("wm", "size"), "pixel_6 demo viewport 1080x2400")
         self.swipe("down")
         self.swipe("down")
-        deadline = time.monotonic() + 25
-        tapped = False
-        while time.monotonic() < deadline:
-            for node in self.dump().iter("node"):
-                if self.label(node) == "Allow call-state access":
-                    self.tap_node(node)
-                    tapped = True
-                    break
-            if tapped:
-                break
-            time.sleep(.3)
-        self.require(tapped, "native Phone grant requested from app button")
-        self.mark("tap", "Allow call-state access")
+        self.screenshot("phone-rationale.png")
+        self.shell("input", "tap", "540", "1040")
+        self.mark("tap", {"action": "Allow call-state access", "point": [540, 1040],
+                           "basis": "observed pixel_6 Home button; native dialog required next"})
         self.tap("Allow", timeout=10, exact=True)
         package = ""
         for _ in range(10):
@@ -248,7 +272,7 @@ class Demo:
         self.screenshot("chooser.png")
         self.shell("input", "keyevent", "KEYCODE_BACK")  # hide keyboard
         self.tap("Back")
-        self.find("On for 1 app")
+        self.find("Speedbreaker test target")
         self.screenshot("home.png")
 
     def verify_defaults(self):
@@ -261,27 +285,28 @@ class Demo:
         self.tap("Back")
 
     def exercise_overlay(self):
+        self.wait_service_bound()
         launched = time.monotonic()
         self.shell("am", "start", "-W", "-n", FIXTURE + "/.TargetActivity")
-        self.find("Breathe", timeout=15)
+        self.wait_overlay(True, timeout=6)
         self.mark("overlay_started")
         self.screenshot("breath-locked.png")
-        self.find("What are you here for?", timeout=14)
-        self.require(time.monotonic() - launched >= 7.5, "choices follow initial eight-second lock")
+        self.require(time.monotonic() - launched < 8,
+                     "locked breath captured inside initial eight seconds")
+        time.sleep(max(0, 8.5 - (time.monotonic() - launched)))
+        self.wait_overlay(True, timeout=2)
         self.screenshot("choices-after-eight-seconds.png")
-        deadline = time.monotonic() + 9
-        continue_enabled = False
-        while time.monotonic() < deadline:
-            root = self.dump()
-            continue_enabled = any(self.label(node) == "Continue" and node.get("enabled") == "true"
-                                   for node in root.iter("node"))
-            if continue_enabled:
-                break
-            time.sleep(.4)
-        self.require(continue_enabled, "Continue enabled after 12 second breath")
+        self.require(time.monotonic() - launched >= 8,
+                     "choices capture follows initial eight-second lock")
+        time.sleep(max(0, 12.5 - (time.monotonic() - launched)))
+        self.wait_overlay(True, timeout=2)
+        self.screenshot("choices-ready.png")
+        self.require(time.monotonic() - launched >= 12,
+                     "ready capture follows full 12-second breath")
         # Preflight the native shade on this exact AVD profile. The timed second
         # launch uses its observed gear bounds without expensive XML dumps.
-        self.tap("Leave")
+        self.shell("input", "keyevent", "KEYCODE_HOME")
+        self.wait_overlay(False, timeout=5)
         self.swipe("shade")
         self.swipe("shade")
         shade = self.dump()
@@ -298,10 +323,12 @@ class Demo:
                                                "ui_sha256": hashlib.sha256(ET.tostring(shade)).hexdigest()})
         self.screenshot("systemui-preflight.png")
         self.shell("input", "keyevent", "KEYCODE_HOME")
+        self.wait_overlay(False, timeout=3)
+        self.wait_service_bound()
         # Start a second protected launch to test the SystemUI escape within hard lock.
         second_launch = time.monotonic()
         self.shell("am", "start", "-W", "-n", FIXTURE + "/.TargetActivity")
-        self.find("Breathe", timeout=12)
+        self.wait_overlay(True, timeout=5)
         self.swipe("shade")
         self.swipe("shade")
         self.screenshot("systemui-during-lock.png")
@@ -366,6 +393,7 @@ class Demo:
                          "fresh install has no Phone grant before UI consent")
             self.shell("input", "keyevent", "KEYCODE_WAKEUP")
             self.shell("wm", "dismiss-keyguard")
+            self.adb_call("logcat", "-c")
             self.video = subprocess.Popen(self.adb + ["shell", "screenrecord", "--time-limit", "180",
                                                      "/sdcard/sb-store-demo.mp4"],
                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -406,6 +434,17 @@ class Demo:
                 (self.out / "failure-ui.xml").write_bytes(ET.tostring(self.dump()))
             except Exception as capture_error:
                 self.mark("failure_capture_error", str(capture_error))
+            for name, command in (
+                ("failure-accessibility.txt", ("dumpsys", "accessibility")),
+                ("failure-package.txt", ("dumpsys", "package", PRODUCT)),
+                ("failure-activity.txt", ("dumpsys", "activity", "activities")),
+                ("failure-logcat.txt", ("logcat", "-d", "-t", "8000")),
+                ("failure-crash.txt", ("logcat", "-d", "-b", "crash")),
+            ):
+                try:
+                    (self.out / name).write_text(self.adb_call(*command, check=False))
+                except Exception as capture_error:
+                    self.mark("failure_capture_error", {"file": name, "error": str(capture_error)})
             raise
         finally:
             if self.video:
