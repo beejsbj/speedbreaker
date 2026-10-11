@@ -70,10 +70,10 @@ continuous use, and active hours all day, every day. No redirects are configured
 | --- | --- | --- |
 | Breath length | **Defaults → Breath** | 8–60 seconds, shared by all chosen apps. The first eight seconds always hold the overlay. |
 | Repeat check-ins | An app → **Check in again** | Turn off, or choose an interval from 1 to 120 minutes. Opening pauses still apply. |
-| Redirect destinations | **Defaults → Redirects** | Choose exactly four eligible apps and save, or leave redirects empty. Chosen target apps cannot be redirects. |
+| Redirect destinations | **Defaults → Redirects** | Choose one to four eligible apps and save, or leave redirects empty. Chosen target apps cannot be redirects. |
 | Active hours | **Defaults → Schedule → Scheduled** | One active window per day, including overnight windows. Review the initial weekday 9 AM–5 PM schedule. |
 | One app's hours | An app → **Schedule** | Follow the default, stay always on, or set custom hours that replace the default. |
-| One app's redirects | An app → **Redirects → Custom** | Replace all four defaults, or leave the custom set empty to show none for that app. |
+| One app's redirects | An app → **Redirects → Custom** | Replace the default set with one to four apps, or leave the custom set empty to show none for that app. Choose Default to inherit again. |
 | Stop pausing one app | An app → **Stop pausing…** | Remove it from the chosen apps. |
 
 Schedules use the phone's local time. Days without a scheduled window are off.
@@ -147,8 +147,9 @@ the change. Breathing interventions work without notification permission.
 
 ### Redirect buttons are missing
 
-The redirect row is optional and appears only with four valid destinations.
-Choose four apps in Defaults, or in that app's Custom redirects, and save. An
+The redirect row is optional and appears with one to four valid destinations.
+Choose up to four apps in Defaults, or in that app's Custom redirects, and save.
+An empty Custom set shows none for that app; Default inherits the global set. An
 app selected as a target cannot also be a redirect.
 
 ### Installation or an update fails

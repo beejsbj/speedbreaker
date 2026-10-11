@@ -20,7 +20,7 @@ Build a rough, runnable phone-scale prototype of Speedbreaker's settled interact
 * At eight seconds, Leave, configured redirects, and Pause become actionable. Continue becomes actionable only when the configured total breath finishes. For a 30-second breath this is 8 locked seconds plus 22 seconds before Continue unlocks.
 * The fixed reflection is “What are you here for?” It requires no input and stores no answer.
 * Continue and Leave share the first row with equal width and emphasis: Continue left, Leave right. Continue dismisses the overlay and starts the session interval; Leave performs Android Home.
-* A second row appears only when configured and contains exactly four redirect buttons. Four global destinations are required; a per-app override replaces all four. Redirects must be non-target apps. Tapping one launches it immediately and ends the target session.
+* A second row appears only when configured and contains one to four redirect buttons with app icons and labels. Global destinations are optional (zero to four); a per-app override replaces the global set. Default inherits the global set; an explicit empty custom set shows no redirects. Redirects must be distinct non-target apps. Tapping one launches it immediately and ends the target session. Sets over four are invalid and never truncated into launch choices.
 * Pause sits in the top-right corner and reports its remaining allowance.
 * The surface is silent, with one subtle haptic on opening and another when choices unlock, while respecting reduced-motion settings.
 * After the first eight seconds, Home, Back, and Recents yield immediately and end the target session.
@@ -40,7 +40,7 @@ Build a rough, runnable phone-scale prototype of Speedbreaker's settled interact
 * The optional global schedule supports at most one active window per day, copyable across days and allowed to cross midnight.
 * A per-app schedule replaces, rather than layers over, the global schedule.
 * Outside its effective schedule an app is completely unenforced and its session is cleared. If the schedule becomes active while the app is visible, intervene immediately.
-* Per-app customization is deliberately limited to continuous-use interval/on-off, schedule, and replacing all four redirects. Breath, cooldown, intervention phrase, and pause allowance remain global and opinionated.
+* Per-app customization is deliberately limited to continuous-use interval/on-off, schedule, and replacing the global redirect set with zero to four destinations. Breath, cooldown, intervention phrase, and pause allowance remain global and opinionated.
 
 ## Onboarding, recovery, and data
 
@@ -101,3 +101,17 @@ a fresh breath. A safety dismissal never forwards Back into the exposed call UI.
 
 Home now shows active pauses with an End now action for each app. These controls
 remain available if Android 14+ lets the user dismiss the pause notification.
+
+## October 11 redirect-count owner correction
+
+Burooj’s [issue #9](https://github.com/beejsbj/speedbreaker/issues/9), opened
+October 11 at 18:21 UTC, explicitly allows fewer than four redirects. This
+supersedes the earlier exactly-four contract for the next Android candidate.
+One, two, three, and four selections can be saved globally or per app; zero
+remains optional. Choosing a redirect app as a target removes it from the global
+and custom redirect lists while preserving the remaining destinations.
+
+Existing four-app settings keep their order and meaning. Per-app Default
+continues to inherit, Custom replaces the entire set, and clearing Custom keeps
+an explicit empty override. Breath timing, navigation, safety escape, schedules,
+pauses, local privacy, and all-free behavior retain their existing contracts.

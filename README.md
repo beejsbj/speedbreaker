@@ -25,7 +25,7 @@ See the [release notes](https://github.com/beejsbj/speedbreaker/releases/tag/v1.
 - **Choose your own apps.** Nothing is selected for you.
 - **Take a breath.** Twelve seconds by default, adjustable from 8 to 60 seconds.
 - **Decide what comes next.** Continue in the app, Leave for your home screen,
-  or choose one of four optional redirect apps, with their own icons.
+  or choose from up to four optional redirect apps, with their own icons.
 - **Check in again.** By default, another breath follows ten minutes of
   continuous use. Change the interval or turn check-ins off for each app.
 - **Set your hours.** Stay active all day or choose a weekly schedule, with
