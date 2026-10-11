@@ -9,35 +9,54 @@ internal class TipLedger {
         private set
     var awaitingPlayReturn = false
         private set
+    var checkoutGeneration = 0L
+        private set
     val blocked: Boolean get() = checkoutOpen || unresolved.isNotEmpty()
 
     fun beginCheckout(): Boolean {
         if (blocked) return false
+        checkoutGeneration++
         checkoutOpen = true
         return true
     }
 
-    fun launched() { awaitingPlayReturn = true }
+    /** This preparation owns the checkout lock, but never bypasses unresolved receipts. */
+    fun ownsCheckout(generation: Long): Boolean = checkoutOpen && checkoutGeneration == generation
 
-    fun checkoutReturned() {
+    fun preparing(generation: Long): Boolean = ownsCheckout(generation) &&
+        !awaitingPlayReturn && unresolved.isEmpty()
+
+    fun launched(generation: Long = checkoutGeneration): Boolean {
+        if (!preparing(generation)) return false
+        awaitingPlayReturn = true
+        return true
+    }
+
+    fun invalidatePreparation() {
+        if (!awaitingPlayReturn) checkoutReturned()
+    }
+
+    fun checkoutReturned(generation: Long = checkoutGeneration) {
+        if (generation != checkoutGeneration) return
         checkoutOpen = false
         awaitingPlayReturn = false
     }
 
-    fun billingReturned() {
-        if (awaitingPlayReturn) checkoutReturned()
+    fun billingReturned(generation: Long = checkoutGeneration) {
+        if (awaitingPlayReturn) checkoutReturned(generation)
     }
 
     fun alreadyHandled(token: String): Boolean = token in handled
 
-    fun pending(token: String) { unresolved.add(token) }
+    fun pending(token: String) {
+        invalidatePreparation()
+        unresolved.add(token)
+    }
 
     fun beginConsume(token: String): Boolean {
+        if (token in handled) return false
+        invalidatePreparation()
         unresolved.add(token)
-        if (token in handled) {
-            unresolved.remove(token)
-            return false
-        }
         return consuming.add(token)
     }
 

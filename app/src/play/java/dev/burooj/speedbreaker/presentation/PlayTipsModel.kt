@@ -41,6 +41,10 @@ internal class PlayTipsModel(
     private var refreshing = false
     private var recovered = false
     private var retryJob: Job? = null
+    // A return remains due until an authoritative query succeeds for this checkout.
+    private var returnRecoveryGeneration: Long? = null
+    // Purchase updates/disconnects supersede queries that started before those events.
+    private var billingRevision = 0L
     private val billing = billingFactory(
         { code, purchases ->
             viewModelScope.launch {
@@ -48,6 +52,8 @@ internal class PlayTipsModel(
                 if (code == BillingResponseCode.OK && purchases.isNotEmpty() &&
                     purchases.all { ledger.alreadyHandled(it.purchaseToken) }
                 ) return@launch
+                billingRevision++
+                ledger.invalidatePreparation()
                 ledger.billingReturned()
                 when (code) {
                     BillingResponseCode.OK -> process(purchases)
@@ -63,6 +69,8 @@ internal class PlayTipsModel(
         },
         {
             viewModelScope.launch {
+                billingRevision++
+                ledger.invalidatePreparation()
                 recovered = false
                 publish("Google Play disconnected. Tips are temporarily unavailable.", clearOffers = true)
                 retryLater()
@@ -71,7 +79,11 @@ internal class PlayTipsModel(
     )
 
     fun resume() {
-        viewModelScope.launch { refresh(returnedFromCheckout = true) }
+        // Record before refresh's single-flight guard: a foreground event can arrive mid-query.
+        viewModelScope.launch {
+            if (ledger.awaitingPlayReturn) returnRecoveryGeneration = ledger.checkoutGeneration
+            refresh()
+        }
     }
 
     fun retry() { viewModelScope.launch { refresh() } }
@@ -85,30 +97,46 @@ internal class PlayTipsModel(
         )
     }
 
-    private suspend fun refresh(returnedFromCheckout: Boolean = false) {
+    private suspend fun refresh() {
         if (!verification.configured || refreshing) return
-        val recoverCheckout = returnedFromCheckout && ledger.awaitingPlayReturn
+        val recoverCheckout = returnRecoveryGeneration
+        val queryGeneration = ledger.checkoutGeneration
+        val queryRevision = billingRevision
+        ledger.invalidatePreparation()
         refreshing = true
         recovered = false
         publish("Checking availability with Google Play…", clearOffers = true)
         try {
-            if (billing.connect() != BillingResponseCode.OK) {
+            val connection = billing.connect()
+            if (queryRevision != billingRevision || queryGeneration != ledger.checkoutGeneration) {
+                retryLater()
+                return
+            }
+            if (connection != BillingResponseCode.OK) {
                 publish("Google Play is unavailable. You can retry when it is connected.")
                 retryLater()
                 return
             }
             val owned = billing.purchases()
+            if (queryRevision != billingRevision || queryGeneration != ledger.checkoutGeneration) {
+                retryLater()
+                return
+            }
             if (owned.code != BillingResponseCode.OK) {
                 publish("Could not check earlier tips. Retry before starting another checkout.")
                 retryLater()
                 return
             }
-            if (recoverCheckout) ledger.billingReturned()
+            if (recoverCheckout != null) {
+                ledger.billingReturned(recoverCheckout)
+                if (returnRecoveryGeneration == recoverCheckout) returnRecoveryGeneration = null
+            }
             ledger.reconcile(owned.value.filter { it.products.any(tipProductIds::contains) }
                 .map { it.purchaseToken }.toSet())
             recovered = true
             process(owned.value)
             val offers = billing.offers()
+            if (queryRevision != billingRevision || queryGeneration != ledger.checkoutGeneration) return
             mutableState.value = mutableState.value.copy(
                 offers = if (offers.code == BillingResponseCode.OK) offers.value else emptyList(),
             )
@@ -119,37 +147,46 @@ internal class PlayTipsModel(
             }
         } catch (error: Exception) {
             if (error is CancellationException && error !is TimeoutCancellationException) throw error
+            if (queryRevision != billingRevision || queryGeneration != ledger.checkoutGeneration) return
             recovered = false
             publish("Google Play did not finish the check. Please retry.", clearOffers = true)
             retryLater()
         } finally {
             refreshing = false
             publish(mutableState.value.message)
+            if (returnRecoveryGeneration != null && ledger.awaitingPlayReturn) retryLater()
         }
     }
 
     fun buy(activity: Activity, selected: PlayTipOffer) {
         if (!mutableState.value.canBuy || !ledger.beginCheckout()) return
+        val generation = ledger.checkoutGeneration
+        val preparationRevision = billingRevision
         publish("Checking the current price…")
         viewModelScope.launch {
             try {
                 // Never launch with cached ProductDetails: price/eligibility can change while chooser is open.
                 val fresh = billing.offers()
+                // An intervening callback may have canceled this preparation and published
+                // pending/error state. Neither a late result nor its exception may replace it.
+                if (!recovered || !ledger.preparing(generation)) return@launch
                 val current = fresh.value.firstOrNull { it.details.productId == selected.details.productId }
                 if (fresh.code != BillingResponseCode.OK || current == null) {
-                    ledger.checkoutReturned()
+                    ledger.checkoutReturned(generation)
                     publish("This tip is unavailable. Retry for current prices.", clearOffers = true)
                     recovered = false
                     publish(mutableState.value.message)
                 } else if (current.price != selected.price || current.token != selected.token) {
-                    ledger.checkoutReturned()
+                    ledger.checkoutReturned(generation)
                     mutableState.value = mutableState.value.copy(offers = fresh.value)
                     publish("The available price changed. Please review it and choose again.")
                 } else {
-                    ledger.launched()
+                    if (!ledger.launched(generation)) return@launch
+                    val launchRevision = billingRevision
                     val code = billing.launch(activity, current)
+                    if (launchRevision != billingRevision || !ledger.ownsCheckout(generation)) return@launch
                     if (code != BillingResponseCode.OK) {
-                        ledger.checkoutReturned()
+                        ledger.checkoutReturned(generation)
                         recovered = false
                         publish("Checkout could not open. Retry to check Google Play.", clearOffers = true)
                         retryLater()
@@ -158,8 +195,9 @@ internal class PlayTipsModel(
                     }
                 }
             } catch (error: Exception) {
-                ledger.checkoutReturned()
                 if (error is CancellationException && error !is TimeoutCancellationException) throw error
+                if (preparationRevision != billingRevision || !ledger.ownsCheckout(generation)) return@launch
+                ledger.checkoutReturned(generation)
                 recovered = false
                 publish("Checkout is unavailable. Please retry.", clearOffers = true)
                 retryLater()
