@@ -142,15 +142,22 @@ def verify(args):
     target = re.search(r"^targetSdkVersion:'([^']+)'", badging, re.M)
     permissions = sorted(set(re.findall(r"^uses-permission(?:-sdk-23)?: name='([^']+)'", permissions_text, re.M)))
     assert package and sdk and target, "aapt badging omitted package or SDK metadata"
-    assert (package.group(1), package.group(2), sdk.group(1), target.group(1)) == ("dev.burooj.speedbreaker", "6", "26", "36")
-    assert "android.permission.INTERNET" not in permissions, permissions
     billing = "com.android.vending.BILLING"
-    assert (billing in permissions) == (args.channel == "play"), permissions
     # Android's binary XML rendering uses android:debuggable(0x0101000f).
-    assert not re.search(r"android:debuggable(?:\([^)]*\))?=.*(?:0xffffffff|true)", xmltree, re.I), "debuggable APK"
+    debuggable = bool(re.search(r"android:debuggable(?:\([^)]*\))?=.*(?:0xffffffff|true)", xmltree, re.I))
+    violations = []
+    if (package.group(1), package.group(2), sdk.group(1), target.group(1)) != ("dev.burooj.speedbreaker", "6", "26", "36"):
+        violations.append("package/version/SDK mismatch")
+    if "android.permission.INTERNET" in permissions:
+        violations.append("INTERNET permission present")
+    if (billing in permissions) != (args.channel == "play"):
+        violations.append("Billing permission mismatch")
+    if debuggable:
+        violations.append("debuggable APK")
     manifest = {"channel": args.channel, "package": package.group(1), "versionCode": int(package.group(2)),
                 "minSdk": int(sdk.group(1)), "targetSdk": int(target.group(1)), "permissions": permissions,
-                "debuggable": False, "inspectionTool": Path(aapt).name, "apkSha256": digest(apk.read_bytes())}
+                "debuggable": debuggable, "policyViolations": violations,
+                "inspectionTool": Path(aapt).name, "apkSha256": digest(apk.read_bytes())}
     root = Path(args.output)
     write_json(root / "manifest.json", manifest)
     (root / "manifest-aapt.txt").write_text("BADGING\n" + badging + "\nPERMISSIONS\n" + permissions_text + "\nXMLTREE\n" + xmltree + "\n")
@@ -167,6 +174,8 @@ def verify(args):
                   "pullRequestHeadSha": pr.get("head", {}).get("sha"), "artifactSha256": artifact_hashes,
                   "channel": args.channel, "signed": False}
     write_json(root / "provenance.json", provenance)
+    if violations:
+        raise ValueError(f"{args.channel} final APK policy failed: {', '.join(violations)}; see manifest.json")
     print(f"{args.channel}: manifest verified; APK SHA-256 {manifest['apkSha256']}")
 
 

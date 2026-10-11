@@ -75,6 +75,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Collect POM licenses and verify final APK manifest
+        id: manifest
+        continue-on-error: true
         env:
           CHANNEL: ${{ matrix.channel }}
         run: |
@@ -105,3 +107,6 @@ jobs:
             app/build/test-results/
             app/build/reports/
           retention-days: 30
+      - name: Enforce final APK policy
+        if: always()
+        run: test "${{ steps.manifest.outcome }}" = success
