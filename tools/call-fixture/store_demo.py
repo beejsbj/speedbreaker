@@ -561,9 +561,12 @@ class Demo:
             # The preceding call regression grants Phone permission. pm clear does
             # not revoke runtime grants, so reinstall both test packages afresh.
             for package in (PRODUCT, FIXTURE):
-                result = self.adb_call("uninstall", package, check=False)
-                self.require(result == "Success" or "not installed" in result.lower(),
-                             "uninstalled test package " + package)
+                installed = self.shell("pm", "path", package, check=False).startswith("package:")
+                if installed:
+                    result = self.adb_call("uninstall", package, check=False)
+                    self.require(result == "Success", "uninstalled test package " + package)
+                else:
+                    self.mark("fresh_package_absent", package)
             for apk in (self.args.app_apk, self.args.fixture_apk):
                 self.adb_call("install", "-t", str(apk.resolve()), timeout=120)
             for package in (PRODUCT, FIXTURE):
