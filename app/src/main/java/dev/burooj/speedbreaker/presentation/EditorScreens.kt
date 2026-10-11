@@ -73,7 +73,7 @@ internal fun DefaultsScreen(
 
     Section(
         title = "Redirects",
-        footnote = "Four places to go instead, shown under Continue and Leave.",
+        footnote = "Up to four optional places to go instead, shown under Continue and Leave.",
     ) {
         RedirectSlots(settings.redirects, onRedirects)
     }
