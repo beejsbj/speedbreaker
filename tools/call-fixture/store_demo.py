@@ -469,23 +469,42 @@ class Demo:
         self.require(PRODUCT in enabled, "native Accessibility service enabled")
         self.mark("native_accessibility_enabled", enabled)
         self.screenshot("accessibility-enabled.png")
-        # Finish the native Settings transition before returning to the app.
-        # Queuing Back twice can run after am start and put Settings on top again.
-        self.shell("input", "keyevent", "KEYCODE_HOME")
-        deadline = time.monotonic() + 5
-        launcher_ready = False
-        while time.monotonic() < deadline:
-            activity = self.shell("dumpsys", "activity", "activities")
-            focused = [line for line in activity.splitlines()
-                       if "topResumedActivity=" in line or "mResumedActivity:" in line]
-            if any("launcher" in line.lower() for line in focused):
-                launcher_ready = True
+        # Settings is stacked above MainActivity in the app's task. Starting the
+        # task again merely brings Settings back; navigate each page in the UI.
+        for step in range(4):
+            root = self.dump()
+            home = next((node for node in root.iter("node")
+                         if node.get("package") == PRODUCT
+                         and "Off for now" in self.label(node) and self.onscreen(node)), None)
+            if home is not None:
+                activity = self.shell("dumpsys", "activity", "activities")
+                focused = [line for line in activity.splitlines()
+                           if "topResumedActivity=" in line or "mResumedActivity:" in line]
+                self.require(any(PRODUCT + "/.MainActivity" in line for line in focused),
+                             "Speedbreaker Home foreground after native grant")
+                self.mark("returned_home_from_native_accessibility", {"back_steps": step})
                 break
-            time.sleep(.2)
-        self.require(launcher_ready, "launcher resumed after native Accessibility grant")
-        self.shell("am", "start", "-W", "-n", PRODUCT + "/.MainActivity")
-        home, _ = self.find("Off for now", timeout=10)
-        self.require(home.get("package") == PRODUCT, "Speedbreaker Home visible after native grant")
+            self.require(any(node.get("package") == "com.android.settings"
+                             for node in root.iter("node")),
+                         "native Settings visible before Back to Speedbreaker")
+            before = tuple((node.get("package"), self.label(node)) for node in root.iter("node")
+                           if self.onscreen(node) and self.label(node)
+                           and node.get("package") in (PRODUCT, "com.android.settings"))
+            self.shell("input", "keyevent", "KEYCODE_BACK")
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline:
+                after = self.dump()
+                current = tuple((node.get("package"), self.label(node)) for node in after.iter("node")
+                                if self.onscreen(node) and self.label(node)
+                                and node.get("package") in (PRODUCT, "com.android.settings"))
+                if current and current != before:
+                    self.mark("native_settings_back_transition", {"step": step + 1})
+                    break
+                time.sleep(.2)
+            else:
+                raise AssertionError("Native Settings did not change after Back")
+        else:
+            raise AssertionError("Native Settings Back never returned to Speedbreaker Home")
 
     def grant_phone(self):
         self.wait_service_bound()
