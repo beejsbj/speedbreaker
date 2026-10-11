@@ -219,9 +219,25 @@ class Demo:
                                                    "bounds": stable.get("bounds")})
             self.tap_node(stable)
             self.mark("tap", "Not now — close")
-            deadline = time.monotonic() + 4
+            deadline = time.monotonic() + 6
+            absent_reads = 0
             while time.monotonic() < deadline:
-                if not self.visible("Make the next tap intentional."):
+                try:
+                    root = self.dump()
+                except AssertionError as error:
+                    # Closing Welcome can briefly leave Android with no active
+                    # accessibility window. That transition is not a verdict.
+                    if str(error) != "UI observer response: No active Accessibility window":
+                        raise
+                    self.mark("decline_window_transition")
+                    time.sleep(.25)
+                    continue
+                welcome_visible = any(self.onscreen(node) and
+                                      "Make the next tap intentional.".casefold()
+                                      in self.label(node).casefold()
+                                      for node in root.iter("node"))
+                absent_reads = 0 if welcome_visible else absent_reads + 1
+                if absent_reads >= 2:
                     self.mark("declined_without_consent")
                     return
                 time.sleep(.25)
