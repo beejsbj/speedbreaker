@@ -32,3 +32,15 @@ MCP session. The phone server's [v1.11.1 transport](https://github.com/danieleal
 caps sessions at 100 and retains idle sessions for seven days. Omitting cleanup
 exhausted that limit during September 20 testing and required an owner-operated
 server restart. The task-scoped Python helper now closes sessions on exit.
+
+## Release builds on the shared host
+
+Build `assembleRelease` and run `testDebugUnitTest` in separate Gradle
+processes. The first release DEX compilation retained enough compiler state
+to make the combined release/test run take 29 minutes under host memory
+pressure on October 11. The suite ultimately passed, but this is avoidable
+resource contention. Keep the same single-worker/1 GiB heap limits and run
+`lintRelease` separately. Do not launch concurrent Gradle processes.
+
+Package the resulting release using [release signing](release.md). The
+non-debuggable release does not include Compose's debug tooling.
