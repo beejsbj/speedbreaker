@@ -26,6 +26,47 @@ import org.junit.Test
 
 class SpeedbreakerRepositoryTest {
     @Test(timeout = 15_000)
+    fun redirectEdits_surviveReloadAndKeepInheritanceSeparateFromExplicitEmpty() = runBlocking {
+        val dao = BlockingDao(Settings(
+            breathSeconds = 12,
+            apps = mapOf("custom" to AppPolicy(continuousSeconds = 720), "inherited" to AppPolicy()),
+        ))
+        var repository = loadedRepository(dao)
+        for (count in listOf(4, 3, 2, 1, 0)) {
+            val destinations = (1..count).map { "alt.$it" }
+            repository.updateSettings { current ->
+                current.copy(
+                    redirects = destinations,
+                    apps = current.apps + ("custom" to current.apps.getValue("custom").copy(redirects = destinations)),
+                )
+            }
+            repository = loadedRepository(dao)
+            assertEquals(destinations, repository.settings.value.redirects)
+            assertEquals(destinations, repository.settings.value.apps.getValue("custom").redirects)
+            assertNull(repository.settings.value.apps.getValue("inherited").redirects)
+            assertEquals(12, repository.settings.value.breathSeconds)
+            assertEquals(720, repository.settings.value.apps.getValue("custom").continuousSeconds)
+        }
+        repository.updateSettings { current ->
+            current.copy(apps = current.apps + ("custom" to current.apps.getValue("custom").copy(redirects = null)))
+        }
+        assertNull(loadedRepository(dao).settings.value.apps.getValue("custom").redirects)
+    }
+
+    @Test(timeout = 15_000)
+    fun selectingARedirectAsATarget_removesItFromGlobalAndCustomSets() = runBlocking {
+        val dao = BlockingDao(Settings(
+            apps = mapOf("target" to AppPolicy(redirects = listOf("one", "two", "three"))),
+            redirects = listOf("one", "two"),
+        ))
+        val repository = loadedRepository(dao)
+        repository.updateSettings { it.copy(apps = it.apps + ("one" to AppPolicy())) }
+        val reloaded = loadedRepository(dao).settings.value
+        assertEquals(listOf("two"), reloaded.redirects)
+        assertEquals(listOf("two", "three"), reloaded.apps.getValue("target").redirects)
+    }
+
+    @Test(timeout = 15_000)
     fun cancelledSettingsRemoval_staysPublishedAndSurvivesAnUnrelatedEdit() = runBlocking {
         val initial = Settings(apps = mapOf("target" to AppPolicy()))
         val dao = BlockingDao(initial)

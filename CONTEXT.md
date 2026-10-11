@@ -27,8 +27,11 @@ Background time does not count.
 
 **Leave**: end the target session and return Home after the eight-second lock.
 
-**Redirect**: leave the target for one of exactly four configured alternative
-apps. Redirects must be non-target apps. Per-app alternatives replace all four.
+**Redirect**: leave the target for one of one to four configured alternative
+apps, or configure none. Redirects must be non-target apps. Per-app alternatives
+replace the global set; an empty custom set shows none, while Default inherits.
+This follows Burooj’s October 11 [owner correction #9](https://github.com/beejsbj/speedbreaker/issues/9),
+which supersedes the earlier exactly-four requirement for the next candidate.
 
 **Pause**: one of two per-target, per-local-day tokens that grants fifteen
 minutes immediately. The active pause and today's token count persist locally;

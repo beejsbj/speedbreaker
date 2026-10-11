@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.dp
 import dev.burooj.speedbreaker.enforcement.Breaker
 import dev.burooj.speedbreaker.enforcement.Choice
 import dev.burooj.speedbreaker.enforcement.Trigger
+import dev.burooj.speedbreaker.model.Redirects
 import dev.burooj.speedbreaker.presentation.components.AppGlyph
 import dev.burooj.speedbreaker.presentation.components.Eyebrow
 import dev.burooj.speedbreaker.presentation.components.pressShape
@@ -134,7 +135,9 @@ internal fun BreakerOverlay(
                 val choices: @Composable () -> Unit = {
                     Choices(
                         moment = moment,
-                        redirects = redirects.takeIf { it.size == REDIRECT_COUNT }.orEmpty(),
+                        redirects = redirects.takeIf { destinations ->
+                            Redirects.isValid(destinations.map { it.packageName })
+                        }.orEmpty(),
                         motionEnabled = motionEnabled,
                         onChoice = onChoice,
                     )
@@ -621,4 +624,3 @@ private val BreathEasing = CubicBezierEasing(0.37f, 0f, 0.63f, 1f)
 private const val BREATH_HALF_MS = 4_000L
 private const val TICK_SMOOTHING_MS = 250
 private const val HARD_LOCK_MS = 8_000L
-private const val REDIRECT_COUNT = 4

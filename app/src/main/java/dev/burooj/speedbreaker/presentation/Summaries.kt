@@ -73,7 +73,12 @@ internal fun appSummary(policy: AppPolicy, settings: Settings, use24Hour: Boolea
 }
 
 internal fun defaultsSummary(settings: Settings, use24Hour: Boolean): String {
-    val redirects = if (settings.redirects.size == 4) "4 redirects" else "no redirects"
+    val count = settings.redirects.size
+    val redirects = when (count) {
+        0 -> "no redirects"
+        1 -> "1 redirect"
+        else -> "$count redirects"
+    }
     val schedule = scheduleSummary(settings.schedule, use24Hour).inSentence()
     return "${settings.breathSeconds}-second breath · $schedule · $redirects"
 }

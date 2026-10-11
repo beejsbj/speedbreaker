@@ -10,7 +10,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasScrollToIndexAction
@@ -88,7 +87,7 @@ class PickerReachabilityTest {
         }
 
         compose.onNodeWithText("Clear").assertIsDisplayed().assertIsEnabled()
-        compose.onNodeWithText("3 of 4 chosen").assertIsDisplayed().assertIsNotEnabled()
+        compose.onNodeWithText("Save").assertIsDisplayed().assertIsEnabled()
         val list = compose.onNode(hasScrollToIndexAction())
         list.performScrollToNode(hasText(apps.last().label) and isToggleable())
         compose.onNode(hasText(apps.last().label) and isToggleable()).assertIsDisplayed()
