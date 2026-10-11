@@ -1,0 +1,60 @@
+name: Bug report
+description: Report unexpected behavior or a device-specific problem.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Speedbreaker. Check the setup guide and existing issues first.
+        The first eight seconds of a breath hold the overlay; One Hand Operation+ gestures are unavailable while it is visible.
+        Issues are public. Remove personal details from screenshots and logs. For vulnerabilities, use [private reporting](https://github.com/beejsbj/speedbreaker/security/advisories/new).
+  - type: input
+    id: app-version
+    attributes:
+      label: Speedbreaker version and source
+      description: Find the version in Android app info. Say whether this is a GitHub release or a local build; include the commit for a local build if known.
+      placeholder: "1.0.0 (code 3), GitHub release"
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Phone model and Android version
+      description: Include the manufacturer's software version if known. Do not include a device serial number or IMEI.
+      placeholder: "Samsung Galaxy S23+, Android 16, One UI 8.5"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Describe the smallest sequence that triggers the problem, including relevant breath, check-in, schedule, or Pause settings.
+      placeholder: |
+        1. Select a test app...
+        2. Open it...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include any exact error message and how often it happens.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Relevant device context
+      description: If relevant, describe Accessibility status, notification permission, battery restrictions, navigation buttons or gestures, split-screen or picture-in-picture, text size, and whether this followed a restart or idle period.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Optional screenshots or short log excerpts
+      description: Share only what is needed. Redact private notifications, account details, and unrelated app content. Do not attach a full device bug report or unreviewed logs.

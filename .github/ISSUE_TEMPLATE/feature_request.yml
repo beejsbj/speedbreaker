@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest an improvement and explain the situation it would help.
+title: "[Idea]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check existing issues before opening a new request. Describe the need first; a proposed implementation is optional.
+        Current platform and store plans are documented in [Distribution](https://github.com/beejsbj/speedbreaker/blob/main/docs/distribution.md).
+  - type: textarea
+    id: situation
+    attributes:
+      label: What would you like to improve?
+      description: Describe a specific situation and what is difficult today.
+    validations:
+      required: true
+  - type: textarea
+    id: desired
+    attributes:
+      label: What would help?
+      description: Explain the outcome you want and how it would fit the breathing-pause experience.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or current workaround
+      description: Optional. Include any related issues or relevant settings you have tried.
