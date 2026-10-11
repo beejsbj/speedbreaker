@@ -26,7 +26,7 @@ def run(*args):
     return subprocess.check_output(args, text=True).strip()
 
 
-def pom_evidence(coordinate, root, cache):
+def pom_evidence(coordinate, root, cache, depth=0):
     group, name, version = (coordinate[k] for k in ("group", "name", "version"))
     relative = "/".join((group.replace(".", "/"), name, version, f"{name}-{version}.pom"))
     candidates = [
@@ -51,7 +51,7 @@ def pom_evidence(coordinate, root, cache):
     stem = f"{group}-{name}-{version}".replace("/", "_")
     if data is None:
         return {"component": coordinate, "status": "pom_missing", "attemptedUrls": [url for url, _ in candidates], "errors": errors}
-    target = root / "poms" / (stem + ".pom")
+    target = root / ("parents" if depth else "poms") / (stem + ".pom")
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(data)
     result = {"component": coordinate, "status": "found", "pomFile": str(target.relative_to(root)),
@@ -64,6 +64,11 @@ def pom_evidence(coordinate, root, cache):
             parent = doc.find("m:parent", ns)
             if parent is not None:
                 result["parent"] = {key: parent.findtext("m:" + key, default="", namespaces=ns) for key in ("groupId", "artifactId", "version")}
+                if depth < 3 and all(result["parent"].values()):
+                    parent_coordinate = {"group": result["parent"]["groupId"],
+                                         "name": result["parent"]["artifactId"],
+                                         "version": result["parent"]["version"]}
+                    result["parentEvidence"] = pom_evidence(parent_coordinate, root, cache, depth + 1)
             result["status"] = "no_direct_pom_license"
         for license_node in licenses:
             result["licenses"].append({"name": license_node.findtext("m:name", default="", namespaces=ns),
@@ -80,12 +85,48 @@ def collect(args):
     inventory = json.loads(Path(args.dependencies).read_text())
     coordinates = {tuple(artifact["component"][key] for key in ("group", "name", "version"))
                    for artifact in inventory["artifacts"] if all(key in artifact["component"] for key in ("group", "name", "version"))}
+    billing_artifacts = [artifact for artifact in inventory["artifacts"]
+                         if artifact["component"].get("group") == "com.android.billingclient"]
+    if inventory["channel"] == "community" and billing_artifacts:
+        raise ValueError("Community runtime contains Play Billing")
+    if inventory["channel"] == "play" and not billing_artifacts:
+        raise ValueError("Play runtime has no Billing artifact")
     # Platform/BOM nodes have no runtime file, but are part of the resolved graph.
     coordinates.update(tuple(node["component"][key] for key in ("group", "name", "version"))
                        for node in inventory["graph"] if all(key in node["component"] for key in ("group", "name", "version")))
     cache = Path.home() / ".gradle/caches/modules-2/files-2.1"
     results = [pom_evidence(dict(zip(("group", "name", "version"), coord)), root, cache) for coord in sorted(coordinates)]
     write_json(root / "licenses.json", {"schemaVersion": 1, "channel": inventory["channel"], "components": results})
+    urls = set()
+    def license_urls(record):
+        urls.update(item["url"] for item in record.get("licenses", []) if item["url"])
+        if record.get("parentEvidence"):
+            license_urls(record["parentEvidence"])
+    for result in results:
+        license_urls(result)
+    texts = []
+    for url in sorted(urls):
+        entry = {"pomLicenseUrl": url}
+        fetch_url = url.replace("http://www.apache.org/", "https://www.apache.org/")
+        if not fetch_url.startswith("https://"):
+            entry["status"] = "non_https_url_not_fetched"
+        else:
+            try:
+                with urllib.request.urlopen(urllib.request.Request(fetch_url, headers={"User-Agent": "Speedbreaker-inventory/1"}), timeout=12) as response:
+                    data = response.read(512 * 1024 + 1)
+                    content_type = response.headers.get("Content-Type", "")
+                if len(data) > 512 * 1024 or not ("text" in content_type or "html" in content_type):
+                    entry["status"] = "non_text_or_too_large"
+                else:
+                    path = root / "license-texts" / (digest(url.encode()) + ".txt")
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(data)
+                    entry.update(status="fetched", fetchedUrl=fetch_url,
+                                 file=str(path.relative_to(root)), sha256=digest(data), contentType=content_type)
+            except (OSError, urllib.error.HTTPError) as exc:
+                entry.update(status="fetch_failed", error=type(exc).__name__)
+        texts.append(entry)
+    write_json(root / "license-texts.json", {"schemaVersion": 1, "urls": texts})
     print(f"{inventory['channel']}: {len(inventory['artifacts'])} artifacts, {len(coordinates)} Maven components, "
           f"{sum(item['status'] != 'found' for item in results)} POM/license unknowns")
 
@@ -109,7 +150,7 @@ def verify(args):
     assert not re.search(r"android:debuggable(?:\([^)]*\))?=.*(?:0xffffffff|true)", xmltree, re.I), "debuggable APK"
     manifest = {"channel": args.channel, "package": package.group(1), "versionCode": int(package.group(2)),
                 "minSdk": int(sdk.group(1)), "targetSdk": int(target.group(1)), "permissions": permissions,
-                "debuggable": False, "inspectionTool": aapt, "apkSha256": digest(apk.read_bytes())}
+                "debuggable": False, "inspectionTool": Path(aapt).name, "apkSha256": digest(apk.read_bytes())}
     root = Path(args.output)
     write_json(root / "manifest.json", manifest)
     (root / "manifest-aapt.txt").write_text("BADGING\n" + badging + "\nPERMISSIONS\n" + permissions_text + "\nXMLTREE\n" + xmltree + "\n")
