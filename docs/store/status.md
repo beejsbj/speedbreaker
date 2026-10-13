@@ -28,7 +28,11 @@ Tracking: Linear BJS-532. Working branch: `release/store-distribution`.
   verified. Ko-fi Free's zero platform commission does not resolve Google's
   processor-fee interpretation.
 - Apple Developer/App Store work stopped; keep the prototype as recoverable work.
-- A dedicated public support mailbox is being chosen; no invented email/contact.
+- Public Play support email: `burooj.bj+playsupport@gmail.com` (owner, October 12).
+- **Google Play paused by the owner on October 12, 2026**: the required 12 closed-test
+  testers for 14 days are not available. Play build, listing drafts and declarations
+  stay in the repo; the automated Play policy video recorder is no longer pursued.
+- Owner supplied a Ko-fi page, https://ko-fi.com/beejsbj; its placement is pending.
 - Heavy Android builds/emulators use hosted CI; full Xcode was absent on the Mac.
 
 No store “submitted,” “approved,” or “live” state is inferred from source files,
