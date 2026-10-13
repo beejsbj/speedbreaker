@@ -20,9 +20,16 @@ import java.util.Arrays;
 /** Runs inside the product process using its APK classes and native libraries. */
 public final class PageSizeRegression extends Instrumentation {
     private long nativeZipOffset;
+    private long[] executableOffsets = new long[0];
     @Override public void onCreate(Bundle arguments) {
         super.onCreate(arguments);
         nativeZipOffset = Long.parseLong(arguments.getString("native_zip_offset", "-1"));
+        String offsets = arguments.getString("native_exec_offsets", "");
+        if (!offsets.isEmpty()) {
+            String[] parts = offsets.split(",");
+            executableOffsets = new long[parts.length];
+            for (int i = 0; i < parts.length; i++) executableOffsets[i] = Long.parseLong(parts[i]);
+        }
         start();
     }
 
@@ -36,6 +43,7 @@ public final class PageSizeRegression extends Instrumentation {
             evidence.put("page_size", pageSize).put("pid", Process.myPid())
                     .put("source_apk", getTargetContext().getApplicationInfo().sourceDir);
             require(nativeZipOffset >= 0, "Missing audited native ZIP offset");
+            require(executableOffsets.length > 0, "Missing audited executable segment offsets");
             evidence.put("native_zip_offset", nativeZipOffset)
                     .put("native_library_dir", getTargetContext().getApplicationInfo().nativeLibraryDir);
             require(pageSize == 16384, "Target process is not on 16 KB pages");
@@ -64,7 +72,8 @@ public final class PageSizeRegression extends Instrumentation {
             Files.write(new File(directory, "native-pages-maps.txt").toPath(),
                     maps.getBytes(StandardCharsets.UTF_8));
             // Direct APK mappings name base.apk, not its embedded .so. Match the
-            // audited ZIP data offset plus target source APK and executable permissions.
+            // audited executable PT_LOAD offsets (ZIP data offset + page-aligned p_offset)
+            // plus target source APK and executable permissions.
             String sourceApk = getTargetContext().getApplicationInfo().sourceDir;
             String extracted = getTargetContext().getApplicationInfo().nativeLibraryDir
                     + "/libandroidx.graphics.path.so";
@@ -73,7 +82,7 @@ public final class PageSizeRegression extends Instrumentation {
                 String[] columns = line.trim().split("\\s+", 6);
                 if (columns.length != 6 || !columns[1].contains("x")) continue;
                 if ((columns[5].equals(sourceApk)
-                        && Long.parseLong(columns[2], 16) == nativeZipOffset)
+                        && contains(executableOffsets, Long.parseLong(columns[2], 16)))
                         || columns[5].equals(extracted)) {
                     mapped = true;
                     evidence.put("native_executable_mapping", line);
@@ -104,6 +113,11 @@ public final class PageSizeRegression extends Instrumentation {
             result.putString("failure", failure.toString());
         }
         finish(Activity.RESULT_OK, result); // Host requires explicit PASS and persisted evidence.
+    }
+
+    private static boolean contains(long[] values, long wanted) {
+        for (long value : values) if (value == wanted) return true;
+        return false;
     }
 
     private static void save(File directory, JSONObject evidence) throws Exception {

@@ -10,6 +10,10 @@ export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 python3 scripts/package_release.py
 ```
 
+Before any credential is requested it applies the same dependency and final-manifest
+policy as CI (`scripts/store_inventory.py`: no INTERNET, network-state, Billing,
+payment or diagnostics SDKs, no debuggable APK).
+
 The script prompts for the release-keystore password unless
 `SPEEDBREAKER_RELEASE_PASSWORD` is supplied in the process environment. On
 bjslab, `--password-secret <record-id>` reads that one record through `bjs-bws`

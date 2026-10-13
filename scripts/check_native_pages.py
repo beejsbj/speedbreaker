@@ -33,6 +33,30 @@ def zip_data_offset(apk_path, entry):
     return entry.header_offset + 30 + name_size + extra_size
 
 
+def executable_map_offsets(data, zip_offset, page=16384):
+    """APK file offsets at which each executable PT_LOAD segment is mmapped.
+
+    The linker maps a segment at its page-aligned p_offset inside the embedded
+    ELF, so /proc/self/maps reports zip_offset + that value, which is non-zero
+    whenever the executable segment does not start at the ELF header.
+    """
+    require(data[:4] == b'\x7fELF' and data[5] == 1 and data[4] in (1, 2), 'Expected little-endian ELF')
+    is64 = data[4] == 2
+    header = struct.unpack_from('<HHIQQQIHHHHHH' if is64 else '<HHIIIIIHHHHHH', data, 16)
+    phoff, phentsize, phnum = header[4], header[8], header[9]
+    offsets = []
+    for index in range(phnum):
+        values = struct.unpack_from('<IIQQQQQQ' if is64 else '<IIIIIIII', data, phoff + index * phentsize)
+        if is64:
+            kind, flags, offset = values[0], values[1], values[2]
+        else:
+            kind, offset, flags = values[0], values[1], values[6]
+        if kind == 1 and flags & 1:
+            offsets.append(zip_offset + offset // page * page)
+    require(offsets, 'No executable PT_LOAD segment')
+    return offsets
+
+
 class Audit:
     def __init__(self, args):
         self.args = args
@@ -118,6 +142,7 @@ class Audit:
                                  'segments': segments, 'load_alignment_pass': load_pass,
                                  'zip_compression': entry.compress_type, 'zip_data_offset': zip_offset,
                                  'zip_16kb_aligned': zip_offset % 16384 == 0,
+                                 'executable_map_offsets': executable_map_offsets(data, zip_offset),
                                  'required_64bit_alignment': abi in ('arm64-v8a', 'x86_64')})
         self.report['native_libraries'] = findings
         self.report['static_gate_scope'] = '64-bit LOAD and zipalign only; RELRO formula reported separately'
@@ -167,10 +192,14 @@ class Audit:
         self.adb('install', '-r', str(self.args.fixture))
         self.adb('shell', 'pm', 'clear', PACKAGE)
         with zipfile.ZipFile(self.args.apk) as apk:
-            native_offset = zip_data_offset(self.args.apk, apk.getinfo('lib/x86_64/' + LIBRARY))
+            entry = apk.getinfo('lib/x86_64/' + LIBRARY)
+            native_offset = zip_data_offset(self.args.apk, entry)
+            exec_offsets = executable_map_offsets(apk.read(entry), native_offset)
         self.report['native_zip_offset'] = native_offset
+        self.report['native_exec_offsets'] = exec_offsets
         instrumentation = self.adb('shell', 'am', 'instrument', '-w', '-r',
                                    '-e', 'native_zip_offset', str(native_offset),
+                                   '-e', 'native_exec_offsets', ','.join(map(str, exec_offsets)),
                                    'dev.burooj.speedbreaker.fixture/.PageSizeRegression', timeout=180)
         (self.output / 'instrumentation.txt').write_text(instrumentation + '\n')
         # Collect Java failure evidence before interpreting am's result (its exit code is insufficient).
@@ -186,11 +215,11 @@ class Audit:
             columns = line.split(maxsplit=5)
             if len(columns) != 6 or 'x' not in columns[1]:
                 continue
-            if ((columns[5] == evidence['source_apk'] and int(columns[2], 16) == native_offset)
+            if ((columns[5] == evidence['source_apk'] and int(columns[2], 16) in exec_offsets)
                     or columns[5] == evidence['native_library_dir'] + '/' + LIBRARY):
                 mapped = True
         require(mapped and evidence['native_zip_offset'] == native_offset,
-                'Missing executable target-library mapping at audited APK offset')
+                'Missing executable target-library mapping at an audited ELF executable-segment offset')
         for key in ('public_iterator', 'native_conic_iterator'):
             require(evidence[key]['segments'] > 0 and evidence[key]['cubics'] > 0
                     and evidence[key]['finite_coordinates'], 'Missing finite cubic iteration')

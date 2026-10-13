@@ -19,6 +19,22 @@ def run(args, **kwargs):
     return subprocess.run(args, check=True, cwd=ROOT, **kwargs)
 
 
+def enforce_release_policy(unsigned, aapt, built_locally, runner=run):
+    """Apply the CI dependency and final-manifest policy before any credential is requested.
+
+    Mirrors the "Collect POM licenses and verify final APK manifest" step of
+    .github/workflows/android.yml. Dependency rejection needs the resolved graph, which
+    only a local build produces; hosted inputs were already collected by CI, so their
+    final manifest is re-verified here. Raises CalledProcessError on any violation.
+    """
+    output = ROOT / "app/build/store-inventory/community"
+    inventory = [sys.executable, str(ROOT / "scripts/store_inventory.py")]
+    if built_locally:
+        runner(inventory + ["collect", "--dependencies", str(output / "dependencies.json"), "--output", str(output)])
+    runner(inventory + ["verify", "--channel", "community", "--apk", str(unsigned),
+                        "--aapt", str(aapt), "--output", str(output)])
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--skip-build", action="store_true", help="Sign the already built release APK")
@@ -49,7 +65,7 @@ def main():
     if args.skip_build and not (args.unsigned_apk and args.build_receipt):
         parser.error("--skip-build requires --unsigned-apk and --build-receipt; fetch verified CI inputs first")
     if not args.skip_build:
-        run([str(ROOT / "gradlew"), ":app:assembleCommunityRelease", "--no-daemon", "--no-configuration-cache", "--max-workers=1", "-Dorg.gradle.jvmargs=-Xmx1g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8"])
+        run([str(ROOT / "gradlew"), ":app:assembleCommunityRelease", ":app:inventoryCommunityRelease", "--no-daemon", "--no-configuration-cache", "--max-workers=1", "-Dorg.gradle.jvmargs=-Xmx1g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8"])
     unsigned = args.unsigned_apk.expanduser().resolve() if args.unsigned_apk else ROOT / "app/build/outputs/apk/community/release/app-community-release-unsigned.apk"
     if not unsigned.is_file():
         parser.error("Community release APK missing; run assembleCommunityRelease first")
@@ -71,6 +87,7 @@ def main():
         parser.error("Unexpected release package")
     if "application-debuggable" in badging:
         parser.error("Refusing to sign a debuggable APK with the release key")
+    enforce_release_policy(unsigned, build_tools / "aapt", not args.skip_build)
     password = os.environ.get("SPEEDBREAKER_RELEASE_PASSWORD")
     if not password and args.password_secret:
         response = run(["bjs-bws", "secret", "get", args.password_secret], capture_output=True, text=True)
