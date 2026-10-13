@@ -27,6 +27,30 @@ class SystemPanelTest {
         consentAccepted = true, apps = mapOf("target.app" to AppPolicy()),
     )
 
+    @Test fun systemUiEventsDoNoWindowWorkWithoutABreaker() {
+        var evaluated = false
+        val result = navigationEvent(
+            hasBreaker = false,
+            windowTransition = true,
+            isNavigationPackage = { true },
+            applicationTransition = { evaluated = true; true },
+        )
+        assertFalse(result)
+        assertFalse(evaluated)
+        assertTrue(navigationEvent(true, true, { true }, { true }))
+        assertFalse(navigationEvent(true, true, { true }, { false }))
+        assertFalse(navigationEvent(true, true, { false }, { true }))
+        assertFalse(navigationEvent(true, false, { true }, { true }))
+    }
+
+    @Test fun systemPanelRootsAreFetchedOnlyWhileABreakerExists() {
+        assertTrue(shouldInspectWindow(AccessibilityWindowInfo.TYPE_APPLICATION, false))
+        assertTrue(shouldInspectWindow(AccessibilityWindowInfo.TYPE_APPLICATION, true))
+        assertFalse(shouldInspectWindow(AccessibilityWindowInfo.TYPE_SYSTEM, false))
+        assertTrue(shouldInspectWindow(AccessibilityWindowInfo.TYPE_SYSTEM, true))
+        assertFalse(shouldInspectWindow(AccessibilityWindowInfo.TYPE_INPUT_METHOD, true))
+    }
+
     @Test fun trustedFullDisplayNativePanelOwnsInput() {
         assertTrue(panel(Region(screen)))
     }

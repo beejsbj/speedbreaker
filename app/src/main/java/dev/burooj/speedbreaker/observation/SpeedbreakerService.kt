@@ -105,10 +105,18 @@ internal class SpeedbreakerService : AccessibilityService() {
                 Build.VERSION.SDK_INT,
             )
         ) windowReader.noteWindows(SystemClock.elapsedRealtime())
-        val applicationTransition = packageName != "com.android.systemui" ||
-            windowReader.isApplicationTransition(event.windowId, SystemClock.elapsedRealtime())
-        if (overlay.hasBreaker && windowTransition && applicationTransition &&
-            safetyPolicy.isNavigationPackage(packageName)
+        if (navigationEvent(
+                hasBreaker = overlay.hasBreaker,
+                windowTransition = windowTransition,
+                isNavigationPackage = { safetyPolicy.isNavigationPackage(packageName) },
+                applicationTransition = {
+                    packageName != "com.android.systemui" ||
+                        windowReader.isApplicationTransition(
+                            event.windowId,
+                            SystemClock.elapsedRealtime(),
+                        )
+                },
+            )
         ) {
             navigationAwayLatched = true
         }
@@ -216,7 +224,10 @@ internal class SpeedbreakerService : AccessibilityService() {
         if (!wasShowing) return
         // Judge the native panel from a fresh snapshot before the engine sees Back, so a
         // panel-owned Back cannot cancel the retained breath.
-        val panelBeforeBack = windowReader.snapshot(SystemClock.elapsedRealtime())
+        val panelBeforeBack = windowReader.snapshot(
+            SystemClock.elapsedRealtime(),
+            inspectSystemPanels = true,
+        )
             .systemPanelOwnsDisplay
         systemPanelOwnsDisplay = panelBeforeBack
         val result = reconcile(
@@ -389,7 +400,7 @@ internal class SpeedbreakerService : AccessibilityService() {
 
     private fun observation(navigationAway: Boolean, forceSafetyYield: Boolean): Observation {
         val elapsedMs = SystemClock.elapsedRealtime()
-        val windows = windowReader.snapshot(elapsedMs)
+        val windows = windowReader.snapshot(elapsedMs, inspectSystemPanels = overlay.hasBreaker)
         val visiblePackages = windows.applicationPackages
         systemPanelOwnsDisplay = windows.systemPanelOwnsDisplay
         if (overlay.hasBreaker && windows.systemUiApplicationVisible) {

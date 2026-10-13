@@ -572,6 +572,86 @@ class EnforcementEngineTest {
     }
 
     @Test
+    fun `another app replacing the target during hard lock yields at exactly eight seconds`() {
+        val settings = settings()
+        val engine = EnforcementEngine()
+        engine.update(settings, observation())
+
+        // Notification tap: no navigation signal, target gone, another app foreground.
+        val replaced = setOf("other.app")
+        assertEquals(
+            TARGET,
+            engine.update(settings, observation(visible = replaced, elapsedMs = 2_000))
+                .breaker?.packageName,
+        )
+        assertEquals(
+            TARGET,
+            engine.update(settings, observation(visible = replaced, elapsedMs = 7_999))
+                .breaker?.packageName,
+        )
+        assertNull(engine.update(settings, observation(visible = replaced, elapsedMs = 8_000)).breaker)
+        assertNull(engine.update(settings, observation(visible = replaced, elapsedMs = 8_001)).breaker)
+    }
+
+    @Test
+    fun `another app replacing the target after hard lock yields immediately`() {
+        val settings = settings()
+        val engine = EnforcementEngine()
+        engine.update(settings, observation())
+
+        assertNull(
+            engine.update(settings, observation(visible = setOf("other.app"), elapsedMs = 9_000)).breaker,
+        )
+    }
+
+    @Test
+    fun `system ui alone or an unseen target does not count as replacement`() {
+        val settings = settings()
+        val engine = EnforcementEngine()
+        engine.update(settings, observation())
+
+        assertEquals(
+            TARGET,
+            engine.update(
+                settings,
+                observation(visible = setOf("com.android.systemui"), elapsedMs = 9_000),
+            ).breaker?.packageName,
+        )
+        assertEquals(
+            TARGET,
+            engine.update(settings, observation(visible = emptySet(), elapsedMs = 10_000))
+                .breaker?.packageName,
+        )
+        // The target still visible beside another app (split screen) keeps the breath.
+        assertEquals(
+            TARGET,
+            engine.update(
+                settings,
+                observation(visible = setOf(TARGET, "other.app"), elapsedMs = 11_000),
+            ).breaker?.packageName,
+        )
+    }
+
+    @Test
+    fun `switching to another target app hands over when the first breath yields`() {
+        val settings = settings(apps = mapOf(TARGET to AppPolicy(), "second.app" to AppPolicy()))
+        val engine = EnforcementEngine()
+        engine.update(settings, observation())
+
+        val second = setOf("second.app")
+        assertEquals(
+            TARGET,
+            engine.update(settings, observation(visible = second, elapsedMs = 7_999))
+                .breaker?.packageName,
+        )
+        assertEquals(
+            "second.app",
+            engine.update(settings, observation(visible = second, elapsedMs = 8_000))
+                .breaker?.packageName,
+        )
+    }
+
+    @Test
     fun `consent withdrawal suppresses all enforcement immediately`() {
         val enabled = settings()
         val engine = EnforcementEngine()
