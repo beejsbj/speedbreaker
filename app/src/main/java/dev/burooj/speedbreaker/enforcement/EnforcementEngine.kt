@@ -221,18 +221,22 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
             val mustYield = !selectedAndScheduled ||
                 !observation.interactive ||
                 observation.safetyUiVisible
+            // The target is gone and another application owns the screen (for example a
+            // notification tap from the shade). That is navigation even though no
+            // launcher or Recents event announced it.
+            val targetReplaced = current.packageName !in observation.visiblePackages &&
+                observation.visiblePackages.any { it != SYSTEM_UI_PACKAGE }
+            val navigationAway = observation.navigationAway || targetReplaced
             when {
                 mustYield -> {
                     breaker = null
                     navigationPendingDuringHardLock = false
                     sessions.remove(current.packageName)
                 }
-                hardLockFinished &&
-                    (observation.navigationAway || navigationPendingDuringHardLock) -> {
+                hardLockFinished && (navigationAway || navigationPendingDuringHardLock) -> {
                     finishAndSuppress(current.packageName)
                 }
-                observation.navigationAway &&
-                    current.packageName !in observation.visiblePackages -> {
+                navigationAway && current.packageName !in observation.visiblePackages -> {
                     // The navigation signal is one-shot. If Android already hid the
                     // target during hard lock, remember it and yield exactly at 8s.
                     navigationPendingDuringHardLock = true
@@ -466,6 +470,7 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
         if (right > 0 && left > Long.MAX_VALUE - right) Long.MAX_VALUE else left + right
 
     private companion object {
+        const val SYSTEM_UI_PACKAGE = "com.android.systemui"
         const val MILLIS_PER_SECOND = 1_000L
         const val HARD_LOCK_MS = 8_000L
         const val ABSENCE_GRACE_MS = 60_000L

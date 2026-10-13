@@ -39,6 +39,22 @@ internal class WindowTypeHistory(private val graceMs: Long = 750L) {
 internal fun navigationAwayForBack(panelOwnsDisplay: Boolean, latched: Boolean): Boolean =
     if (panelOwnsDisplay) latched else true
 
+/**
+ * Cheap checks run first: without a breath there is nothing to latch, so SystemUI events
+ * must not cost a window-list read.
+ */
+internal inline fun navigationEvent(
+    hasBreaker: Boolean,
+    windowTransition: Boolean,
+    isNavigationPackage: () -> Boolean,
+    applicationTransition: () -> Boolean,
+): Boolean = hasBreaker && windowTransition && isNavigationPackage() && applicationTransition()
+
+/** Panel inspection fetches window roots, so it runs only while a breath is retained. */
+internal fun shouldInspectWindow(type: Int, inspectSystemPanels: Boolean): Boolean =
+    type == AccessibilityWindowInfo.TYPE_APPLICATION ||
+        (type == AccessibilityWindowInfo.TYPE_SYSTEM && inspectSystemPanels)
+
 /** Only window-set changes can introduce a window whose type is worth remembering. */
 internal fun shouldRecordWindowTypes(eventType: Int, windowChanges: Int, sdkInt: Int): Boolean {
     if (eventType != AccessibilityEvent.TYPE_WINDOWS_CHANGED) return false
@@ -91,7 +107,7 @@ internal class WindowObservationReader(
     }
 
     @Suppress("DEPRECATION")
-    fun snapshot(nowElapsedMs: Long): WindowSnapshot {
+    fun snapshot(nowElapsedMs: Long, inspectSystemPanels: Boolean): WindowSnapshot {
         val display = service.getSystemService(WindowManager::class.java).defaultDisplay
         val metrics = DisplayMetrics().also(display::getRealMetrics)
         val screen = Rect(0, 0, metrics.widthPixels, metrics.heightPixels)
@@ -100,9 +116,7 @@ internal class WindowObservationReader(
         val windows = service.windows
         typeHistory.record(windows.associate { it.id to it.type }, nowElapsedMs)
         windows.forEach { window ->
-            if (window.type != AccessibilityWindowInfo.TYPE_APPLICATION &&
-                window.type != AccessibilityWindowInfo.TYPE_SYSTEM
-            ) return@forEach
+            if (!shouldInspectWindow(window.type, inspectSystemPanels)) return@forEach
             // Disable descendant prefetch where Android exposes that option: only
             // the root package identity and window metadata are needed.
             val root = if (Build.VERSION.SDK_INT >= 33) window.getRoot(0) else window.root
