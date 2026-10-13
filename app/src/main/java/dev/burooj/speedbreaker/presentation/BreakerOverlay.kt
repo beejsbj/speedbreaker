@@ -1,10 +1,10 @@
 package dev.burooj.speedbreaker.presentation
 
+import android.os.SystemClock
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.StartOffset
@@ -14,7 +14,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -48,14 +47,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -106,7 +108,9 @@ internal fun BreakerOverlay(
         elapsedMs = elapsedMs,
         unlocked = elapsedMs >= HARD_LOCK_MS,
         breathRemainingMs = (breathTotalMs - elapsedMs).coerceAtLeast(0L),
-        progress = (elapsedMs.toFloat() / breathTotalMs).coerceIn(0f, 1f),
+        progress = breathProgress(0L, elapsedMs, breathTotalMs),
+        startedElapsedMs = breaker.startedElapsedMs,
+        totalMs = breathTotalMs,
     )
 
     SpeedbreakerTheme {
@@ -157,6 +161,8 @@ private data class BreathMoment(
     val unlocked: Boolean,
     val breathRemainingMs: Long,
     val progress: Float,
+    val startedElapsedMs: Long,
+    val totalMs: Long,
 ) {
     val breathComplete: Boolean get() = breathRemainingMs == 0L
     val inhaling: Boolean get() = (elapsedMs / BREATH_HALF_MS) % 2 == 0L
@@ -319,6 +325,8 @@ private fun BreathColumn(moment: BreathMoment, layout: OverlayLayout, motionEnab
             size = orbSize,
             elapsedMs = moment.elapsedMs,
             progress = moment.progress,
+            startedElapsedMs = moment.startedElapsedMs,
+            totalMs = moment.totalMs,
             breathComplete = moment.breathComplete,
             motionEnabled = motionEnabled,
             modifier = Modifier.semantics {
@@ -363,6 +371,8 @@ private fun BreathOrb(
     size: Dp,
     elapsedMs: Long,
     progress: Float,
+    startedElapsedMs: Long,
+    totalMs: Long,
     breathComplete: Boolean,
     motionEnabled: Boolean,
     modifier: Modifier = Modifier,
@@ -387,11 +397,25 @@ private fun BreathOrb(
     } else {
         0.6f
     }
-    val shownProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = if (motionEnabled) tween(TICK_SMOOTHING_MS, easing = LinearEasing) else snap(),
-        label = "breath progress",
-    )
+    // The service tick is coarse and uneven, so the arc follows the frame clock instead,
+    // recomputed from the breath's real start each frame. Reduced motion, previews and
+    // screenshot renders keep the tick-derived value.
+    val live = motionEnabled && !breathComplete &&
+        !LocalStillBreath.current && !LocalInspectionMode.current
+    val frameProgress = remember(live, startedElapsedMs, totalMs) {
+        mutableFloatStateOf(
+            if (live) breathProgress(startedElapsedMs, SystemClock.elapsedRealtime(), totalMs) else progress,
+        )
+    }
+    LaunchedEffect(live, startedElapsedMs, totalMs) {
+        if (!live) return@LaunchedEffect
+        while (true) {
+            val value = breathProgress(startedElapsedMs, SystemClock.elapsedRealtime(), totalMs)
+            frameProgress.floatValue = value
+            if (value >= 1f) break
+            withFrameNanos { }
+        }
+    }
     val arcAlpha by animateFloatAsState(
         targetValue = if (breathComplete) 0f else 1f,
         animationSpec = Motion.orSnap(motionEnabled, Motion.effectsSlow()),
@@ -431,7 +455,7 @@ private fun BreathOrb(
             drawArc(
                 color = ink.copy(alpha = 0.8f * arcAlpha),
                 startAngle = -90f,
-                sweepAngle = 360f * shownProgress,
+                sweepAngle = 360f * if (live) frameProgress.floatValue else progress,
                 useCenter = false,
                 topLeft = topLeft,
                 size = arcSize,
@@ -617,10 +641,13 @@ private fun stillSwell(elapsedMs: Long): Float {
     return BreathEasing.transform(fraction)
 }
 
+/** Share of the breath done at [nowElapsedMs]; always derived from the start, never accumulated. */
+internal fun breathProgress(startedElapsedMs: Long, nowElapsedMs: Long, totalMs: Long): Float =
+    if (totalMs <= 0L) 1f else ((nowElapsedMs - startedElapsedMs).toFloat() / totalMs).coerceIn(0f, 1f)
+
 private fun secondsLabel(milliseconds: Long): String =
     ceil(milliseconds / 1_000.0).toInt().coerceAtLeast(0).let { "${it}s" }
 
 private val BreathEasing = CubicBezierEasing(0.37f, 0f, 0.63f, 1f)
 private const val BREATH_HALF_MS = 4_000L
-private const val TICK_SMOOTHING_MS = 250
 private const val HARD_LOCK_MS = 8_000L
