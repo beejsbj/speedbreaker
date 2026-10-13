@@ -112,7 +112,7 @@ animation never lets the test clock settle.
 
 ```sh
 export ANDROID_SDK_ROOT=/usr/lib/android-sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-./gradlew :app:testDebugUnitTest --tests '*GalleryScreenshotTest*' \
+./gradlew :app:testCommunityDebugUnitTest --tests '*GalleryScreenshotTest*' \
   --no-daemon --no-configuration-cache --max-workers=1
 ```
 

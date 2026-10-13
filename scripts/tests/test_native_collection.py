@@ -1,6 +1,7 @@
 """A complete stdout payload must not hide a failed ADB shell transfer."""
 import importlib.util
 from pathlib import Path
+import struct
 import subprocess
 import tempfile
 from types import SimpleNamespace
@@ -43,3 +44,28 @@ class NativeCollectionTest(unittest.TestCase):
                 self.assertEqual(audit.collect_native_evidence(), [p.decode() for p in payloads])
             for filename, payload in zip(('native-pages.json', 'native-pages-maps.txt'), payloads):
                 self.assertEqual((audit.output / filename).read_bytes(), payload + b'\n')
+
+
+def elf64(loads):
+    """Minimal little-endian ELF64 with (flags, p_offset) PT_LOAD headers."""
+    header = bytearray(b'\x7fELF\x02\x01\x01' + bytes(9))
+    header += struct.pack('<HHIQQQIHHHHHH', 3, 183, 1, 0, 64, 0, 0, 64, 56, len(loads), 0, 0, 0)
+    for flags, offset in loads:
+        header += struct.pack('<IIQQQQQQ', 1, flags, offset, offset, offset, 0x1000, 0x1000, 0x4000)
+    return bytes(header)
+
+
+class ExecutableOffsetTest(unittest.TestCase):
+    def test_executable_segment_beyond_elf_header_is_offset_from_zip_data(self):
+        data = elf64([(4, 0), (5, 0x5000), (6, 0x9000)])  # R, R+X, RW
+        self.assertEqual(native.executable_map_offsets(data, 0x40000), [0x44000])
+
+    def test_segment_offset_is_page_aligned_down(self):
+        self.assertEqual(native.executable_map_offsets(elf64([(5, 0x5123)]), 0x40000), [0x44000])
+
+    def test_header_resident_executable_segment_maps_at_zip_offset(self):
+        self.assertEqual(native.executable_map_offsets(elf64([(5, 0)]), 0x40000), [0x40000])
+
+    def test_library_without_executable_load_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, 'No executable'):
+            native.executable_map_offsets(elf64([(4, 0), (6, 0x4000)]), 0x40000)
