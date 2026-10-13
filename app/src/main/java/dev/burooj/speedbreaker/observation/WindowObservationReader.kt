@@ -6,6 +6,7 @@ import android.graphics.Region
 import android.os.Build
 import android.util.DisplayMetrics
 import android.view.WindowManager
+import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityWindowInfo
 
 internal data class WindowSnapshot(
@@ -30,6 +31,27 @@ internal class WindowTypeHistory(private val graceMs: Long = 750L) {
             previous.type == AccessibilityWindowInfo.TYPE_APPLICATION
     }
 }
+
+/**
+ * A native panel that owns the display receives Back itself, so Back must not count as
+ * navigation away from the retained breath. Otherwise Back is genuine navigation.
+ */
+internal fun navigationAwayForBack(panelOwnsDisplay: Boolean, latched: Boolean): Boolean =
+    if (panelOwnsDisplay) latched else true
+
+/** Only window-set changes can introduce a window whose type is worth remembering. */
+internal fun shouldRecordWindowTypes(eventType: Int, windowChanges: Int, sdkInt: Int): Boolean {
+    if (eventType != AccessibilityEvent.TYPE_WINDOWS_CHANGED) return false
+    // windowChanges does not exist before API 28; record on every window-set change there.
+    return sdkInt < 28 || windowChanges and AccessibilityEvent.WINDOWS_CHANGE_ADDED != 0
+}
+
+/**
+ * Before API 30 AccessibilityService.getWindows() lists only the default display and
+ * AccessibilityWindowInfo has no public display id, so every listed window is on it.
+ */
+internal fun windowOnDisplay(sdkInt: Int, windowDisplayId: Int, displayId: Int): Boolean =
+    sdkInt < 30 || windowDisplayId == displayId
 
 /** Bars, small system popups and application windows cannot suspend the overlay. */
 internal fun systemPanelOwnsDisplay(
@@ -63,6 +85,11 @@ internal class WindowObservationReader(
         return typeHistory.isApplicationTransition(windowId, nowElapsedMs)
     }
 
+    /** Remember a window's type when it is added, before a fast removal can hide it. */
+    fun noteWindows(nowElapsedMs: Long) {
+        typeHistory.record(service.windows.associate { it.id to it.type }, nowElapsedMs)
+    }
+
     @Suppress("DEPRECATION")
     fun snapshot(nowElapsedMs: Long): WindowSnapshot {
         val display = service.getSystemService(WindowManager::class.java).defaultDisplay
@@ -90,7 +117,11 @@ internal class WindowObservationReader(
                 } else null
                 panelOwnsDisplay = panelOwnsDisplay || systemPanelOwnsDisplay(
                     window.type, packageName,
-                    Build.VERSION.SDK_INT < 30 || window.displayId == display.displayId,
+                    windowOnDisplay(
+                        Build.VERSION.SDK_INT,
+                        if (Build.VERSION.SDK_INT >= 30) window.displayId else display.displayId,
+                        display.displayId,
+                    ),
                     screen, bounds, region,
                 )
             }
