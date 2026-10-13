@@ -32,6 +32,13 @@ internal class WindowTypeHistory(private val graceMs: Long = 750L) {
     }
 }
 
+/**
+ * A native panel that owns the display receives Back itself, so Back must not count as
+ * navigation away from the retained breath. Otherwise Back is genuine navigation.
+ */
+internal fun navigationAwayForBack(panelOwnsDisplay: Boolean, latched: Boolean): Boolean =
+    if (panelOwnsDisplay) latched else true
+
 /** Only window-set changes can introduce a window whose type is worth remembering. */
 internal fun shouldRecordWindowTypes(eventType: Int, windowChanges: Int, sdkInt: Int): Boolean {
     if (eventType != AccessibilityEvent.TYPE_WINDOWS_CHANGED) return false
