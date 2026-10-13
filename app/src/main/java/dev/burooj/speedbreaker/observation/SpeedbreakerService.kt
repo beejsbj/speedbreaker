@@ -2,6 +2,7 @@ package dev.burooj.speedbreaker.observation
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
@@ -98,6 +99,12 @@ internal class SpeedbreakerService : AccessibilityService() {
         ) return
         val windowTransition = event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             event.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
+        if (overlay.hasBreaker && shouldRecordWindowTypes(
+                event.eventType,
+                if (Build.VERSION.SDK_INT >= 28) event.windowChanges else 0,
+                Build.VERSION.SDK_INT,
+            )
+        ) windowReader.noteWindows(SystemClock.elapsedRealtime())
         val applicationTransition = packageName != "com.android.systemui" ||
             windowReader.isApplicationTransition(event.windowId, SystemClock.elapsedRealtime())
         if (overlay.hasBreaker && windowTransition && applicationTransition &&
@@ -207,10 +214,17 @@ internal class SpeedbreakerService : AccessibilityService() {
     private fun handleBack() {
         val wasShowing = overlay.isShowing
         if (!wasShowing) return
-        val result = reconcile(navigationAway = true) ?: return
+        // Judge the native panel from a fresh snapshot before the engine sees Back, so a
+        // panel-owned Back cannot cancel the retained breath.
+        val panelBeforeBack = windowReader.snapshot(SystemClock.elapsedRealtime())
+            .systemPanelOwnsDisplay
+        systemPanelOwnsDisplay = panelBeforeBack
+        val result = reconcile(
+            navigationAway = navigationAwayForBack(panelBeforeBack, navigationAwayLatched),
+        ) ?: return
         // A safety dismissal exposes call or system controls; do not send Back into them.
         if (wasShowing && result.update.breaker == null &&
-            !result.observation.safetyUiVisible && !systemPanelOwnsDisplay
+            !result.observation.safetyUiVisible && !panelBeforeBack && !systemPanelOwnsDisplay
         ) {
             systemActions.performBack()
         }
