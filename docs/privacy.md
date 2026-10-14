@@ -79,6 +79,10 @@ The reflection asks for no input, so no answer is collected or stored.
 | Notifications | Show each active fifteen-minute pause and its **End now** action. Pause requires notifications to be available. |
 | Receive boot completed | Support recovery of locally stored pause state after the phone restarts. |
 
+While a breath is showing, Speedbreaker asks Android for audio focus so other
+apps can pause their media. This needs no permission, plays no sound, and reads
+no audio or media information; it is released when the breath ends.
+
 Pause notifications include the paused app's name and the pause end time.
 Depending on your Android notification settings, these may be visible on the
 lock screen. Adjust Speedbreaker's notification visibility in Android Settings

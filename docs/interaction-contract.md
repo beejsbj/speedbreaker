@@ -102,6 +102,18 @@ a fresh breath. A safety dismissal never forwards Back into the exposed call UI.
 Home now shows active pauses with an End now action for each app. These controls
 remain available if Android 14+ lets the user dismiss the pause notification.
 
+## 1.0.2 media quieting
+
+When a breath starts, Speedbreaker requests permanent audio focus
+(`AUDIOFOCUS_GAIN`) so well-behaved players in the target app pause. The surface
+itself stays silent. Permanent rather than transient focus is deliberate: a
+transient loss lets the target resume itself when focus is abandoned, which after
+Leave or Redirect would restart audio in the background. After Continue, the user
+resumes playback from the app's own controls. Focus is requested once per breath,
+never while call safety is active, and abandoned whenever the breath ends for any
+reason. Apps that ignore audio focus are not affected. Device behavior with
+Instagram Reels is unverified until Burooj tests it.
+
 ## October 11 redirect-count owner correction
 
 Burooj’s [issue #9](https://github.com/beejsbj/speedbreaker/issues/9), opened
