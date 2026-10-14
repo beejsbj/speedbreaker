@@ -78,7 +78,12 @@ internal class SpeedbreakerService : AccessibilityService() {
         windowReader = WindowObservationReader(this)
         notifications = PauseNotifications(this)
         systemActions = SystemActionController(this)
-        mediaQuieter = MediaQuieter(SystemAudioFocusHolder(this))
+        mediaQuieter = MediaQuieter(
+            SystemAudioFocusHolder(this),
+            SystemStreamMuter(this),
+            PrefsMuteMarker(this),
+        )
+        mediaQuieter.recoverAfterCrash()
         overlay = AccessibilityOverlayHost(
             service = this,
             onChoice = ::handleChoice,
@@ -268,7 +273,7 @@ internal class SpeedbreakerService : AccessibilityService() {
         notifications.reconcile(repository.pauses.value, observation.epochMs)
         update.effects.forEach(systemActions::execute)
         val breaker = update.breaker
-        mediaQuieter.sync(breaker, observation.safetyUiVisible)
+        mediaQuieter.sync(breaker, observation.safetyUiVisible, SystemClock.elapsedRealtime())
         if (breaker == null) {
             overlay.dismiss()
         } else {

@@ -112,8 +112,20 @@ podcasts for the length of the breath; transient rather than permanent focus let
 them resume afterwards instead of stopping for good. The target stops on its own
 once Leave or Redirect sends it to the background. Focus is requested once per
 breath, never while call safety is active, and abandoned whenever the breath ends
-for any reason. Apps that ignore audio focus are not affected. Device behavior
-with Instagram Reels is unverified until Burooj tests it.
+for any reason.
+
+Some players ignore audio focus (Instagram Reels on the S23+ keeps playing). About
+half a second after the request, if `AudioManager.isMusicActive()` is still true
+and the music stream is not already muted, Speedbreaker mutes `STREAM_MUSIC`
+with `ADJUST_MUTE` and no UI flag, and remembers that it did. Every end path
+abandons focus and then unmutes, but only if the stream is still muted, so a
+volume change by the user during the breath is respected. Alarm, ring,
+notification and voice streams are never touched, and nothing is muted during call
+safety. A refused mute (`SecurityException`) is ignored. A small local flag records
+that Speedbreaker muted the stream; when the service connects and the flag is
+still set (the process died mid-breath), it unmutes and clears the flag. Muting
+needs no new permission. Device behavior with Reels is unverified until Burooj
+tests this build.
 
 ## October 11 redirect-count owner correction
 
