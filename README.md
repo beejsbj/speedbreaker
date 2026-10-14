@@ -108,7 +108,7 @@ phone has been tested.
 
 ## Help improve Speedbreaker
 
-<a href="https://buymeacoffee.com/beejsbj"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" width="162" height="45"></a>
+<a href="https://ko-fi.com/beejsbj"><img src="https://storage.ko-fi.com/cdn/kofi6.png?v=6" alt="Support Speedbreaker on Ko-fi" height="36"></a>
 
 If Speedbreaker helps, you can support its development. Support is optional;
 every feature stays free.
