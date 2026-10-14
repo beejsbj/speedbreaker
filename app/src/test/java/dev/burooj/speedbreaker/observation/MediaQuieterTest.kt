@@ -107,6 +107,25 @@ class MediaQuieterTest {
         assertEquals(1, muter.mutes)
     }
 
+    @Test fun mutesPlaybackThatStartsLaterInTheBreath() {
+        muter.active = false
+        tickPastDelay(first)
+        repeat(4) { now += 250; quieter.sync(first, safetyActive = false) }
+        assertEquals(0, muter.mutes)
+        // Reels begins only once the target has loaded, seconds into the breath.
+        muter.active = true
+        now += 250
+        quieter.sync(first, safetyActive = false)
+        assertEquals(1, muter.mutes)
+    }
+
+    @Test fun doesNotMuteAgainAfterUserUnmutes() {
+        tickPastDelay(first)
+        muter.muted = false
+        repeat(8) { now += 250; quieter.sync(first, safetyActive = false) }
+        assertEquals(1, muter.mutes)
+    }
+
     @Test fun doesNotMuteWhenFocusSilencedThePlayer() {
         muter.active = false
         tickPastDelay(first)

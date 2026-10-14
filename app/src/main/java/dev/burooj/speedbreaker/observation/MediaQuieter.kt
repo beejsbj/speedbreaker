@@ -30,8 +30,8 @@ internal interface MuteMarker {
 /**
  * Asks other apps to stop playing while a breath is on screen. Speedbreaker plays no sound;
  * this claims audio focus so well-behaved players pause. Players that ignore focus (Instagram
- * Reels) keep going, so shortly after the request, if music is still active, the music stream
- * is muted for the rest of the breath.
+ * Reels) keep going, so from shortly after the request, once music is active the music
+ * stream is muted for the rest of the breath.
  *
  * One request per breath (keyed by the immutable [Breaker]), released on every path that
  * ends it. Never requested or muted while call safety is active, so a call is never disturbed.
@@ -49,7 +49,7 @@ internal class MediaQuieter(
 ) {
     private var held: Breaker? = null
     private var requestedAtMs = 0L
-    private var muteChecked = false
+    private var muteSettled = false
     private var weMuted = false
 
     /**
@@ -68,13 +68,16 @@ internal class MediaQuieter(
             focus.request()
             held = breaker
             requestedAtMs = nowMs
-            muteChecked = false
+            muteSettled = false
         }
-        if (!muteChecked && nowMs - requestedAtMs >= MUTE_DELAY_MS) {
-            muteChecked = true
+        // Checked every tick after the delay, not once: Reels often starts playing only after
+        // the target finishes loading, well into the breath. Settles after one mute or one
+        // refusal, so a user who turns the volume back up is not muted again.
+        if (!muteSettled && nowMs - requestedAtMs >= MUTE_DELAY_MS) {
             // Still playing after the focus request means the player ignored it. A stream the
             // user already muted is theirs; leave it and do not claim it.
             if (muter.isMusicActive() && !muter.isMusicMuted()) {
+                muteSettled = true
                 // Marker first: dying between the two leaves a harmless unmute, not a stuck mute.
                 marker.set = true
                 if (muter.mute()) weMuted = true else marker.set = false
