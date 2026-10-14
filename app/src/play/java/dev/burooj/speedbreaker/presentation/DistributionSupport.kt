@@ -15,7 +15,7 @@ internal data class DistributionSupport(
     val onClick: () -> Unit,
 )
 
-/** External direct tips only; no billing SDK, Internet permission or BMC fallback. */
+/** External direct tips only; no billing SDK, Internet permission or Ko-fi fallback. */
 @Composable
 internal fun rememberDistributionSupport(): DistributionSupport {
     val context = LocalContext.current
