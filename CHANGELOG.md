@@ -15,6 +15,8 @@ Version code: **6**. No APK, Play release or F-Droid build has been published.
   ignore audio focus may keep playing. Never requested during call safety.
 - Keep Play's external direct-tip action hidden until its destination and payment
   eligibility are verified. All features remain free, with no payment SDK.
+- The optional support link on Home now opens Ko-fi (ko-fi.com/beejsbj) instead of
+  Buy Me a Coffee.
 
 The redirect change was independently reviewed and merged in [PR #10](https://github.com/beejsbj/speedbreaker/pull/10).
 Store preparation and remaining verification are tracked in

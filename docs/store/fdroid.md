@@ -9,7 +9,7 @@ The proposed entry is
 [`distribution/fdroid/dev.burooj.speedbreaker.yml`](../../distribution/fdroid/dev.burooj.speedbreaker.yml).
 It describes the public 1.0.1 tag, code 5, minimum SDK 26, and developer-signed
 binary. The future community flavor excludes the proprietary Play Billing SDK.
-The Donate URL remains the authorized BMC page.
+The Donate URL is the owner's Ko-fi page, https://ko-fi.com/beejsbj.
 
 ## Verified evidence
 

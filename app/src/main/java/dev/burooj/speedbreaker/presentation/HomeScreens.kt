@@ -197,7 +197,7 @@ internal fun HomeScreen(
     onSupport: () -> Unit = {},
     onPrivacy: () -> Unit = {},
     supportLabel: String = "Buy me a coffee",
-    supportSummary: String = "Opens buymeacoffee.com in your browser",
+    supportSummary: String = "Opens ko-fi.com in your browser",
     supportAvailable: Boolean = true,
 ) {
     val appCount = settings.apps.size

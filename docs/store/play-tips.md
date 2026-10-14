@@ -1,10 +1,10 @@
 # Google Play direct tips
 
 **External direct-tip preparation; no active Play support link or submission.**
-Burooj asked for Play's direct-tip route and a lower-fee alternative to BMC.
+Burooj asked for Play's direct-tip route and a lower-fee alternative to Buy Me a Coffee.
 After explaining native Billing's fees and SDK processing, the owner was unsure;
 the implementation recommendation is an external, no-reward direct contribution
-with no platform cut. The community/GitHub BMC link remains unchanged.
+with no platform cut. The community/GitHub support link now points to Ko-fi.
 
 ## Candidate behavior
 
@@ -12,13 +12,13 @@ The Play flavor has **no Billing SDK, billing permission, Internet permission,
 purchase receipt processing or diagnostics transport**. Its external support
 seam uses `app/src/play/res/values/support.xml`:
 
-- `play_direct_tip_url` is empty.
+- `play_direct_tip_url` is the Ko-fi page, https://ko-fi.com/beejsbj.
 - `play_direct_tip_verified` is false.
 - Until configured and verified, the support action is hidden. The privacy policy
   remains accessible on Home and before consent. All app features remain free.
 - Once approved/configured, a valid HTTPS URL opens in the user's browser. No
   app settings, selected packages, activity, identifier or purchase token is
-  attached. There is no BMC or native-checkout fallback in Play.
+  attached. There is no Ko-fi or native-checkout fallback in Play.
 
 CI verifies the final release manifests and resolved graphs of both flavors;
 no Billing/DataTransport dependency is permitted in this direct-tip candidate.
@@ -50,9 +50,9 @@ silently add a payment/diagnostics SDK or change the payment route.
 
 ## Missing owner/account facts
 
-No verified Ko-fi/Stripe/PayPal tip destination was supplied. The owner must
-create/configure the payment profile and supply the public URL, currency and
-legal/payment facts in the provider's UI. No password or private key belongs in
+The owner supplied the Ko-fi page (https://ko-fi.com/beejsbj) as the destination,
+but the Play action stays hidden until the owner verifies the payment profile,
+currency and legal/payment facts in the provider's UI. No password or private key belongs in
 chat, source, CI or artifacts. The dedicated public support email is also pending.
 The Google Play account is enrolled and paid. Identity verification is pending;
 app creation is currently disabled. Actual support-case access and submission

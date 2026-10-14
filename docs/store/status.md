@@ -21,7 +21,7 @@ Tracking: Linear BJS-532. Working branch: `release/store-distribution`.
 
 - Preserve Android 8 on F-Droid; wait for rotation support instead of changing
   minimum SDK or signing identity.
-- GitHub/community BMC link remains. The owner asked for Play direct tips and
+- GitHub/community support link points to Ko-fi, replacing Buy Me a Coffee. The owner asked for Play direct tips and
   was unsure after native fees/SDK processing were explained. The recommendation
   is an external direct-tip route, with no Billing/diagnostics SDK. Its link is
   hidden until actual destination, no-reward behavior and policy eligibility are
@@ -32,7 +32,8 @@ Tracking: Linear BJS-532. Working branch: `release/store-distribution`.
 - **Google Play paused by the owner on October 12, 2026**: the required 12 closed-test
   testers for 14 days are not available. Play build, listing drafts and declarations
   stay in the repo; the automated Play policy video recorder is no longer pursued.
-- Owner supplied a Ko-fi page, https://ko-fi.com/beejsbj; its placement is pending.
+- Owner supplied a Ko-fi page, https://ko-fi.com/beejsbj. It is the GitHub/community
+  Home link and the Play direct-tip destination, which stays hidden until verified.
 - Heavy Android builds/emulators use hosted CI; full Xcode was absent on the Mac.
 
 No store “submitted,” “approved,” or “live” state is inferred from source files,

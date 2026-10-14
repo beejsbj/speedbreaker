@@ -94,7 +94,7 @@ distribution entitlement, TestFlight upload or submission is being pursued.
 ## Optional developer support
 
 The GitHub APK has a quiet **Buy me a coffee** link on Home to
-[the developer's page](https://buymeacoffee.com/beejsbj). It opens externally,
+[the developer's Ko-fi page](https://ko-fi.com/beejsbj). It opens externally,
 provides no digital rewards or feature unlocks, and adds no billing SDK or
 Internet permission. It is never shown in the breathing overlay.
 
@@ -106,7 +106,7 @@ Recheck each store's payment rules before submitting that store's build:
   native Billing SDK. Its support action stays hidden until the actual destination
   and eligibility are verified. Google exempts creator tips only when 100% goes
   to the creator and no digital benefit is provided; the FAQ does not explicitly
-  resolve ordinary processor fees. BMC's platform fee is not assumed eligible.
+  resolve ordinary processor fees.
   Ko-fi Free has no one-time platform fee but still has processor fees; see
   [the direct-tip record](store/play-tips.md) and
   [Google's payment FAQ](https://support.google.com/googleplay/android-developer/answer/10281818?hl=en).

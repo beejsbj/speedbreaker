@@ -12,14 +12,14 @@ internal data class DistributionSupport(val label: String, val summary: String, 
 @Composable
 internal fun rememberDistributionSupport(): DistributionSupport {
     val context = LocalContext.current
-    return DistributionSupport("Buy me a coffee", "Opens buymeacoffee.com in your browser") {
+    return DistributionSupport("Buy me a coffee", "Opens ko-fi.com in your browser") {
         try {
             context.startActivity(
-                Intent(Intent.ACTION_VIEW, Uri.parse("https://buymeacoffee.com/beejsbj"))
+                Intent(Intent.ACTION_VIEW, Uri.parse("https://ko-fi.com/beejsbj"))
                     .addCategory(Intent.CATEGORY_BROWSABLE),
             )
         } catch (_: ActivityNotFoundException) {
-            Toast.makeText(context, "Open buymeacoffee.com/beejsbj in a browser to support Speedbreaker.",
+            Toast.makeText(context, "Open ko-fi.com/beejsbj in a browser to support Speedbreaker.",
                 Toast.LENGTH_LONG).show()
         }
     }
