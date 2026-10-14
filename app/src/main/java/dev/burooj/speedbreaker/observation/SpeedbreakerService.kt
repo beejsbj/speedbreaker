@@ -44,6 +44,7 @@ internal class SpeedbreakerService : AccessibilityService() {
     private lateinit var overlay: AccessibilityOverlayHost
     private lateinit var notifications: PauseNotifications
     private lateinit var systemActions: SystemActionController
+    private lateinit var mediaQuieter: MediaQuieter
 
     private var engine: EnforcementEngine? = null
     private var enginePauses: Map<String, PauseState> = emptyMap()
@@ -77,6 +78,7 @@ internal class SpeedbreakerService : AccessibilityService() {
         windowReader = WindowObservationReader(this)
         notifications = PauseNotifications(this)
         systemActions = SystemActionController(this)
+        mediaQuieter = MediaQuieter(SystemAudioFocusHolder(this))
         overlay = AccessibilityOverlayHost(
             service = this,
             onChoice = ::handleChoice,
@@ -266,6 +268,7 @@ internal class SpeedbreakerService : AccessibilityService() {
         notifications.reconcile(repository.pauses.value, observation.epochMs)
         update.effects.forEach(systemActions::execute)
         val breaker = update.breaker
+        mediaQuieter.sync(breaker, observation.safetyUiVisible)
         if (breaker == null) {
             overlay.dismiss()
         } else {
@@ -415,6 +418,7 @@ internal class SpeedbreakerService : AccessibilityService() {
         expectedPauseEnds.clear()
         navigationAwayLatched = false
         overlay.dismiss()
+        mediaQuieter.release()
         repository.pauses.value.keys.forEach(notifications::cancel)
         notifications.cancelAll()
         ServiceStatus.reportError(error)
@@ -423,6 +427,7 @@ internal class SpeedbreakerService : AccessibilityService() {
     private fun tearDownConnection() {
         handler.removeCallbacks(ticker)
         if (::overlay.isInitialized) overlay.dismiss()
+        if (::mediaQuieter.isInitialized) mediaQuieter.release()
         engine = null
         enginePauses = emptyMap()
         expectedPauseEnds.clear()

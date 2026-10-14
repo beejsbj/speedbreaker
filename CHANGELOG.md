@@ -9,6 +9,10 @@ Version code: **6**. No APK, Play release or F-Droid build has been published.
   for that app. Existing four-destination settings remain compatible.
 - Prepare Android 16 / API 36 community and Play builds, with a clearer first-run
   Accessibility disclosure and an explicit decline action.
+- Ask other apps to pause media (such as Instagram Reels) while a breath is
+  showing, by requesting audio focus once per breath and releasing it when the
+  breath ends. Speedbreaker plays no sound and needs no new permission; apps that
+  ignore audio focus may keep playing. Never requested during call safety.
 - Keep Play's external direct-tip action hidden until its destination and payment
   eligibility are verified. All features remain free, with no payment SDK.
 
