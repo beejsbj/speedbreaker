@@ -105,15 +105,15 @@ remain available if Android 14+ lets the user dismiss the pause notification.
 
 ## 1.0.2 media quieting
 
-When a breath starts, Speedbreaker requests permanent audio focus
-(`AUDIOFOCUS_GAIN`) so well-behaved players in the target app pause. The surface
-itself stays silent. Permanent rather than transient focus is deliberate: a
-transient loss lets the target resume itself when focus is abandoned, which after
-Leave or Redirect would restart audio in the background. After Continue, the user
-resumes playback from the app's own controls. Focus is requested once per breath,
-never while call safety is active, and abandoned whenever the breath ends for any
-reason. Apps that ignore audio focus are not affected. Device behavior with
-Instagram Reels is unverified until Burooj tests it.
+When a breath starts, Speedbreaker requests transient audio focus
+(`AUDIOFOCUS_GAIN_TRANSIENT`) so well-behaved players pause. The surface itself
+stays silent. Audio focus is phone-wide, so this also pauses background music or
+podcasts for the length of the breath; transient rather than permanent focus lets
+them resume afterwards instead of stopping for good. The target stops on its own
+once Leave or Redirect sends it to the background. Focus is requested once per
+breath, never while call safety is active, and abandoned whenever the breath ends
+for any reason. Apps that ignore audio focus are not affected. Device behavior
+with Instagram Reels is unverified until Burooj tests it.
 
 ## October 11 redirect-count owner correction
 

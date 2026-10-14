@@ -47,12 +47,12 @@ internal class MediaQuieter(private val focus: AudioFocusHolder) {
 internal class SystemAudioFocusHolder(context: Context) : AudioFocusHolder {
     private val audio = context.applicationContext.getSystemService(AudioManager::class.java)
 
-    // Permanent AUDIOFOCUS_GAIN, not GAIN_TRANSIENT. A transient loss lets the target resume
-    // by itself the moment we abandon focus, which after Leave or Redirect would restart
-    // Reels in the background. A permanent loss tells players to stop and not auto-resume;
-    // after Continue the user taps play in the app's own UI.
+    // Transient focus. Audio focus is phone-wide, so a permanent grant would also stop
+    // background music or a podcast for good on every breath. A transient loss pauses
+    // every player for the breath and lets background players resume afterwards; the
+    // target itself stops on its own once Leave or Redirect sends it to the background.
     private val request: AudioFocusRequest =
-        AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+        AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_MEDIA)
