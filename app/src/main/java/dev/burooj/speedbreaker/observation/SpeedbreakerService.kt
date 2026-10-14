@@ -54,7 +54,6 @@ internal class SpeedbreakerService : AccessibilityService() {
     private val ownPauseWriteSnapshots = mutableListOf<Map<String, PauseState>>()
     private val expectedPauseEnds = mutableSetOf<String>()
     private var navigationAwayLatched = false
-    private var systemPanelOwnsDisplay = false
     private val labelCache = mutableMapOf<String, String>()
 
     private val ticker = object : Runnable {
@@ -101,14 +100,14 @@ internal class SpeedbreakerService : AccessibilityService() {
         ) return
         val windowTransition = event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             event.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
-        if (overlay.hasBreaker && shouldRecordWindowTypes(
+        if (overlay.isShowing && shouldRecordWindowTypes(
                 event.eventType,
                 if (Build.VERSION.SDK_INT >= 28) event.windowChanges else 0,
                 Build.VERSION.SDK_INT,
             )
         ) windowReader.noteWindows(SystemClock.elapsedRealtime())
         if (navigationEvent(
-                hasBreaker = overlay.hasBreaker,
+                hasBreaker = overlay.isShowing,
                 windowTransition = windowTransition,
                 isNavigationPackage = { safetyPolicy.isNavigationPackage(packageName) },
                 applicationTransition = {
@@ -122,10 +121,7 @@ internal class SpeedbreakerService : AccessibilityService() {
         ) {
             navigationAwayLatched = true
         }
-        // SystemUI application windows (for example Recents) still count as
-        // ordinary navigation. Native SYSTEM panel transitions do not cancel
-        // the retained breath; observation() distinguishes their window types.
-        val forceSafetyYield = overlay.hasBreaker && safetyPolicy.isImmediateYieldPackage(packageName)
+        val forceSafetyYield = overlay.isShowing && safetyPolicy.isImmediateYieldPackage(packageName)
         reconcile(forceSafetyYield = forceSafetyYield)
     }
 
@@ -145,6 +141,7 @@ internal class SpeedbreakerService : AccessibilityService() {
     private fun reconcile(
         navigationAway: Boolean = navigationAwayLatched,
         forceSafetyYield: Boolean = false,
+        userBack: Boolean = false,
     ): ObservedUpdate? {
         if (!::repository.isInitialized) return null
         val persistenceError = repository.error.value
@@ -159,7 +156,7 @@ internal class SpeedbreakerService : AccessibilityService() {
             return null
         }
 
-        val currentObservation = observation(navigationAway, forceSafetyYield)
+        val currentObservation = observation(navigationAway, forceSafetyYield, userBack)
         val storedPauses = repository.pauses.value
         if (engine == null) {
             engine = EnforcementEngine(storedPauses)
@@ -205,7 +202,6 @@ internal class SpeedbreakerService : AccessibilityService() {
     }
 
     private fun handleChoice(choice: Choice) {
-        if (!overlay.isShowing) return
         val currentEngine = engine ?: return
         if (repository.error.value != null || !repository.ready.value) {
             suspendEnforcement(repository.error.value)
@@ -214,31 +210,14 @@ internal class SpeedbreakerService : AccessibilityService() {
         if (choice == Choice.Pause && !notifications.isAvailable()) return
         val settings = safetyPolicy.filter(repository.settings.value)
         val observation = observation(navigationAway = false, forceSafetyYield = false)
-        if (systemPanelOwnsDisplay) {
-            apply(currentEngine.update(settings, observation), settings, observation)
-            return
-        }
         apply(currentEngine.choose(choice, settings, observation), settings, observation)
     }
 
     private fun handleBack() {
         val wasShowing = overlay.isShowing
-        if (!wasShowing) return
-        // Judge the native panel from a fresh snapshot before the engine sees Back, so a
-        // panel-owned Back cannot cancel the retained breath.
-        val panelBeforeBack = windowReader.snapshot(
-            SystemClock.elapsedRealtime(),
-            inspectSystemPanels = true,
-        )
-            .systemPanelOwnsDisplay
-        systemPanelOwnsDisplay = panelBeforeBack
-        val result = reconcile(
-            navigationAway = navigationAwayForBack(panelBeforeBack, navigationAwayLatched),
-        ) ?: return
+        val result = reconcile(navigationAway = true, userBack = true) ?: return
         // A safety dismissal exposes call or system controls; do not send Back into them.
-        if (wasShowing && result.update.breaker == null &&
-            !result.observation.safetyUiVisible && !panelBeforeBack && !systemPanelOwnsDisplay
-        ) {
+        if (wasShowing && result.update.breaker == null && !result.observation.safetyUiVisible) {
             systemActions.performBack()
         }
     }
@@ -293,10 +272,7 @@ internal class SpeedbreakerService : AccessibilityService() {
         if (breaker == null) {
             overlay.dismiss()
         } else {
-            overlay.showOrUpdate(
-                overlayState(breaker, settings, update.pauses, observation),
-                systemPanelOwnsDisplay,
-            )
+            overlay.showOrUpdate(overlayState(breaker, settings, update.pauses, observation))
         }
     }
 
@@ -401,12 +377,15 @@ internal class SpeedbreakerService : AccessibilityService() {
         )
     }
 
-    private fun observation(navigationAway: Boolean, forceSafetyYield: Boolean): Observation {
+    private fun observation(
+        navigationAway: Boolean,
+        forceSafetyYield: Boolean,
+        userBack: Boolean = false,
+    ): Observation {
         val elapsedMs = SystemClock.elapsedRealtime()
-        val windows = windowReader.snapshot(elapsedMs, inspectSystemPanels = overlay.hasBreaker)
-        val visiblePackages = windows.applicationPackages
-        systemPanelOwnsDisplay = windows.systemPanelOwnsDisplay
-        if (overlay.hasBreaker && windows.systemUiApplicationVisible) {
+        val visiblePackages = windowReader.visiblePackages(elapsedMs)
+        // Recents is a SystemUI application window: seeing it is navigation.
+        if (overlay.isShowing && "com.android.systemui" in visiblePackages) {
             navigationAwayLatched = true
         }
         val power = getSystemService(PowerManager::class.java)
@@ -417,6 +396,7 @@ internal class SpeedbreakerService : AccessibilityService() {
             safetyUiVisible = forceSafetyYield || !interactive ||
                 safetyPolicy.safetyUiVisible(visiblePackages),
             navigationAway = navigationAway || navigationAwayLatched,
+            userBack = userBack,
             elapsedMs = elapsedMs,
             epochMs = System.currentTimeMillis(),
             zoneId = ZoneId.systemDefault(),

@@ -13,6 +13,8 @@ internal data class Observation(
     val interactive: Boolean,
     val safetyUiVisible: Boolean,
     val navigationAway: Boolean = false,
+    /** The user pressed Back on the overlay itself; the visible target is not a reason to hold. */
+    val userBack: Boolean = false,
     val elapsedMs: Long,
     val epochMs: Long,
     val zoneId: ZoneId,
@@ -234,7 +236,14 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
                     sessions.remove(current.packageName)
                 }
                 hardLockFinished && (navigationAway || navigationPendingDuringHardLock) -> {
-                    finishAndSuppress(current.packageName)
+                    if (observation.userBack || current.packageName !in observation.visiblePackages) {
+                        finishAndSuppress(current.packageName)
+                    } else {
+                        // The target is on screen again (the user came back within the lock, or
+                        // a transient frame hid it). Navigation that no longer holds must not
+                        // remove the breath before its choices appear.
+                        navigationPendingDuringHardLock = false
+                    }
                 }
                 navigationAway && current.packageName !in observation.visiblePackages -> {
                     // The navigation signal is one-shot. If Android already hid the

@@ -51,56 +51,40 @@ internal class AccessibilityOverlayHost(
     private var owner: OverlayOwner? = null
     private var backRegistration: BackRegistration? = null
     private var choicesHapticSent = false
-    private var openingHapticSent = false
     private var breakerIdentity: Pair<String, Long>? = null
 
     val isShowing: Boolean get() = composeView != null
-    val hasBreaker: Boolean get() = state.value != null
 
-    fun showOrUpdate(value: OverlayState, systemPanelOwnsDisplay: Boolean = false) {
+    fun showOrUpdate(value: OverlayState) {
         val wasShowing = isShowing
         val nextIdentity = value.breaker.packageName to value.breaker.startedElapsedMs
         val isNewBreaker = nextIdentity != breakerIdentity
         if (isNewBreaker) {
             breakerIdentity = nextIdentity
             choicesHapticSent = false
-            openingHapticSent = false
         }
         state.value = value
-        if (systemPanelOwnsDisplay) {
-            detachWindow()
-            return
-        }
         if (!wasShowing) show()
-        if (!openingHapticSent && isShowing) {
-            composeView?.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-            openingHapticSent = true
-        }
+        else if (isNewBreaker) composeView?.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
         // A recreated service window on the S23+ can leave a pending Compose frame asleep
         // until pointer movement. Request a window traversal alongside state publication.
         if (wasShowing) composeView?.invalidate()
 
         val choicesUnlocked = value.nowElapsedMs - value.breaker.startedElapsedMs >= HARD_LOCK_MS
-        if (isShowing && choicesUnlocked && !choicesHapticSent) {
+        if (choicesUnlocked && !choicesHapticSent) {
             choicesHapticSent = true
             composeView?.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
         }
     }
 
     fun dismiss() {
-        detachWindow()
-        state.value = null
-        choicesHapticSent = false
-        openingHapticSent = false
-        breakerIdentity = null
-    }
-
-    /** Detach input and drawing while retaining the original intervention deadline. */
-    private fun detachWindow() {
         val view = composeView ?: return
         val lifecycleOwner = owner
         composeView = null
         owner = null
+        state.value = null
+        choicesHapticSent = false
+        breakerIdentity = null
 
         unregisterBackCallback()
         lifecycleOwner?.destroy()
@@ -118,7 +102,7 @@ internal class AccessibilityOverlayHost(
             isFocusableInTouchMode = true
             setOnKeyListener { _, keyCode, event ->
                 if (keyCode == KeyEvent.KEYCODE_BACK) {
-                    if (event.action == KeyEvent.ACTION_UP && composeView === this) onBack()
+                    if (event.action == KeyEvent.ACTION_UP) onBack()
                     true
                 } else {
                     false
@@ -139,7 +123,7 @@ internal class AccessibilityOverlayHost(
                     pauseAvailable = current.pauseAvailable,
                     redirects = current.redirects,
                     motionEnabled = ValueAnimator.areAnimatorsEnabled(),
-                    onChoice = { choice -> if (composeView === view) onChoice(choice) },
+                    onChoice = onChoice,
                 )
             }
         }
@@ -148,10 +132,7 @@ internal class AccessibilityOverlayHost(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            // Keep Back focus, but let Android receive gestures in the system bars
-            // outside this window. A focusable touch-modal window consumes those too.
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.OPAQUE,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
@@ -164,12 +145,11 @@ internal class AccessibilityOverlayHost(
             owner = lifecycleOwner
             lifecycleOwner.start()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                backRegistration = BackRegistration.create(view) {
-                    if (composeView === view) onBack()
-                }
+                backRegistration = BackRegistration.create(view, onBack)
             }
             ServiceStatus.reportError(null)
             view.requestFocus()
+            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
         } catch (error: RuntimeException) {
             unregisterBackCallback()
             composeView = null
