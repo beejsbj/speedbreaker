@@ -533,7 +533,7 @@ class EnforcementEngineTest {
         assertNull(
             navigationEngine.update(
                 settings,
-                observation(navigationAway = true, elapsedMs = 8_000),
+                observation(visible = emptySet(), navigationAway = true, elapsedMs = 8_000),
             ).breaker,
         )
         assertNull(navigationEngine.update(settings, observation(elapsedMs = 8_001)).breaker)
@@ -844,7 +844,7 @@ class EnforcementEngineTest {
             engine.update(
                 settings,
                 observation(
-                    visible = apps.keys,
+                    visible = setOf("z.app"),
                     navigationAway = true,
                     elapsedMs = 8_000,
                 ),
