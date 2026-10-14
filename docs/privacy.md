@@ -1,10 +1,13 @@
-# Privacy
+# Privacy policy
 
-Applies to Speedbreaker **1.0.1**. Last reviewed: **October 11, 2026**.
+Applies to Android Speedbreaker **1.0.1** and the **1.0.2 candidate**, including
+its community and Google Play builds. The candidate is not a store release.
+Last reviewed: **October 11, 2026**. Publisher: **Burooj (beejsbj)**.
 
 Speedbreaker runs on your Android phone. It has no account, analytics, ads,
-cloud sync, or Internet permission. The app does not send your settings or app
-activity to the developer.
+cloud sync, Internet permission, billing SDK or developer backend. The app does
+not send your settings or app activity to the developer. Optional support opens
+an external website; it does not unlock any feature.
 
 ## What Accessibility observes
 
@@ -19,6 +22,10 @@ Android grants broad capability through Accessibility, including access to
 window content. Speedbreaker's implementation reads window-root package names
 and event metadata. It does not traverse screen text, read messages or typed
 input, capture screenshots, or record the contents of other apps.
+
+The 1.0.2 candidate also reads native SystemUI window type, display and touchable
+geometry to expose a full-display system panel above the breathing surface.
+These are transient window metadata, not notification or screen contents.
 
 Current visibility and continuous-use timers are held in memory. They are not
 saved as a usage log. Screen-off time does not count toward check-ins.
@@ -72,6 +79,10 @@ The reflection asks for no input, so no answer is collected or stored.
 | Notifications | Show each active fifteen-minute pause and its **End now** action. Pause requires notifications to be available. |
 | Receive boot completed | Support recovery of locally stored pause state after the phone restarts. |
 
+While a breath is showing, Speedbreaker asks Android for audio focus so other
+apps can pause their media. This needs no permission, plays no sound, and reads
+no audio or media information; it is released when the breath ends.
+
 Pause notifications include the paused app's name and the pause end time.
 Depending on your Android notification settings, these may be visible on the
 lock screen. Adjust Speedbreaker's notification visibility in Android Settings
@@ -90,14 +101,36 @@ or clear its storage in Android Settings, to remove its local data. Clearing
 storage also resets consent, chosen apps, and pause allowances. There is no
 Speedbreaker cloud backup or account to delete.
 
-## Downloads and reports
+## Optional support and payments
+
+### GitHub and community builds
 
 The optional **Buy me a coffee** action opens
-[buymeacoffee.com/beejsbj](https://buymeacoffee.com/beejsbj) outside Speedbreaker.
+[ko-fi.com/beejsbj](https://ko-fi.com/beejsbj) outside Speedbreaker.
 That website and its payment providers handle any visit or contribution under
 their own privacy terms. Speedbreaker sends no settings or app-usage data with
 the link, embeds no payment SDK, and does not receive or store payment details.
 Contributing does not unlock features.
+
+### Google Play candidate
+
+This candidate has no active support link: a direct-tip destination and its
+eligibility under Google Play's payment rules have not yet been verified.
+It contains no native payment library, receives no payment receipts or tokens,
+and grants no content, feature, badge, or other benefit for a contribution.
+
+If a verified external direct-tip page is configured in a later build, it opens
+in your browser without app settings, activity, identifiers or other personal
+data in the URL. The website and its payment providers process the contribution
+under their own privacy terms. Speedbreaker itself does not receive or store
+card information, transaction records or payment status. The policy will identify
+the actual provider before that flow is enabled.
+
+External sites and payment providers retain their own visit/transaction records.
+Clearing app storage does not delete a website account or request a payment
+refund. Use the actual provider's controls for those records and requests.
+
+## Downloads, reports and contact
 
 GitHub hosts this repository, releases, and issue reports. Visiting GitHub or
 posting there is separate from using the offline app. Anything you include in

@@ -1,0 +1,69 @@
+name: Store metadata and assets
+
+on:
+  pull_request:
+    paths:
+      - 'fastlane/metadata/android/**'
+      - 'distribution/store-assets/**'
+      - 'scripts/export_store_assets.py*'
+      - 'scripts/check_store_metadata.py*'
+      - 'scripts/fetch_store_artifacts.py'
+      - 'scripts/check_native_pages.py'
+      - 'scripts/package_release.py'
+      - 'scripts/tests/**'
+      - 'app/src/main/AndroidManifest.xml'
+      - 'app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'
+      - 'app/src/main/res/drawable/ic_launcher_foreground.xml'
+      - 'app/src/main/res/values/colors.xml'
+      - 'docs/brand/fonts/**'
+      - 'docs/brand/source/palette.json'
+      - 'docs/store/assets.md'
+      - '.github/workflows/store-metadata.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'fastlane/metadata/android/**'
+      - 'distribution/store-assets/**'
+      - 'scripts/export_store_assets.py*'
+      - 'scripts/check_store_metadata.py*'
+      - 'scripts/fetch_store_artifacts.py'
+      - 'scripts/check_native_pages.py'
+      - 'scripts/package_release.py'
+      - 'scripts/tests/**'
+      - 'app/src/main/AndroidManifest.xml'
+      - 'app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'
+      - 'app/src/main/res/drawable/ic_launcher_foreground.xml'
+      - 'app/src/main/res/values/colors.xml'
+      - 'docs/brand/fonts/**'
+      - 'docs/brand/source/palette.json'
+      - 'docs/store/assets.md'
+      - '.github/workflows/store-metadata.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install uv
+        run: python3 -m pip install uv==0.12.3
+      - name: Check artifact trust, native collection, and screenshot decoding
+        run: uv run --with pillow==11.3.0 python3 -m unittest discover -s scripts/tests -v
+      - name: Check committed export freshness
+        run: uv run --locked scripts/export_store_assets.py --check
+      - name: Check metadata and image requirements
+        run: uv run --locked scripts/check_store_metadata.py
+      - name: Generate distribution artifact
+        run: uv run --locked scripts/export_store_assets.py
+      - name: Upload freshly generated store artwork
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: speedbreaker-store-assets
+          path: |
+            distribution/store-assets/icon.png
+            distribution/store-assets/icon.svg
+            distribution/store-assets/featureGraphic.png
+            distribution/store-assets/featureGraphic.svg
+          if-no-files-found: error

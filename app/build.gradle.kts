@@ -1,3 +1,5 @@
+import java.security.MessageDigest
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -5,14 +7,15 @@ plugins {
 
 android {
     namespace = "dev.burooj.speedbreaker"
-    compileSdk = 35
+    compileSdk = 36
+    buildToolsVersion = "36.0.0"
 
     defaultConfig {
         applicationId = "dev.burooj.speedbreaker"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 5
-        versionName = "1.0.1"
+        targetSdk = 36
+        versionCode = 6
+        versionName = "1.0.2"
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments["room.schemaLocation"] = "$projectDir/schemas"
@@ -20,9 +23,18 @@ android {
         }
     }
 
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("community") { dimension = "distribution" }
+        create("play") { dimension = "distribution" }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            // The external provenance receipt records HEAD; merge commits with identical
+            // source trees must not change APK bytes inside META-INF.
+            vcsInfo.include = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -79,4 +91,60 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+// Evidence for the resolved release runtime, including transitives and file hashes.
+listOf("community", "play").forEach { channel ->
+    val variant = channel.replaceFirstChar { it.uppercase() }
+    tasks.register("inventory${variant}Release") {
+        val runtime = configurations.named("${channel}ReleaseRuntimeClasspath")
+        val output = layout.buildDirectory.file("store-inventory/$channel/dependencies.json")
+        inputs.files(runtime)
+        outputs.file(output)
+        doLast {
+            val config = runtime.get()
+            fun component(id: org.gradle.api.artifacts.component.ComponentIdentifier): Map<String, String> =
+                if (id is org.gradle.api.artifacts.component.ModuleComponentIdentifier)
+                    mapOf("group" to id.group, "name" to id.module, "version" to id.version)
+                else mapOf("displayName" to id.displayName)
+            fun sha256(file: java.io.File): String {
+                val digest = MessageDigest.getInstance("SHA-256")
+                file.inputStream().use { stream ->
+                    val buffer = ByteArray(8192)
+                    while (true) {
+                        val count = stream.read(buffer)
+                        if (count < 0) break
+                        digest.update(buffer, 0, count)
+                    }
+                }
+                return digest.digest().joinToString("") { "%02x".format(it) }
+            }
+            val artifacts = config.incoming.artifacts.artifacts.map { artifact ->
+                mapOf(
+                    "component" to component(artifact.id.componentIdentifier),
+                    "filename" to artifact.file.name,
+                    "extension" to artifact.file.extension,
+                    "sha256" to sha256(artifact.file),
+                )
+            }.sortedWith(compareBy({ it["component"].toString() }, { it["filename"].toString() }))
+            val nodes = config.incoming.resolutionResult.allComponents.map { resolved ->
+                mapOf(
+                    "component" to component(resolved.id),
+                    "dependencies" to resolved.dependencies.map { dependency ->
+                        if (dependency is org.gradle.api.artifacts.result.ResolvedDependencyResult)
+                            mapOf("requested" to dependency.requested.displayName,
+                                  "selected" to component(dependency.selected.id))
+                        else mapOf("requested" to dependency.requested.displayName,
+                                    "unresolved" to dependency.toString())
+                    }.sortedBy { it["requested"].toString() },
+                )
+            }.sortedBy { it["component"].toString() }
+            val result = mapOf("schemaVersion" to 1, "channel" to channel,
+                "configuration" to config.name, "artifacts" to artifacts, "graph" to nodes)
+            output.get().asFile.apply {
+                parentFile.mkdirs()
+                writeText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(result)) + "\n")
+            }
+        }
+    }
 }

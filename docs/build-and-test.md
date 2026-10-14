@@ -7,7 +7,7 @@ root; `reference/ai-studio/` contains an older prototype, not the production bui
 
 - **Git** to clone the repository.
 - **Java 17**, with `JAVA_HOME` pointing to your JDK installation.
-- **Android SDK Platform 35**, plus Android SDK Build Tools and Platform Tools.
+- **Android SDK Platform 36**, Build Tools **36.0.0**, and Platform Tools.
 - The repository's **Gradle wrapper** (`./gradlew`, or `gradlew.bat` on Windows).
 - Network access for the first dependency download.
 
@@ -21,7 +21,7 @@ cd speedbreaker
 Set `ANDROID_SDK_ROOT` to your local Android SDK directory, or let Android Studio
 write `sdk.dir` into an untracked `local.properties`. Select JDK 17 as the Gradle
 JDK when using Android Studio. SDK paths vary by machine; do not commit yours.
-The app compiles against and targets API 35, with a minimum device API of 26
+The 1.0.2 candidate compiles against and targets API 36, with a minimum device API of 26
 (Android 8.0).
 
 ## Debug build, tests, and lint
@@ -31,9 +31,9 @@ setting limits resource contention. Compilation, tests, and lint are separate
 processes because combined runs previously caused substantial memory pressure.
 
 ```sh
-./gradlew assembleDebug --no-daemon --no-configuration-cache --max-workers=1
-./gradlew testDebugUnitTest --no-daemon --no-configuration-cache --max-workers=1
-./gradlew lintDebug --no-daemon --no-configuration-cache --max-workers=1 \
+./gradlew assembleCommunityDebug --no-daemon --no-configuration-cache --max-workers=1
+./gradlew testCommunityDebugUnitTest --no-daemon --no-configuration-cache --max-workers=1
+./gradlew lintCommunityDebug --no-daemon --no-configuration-cache --max-workers=1 \
   '-Dorg.gradle.jvmargs=-Xmx1g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8'
 ```
 
@@ -43,9 +43,9 @@ Avoid concurrent Gradle builds on a resource-constrained machine.
 
 | Output | Location |
 | --- | --- |
-| Debug APK | `app/build/outputs/apk/debug/app-debug.apk` |
-| Unit test results | `app/build/test-results/testDebugUnitTest/` |
-| Test HTML report | `app/build/reports/tests/testDebugUnitTest/index.html` |
+| Debug APK | `app/build/outputs/apk/community/debug/app-community-debug.apk` |
+| Unit test results | `app/build/test-results/testCommunityDebugUnitTest/` |
+| Test HTML report | `app/build/reports/tests/testCommunityDebugUnitTest/index.html` |
 | Lint reports | `app/build/reports/` |
 
 The tests include pure enforcement and persistence tests and Robolectric/Compose
@@ -56,14 +56,14 @@ renders directly into tracked `docs/design/screenshots/` files.** Review
 For a focused engine check:
 
 ```sh
-./gradlew testDebugUnitTest --tests '*EnforcementEngineTest*' \
+./gradlew testCommunityDebugUnitTest --tests '*EnforcementEngineTest*' \
   --no-daemon --no-configuration-cache --max-workers=1
 ```
 
 To regenerate the gallery deliberately:
 
 ```sh
-./gradlew testDebugUnitTest --tests '*GalleryScreenshotTest*' \
+./gradlew testCommunityDebugUnitTest --tests '*GalleryScreenshotTest*' \
   --no-daemon --no-configuration-cache --max-workers=1
 ```
 
@@ -90,12 +90,28 @@ what was verified on 1.0.0. Older observations are not evidence for a new build.
 
 ## Release builds
 
-For release validation, run `assembleRelease` and `lintRelease` separately,
-using the same process and worker flags above, and run `testDebugUnitTest` in
+`./gradlew :app:bundlePlayRelease` produces an **unsigned** Android App Bundle at
+`app/build/outputs/bundle/playRelease/app-play-release.aab`. Hosted Android checks retain
+the APK and bundle for the exact commit. A bundle must be signed with the upload
+identity configured in Play Console before upload; it does not carry the APK's
+v3 signing lineage. Store preparation does not mean the candidate is released.
+
+For release validation, run `assembleCommunityRelease` and `lintCommunityRelease` separately,
+using the same process and worker flags above, and run `testCommunityDebugUnitTest` in
 its own invocation. The release variant excludes Compose debug tooling.
 
-The repository does not contain private release keys. An `assembleRelease`
+The repository does not contain private release keys. An `assembleCommunityRelease`
 output alone is not the signed APK distributed to users. Maintainer packaging
 and signing are documented in [release.md](release.md); contributors do not need
 those credentials to build and test the debug app. Generated APKs, local SDK
 configuration, dependency caches, and signing credentials should stay untracked.
+
+## Distribution variants
+
+`community` is the GitHub/F-Droid build with an external optional support link.
+`play` is the Google Play build with a configurable external direct-tip route,
+hidden until its destination and fee/policy eligibility are verified. Neither
+flavor includes a payment SDK or Internet permission. They use the same package
+and version; APK update identity must remain compatible. Run
+`testPlayDebugUnitTest` and `lintPlayRelease` for Play. The CI matrix builds and
+verifies both variants separately.

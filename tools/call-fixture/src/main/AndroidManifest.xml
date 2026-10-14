@@ -13,4 +13,6 @@
     </application>
     <instrumentation android:name=".CallRegression" android:targetPackage="dev.burooj.speedbreaker.fixture"
         android:label="Emulator-only incoming-call regression" android:functionalTest="true" />
+    <instrumentation android:name=".PageSizeRegression" android:targetPackage="dev.burooj.speedbreaker"
+        android:label="Disposable 16 KB emulator native-page regression" android:functionalTest="true" />
 </manifest>

@@ -2,6 +2,7 @@ package dev.burooj.speedbreaker.observation
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
@@ -43,6 +44,7 @@ internal class SpeedbreakerService : AccessibilityService() {
     private lateinit var overlay: AccessibilityOverlayHost
     private lateinit var notifications: PauseNotifications
     private lateinit var systemActions: SystemActionController
+    private lateinit var mediaQuieter: MediaQuieter
 
     private var engine: EnforcementEngine? = null
     private var enginePauses: Map<String, PauseState> = emptyMap()
@@ -76,6 +78,7 @@ internal class SpeedbreakerService : AccessibilityService() {
         windowReader = WindowObservationReader(this)
         notifications = PauseNotifications(this)
         systemActions = SystemActionController(this)
+        mediaQuieter = MediaQuieter(SystemAudioFocusHolder(this))
         overlay = AccessibilityOverlayHost(
             service = this,
             onChoice = ::handleChoice,
@@ -97,7 +100,25 @@ internal class SpeedbreakerService : AccessibilityService() {
         ) return
         val windowTransition = event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             event.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
-        if (overlay.isShowing && windowTransition && safetyPolicy.isNavigationPackage(packageName)) {
+        if (overlay.isShowing && shouldRecordWindowTypes(
+                event.eventType,
+                if (Build.VERSION.SDK_INT >= 28) event.windowChanges else 0,
+                Build.VERSION.SDK_INT,
+            )
+        ) windowReader.noteWindows(SystemClock.elapsedRealtime())
+        if (navigationEvent(
+                hasBreaker = overlay.isShowing,
+                windowTransition = windowTransition,
+                isNavigationPackage = { safetyPolicy.isNavigationPackage(packageName) },
+                applicationTransition = {
+                    packageName != "com.android.systemui" ||
+                        windowReader.isApplicationTransition(
+                            event.windowId,
+                            SystemClock.elapsedRealtime(),
+                        )
+                },
+            )
+        ) {
             navigationAwayLatched = true
         }
         val forceSafetyYield = overlay.isShowing && safetyPolicy.isImmediateYieldPackage(packageName)
@@ -120,6 +141,7 @@ internal class SpeedbreakerService : AccessibilityService() {
     private fun reconcile(
         navigationAway: Boolean = navigationAwayLatched,
         forceSafetyYield: Boolean = false,
+        userBack: Boolean = false,
     ): ObservedUpdate? {
         if (!::repository.isInitialized) return null
         val persistenceError = repository.error.value
@@ -134,7 +156,7 @@ internal class SpeedbreakerService : AccessibilityService() {
             return null
         }
 
-        val currentObservation = observation(navigationAway, forceSafetyYield)
+        val currentObservation = observation(navigationAway, forceSafetyYield, userBack)
         val storedPauses = repository.pauses.value
         if (engine == null) {
             engine = EnforcementEngine(storedPauses)
@@ -193,7 +215,7 @@ internal class SpeedbreakerService : AccessibilityService() {
 
     private fun handleBack() {
         val wasShowing = overlay.isShowing
-        val result = reconcile(navigationAway = true) ?: return
+        val result = reconcile(navigationAway = true, userBack = true) ?: return
         // A safety dismissal exposes call or system controls; do not send Back into them.
         if (wasShowing && result.update.breaker == null && !result.observation.safetyUiVisible) {
             systemActions.performBack()
@@ -246,6 +268,7 @@ internal class SpeedbreakerService : AccessibilityService() {
         notifications.reconcile(repository.pauses.value, observation.epochMs)
         update.effects.forEach(systemActions::execute)
         val breaker = update.breaker
+        mediaQuieter.sync(breaker, observation.safetyUiVisible)
         if (breaker == null) {
             overlay.dismiss()
         } else {
@@ -354,9 +377,17 @@ internal class SpeedbreakerService : AccessibilityService() {
         )
     }
 
-    private fun observation(navigationAway: Boolean, forceSafetyYield: Boolean): Observation {
+    private fun observation(
+        navigationAway: Boolean,
+        forceSafetyYield: Boolean,
+        userBack: Boolean = false,
+    ): Observation {
         val elapsedMs = SystemClock.elapsedRealtime()
         val visiblePackages = windowReader.visiblePackages(elapsedMs)
+        // Recents is a SystemUI application window: seeing it is navigation.
+        if (overlay.isShowing && "com.android.systemui" in visiblePackages) {
+            navigationAwayLatched = true
+        }
         val power = getSystemService(PowerManager::class.java)
         val interactive = power?.isInteractive == true
         return Observation(
@@ -364,7 +395,8 @@ internal class SpeedbreakerService : AccessibilityService() {
             interactive = interactive,
             safetyUiVisible = forceSafetyYield || !interactive ||
                 safetyPolicy.safetyUiVisible(visiblePackages),
-            navigationAway = navigationAway,
+            navigationAway = navigationAway || navigationAwayLatched,
+            userBack = userBack,
             elapsedMs = elapsedMs,
             epochMs = System.currentTimeMillis(),
             zoneId = ZoneId.systemDefault(),
@@ -386,6 +418,7 @@ internal class SpeedbreakerService : AccessibilityService() {
         expectedPauseEnds.clear()
         navigationAwayLatched = false
         overlay.dismiss()
+        mediaQuieter.release()
         repository.pauses.value.keys.forEach(notifications::cancel)
         notifications.cancelAll()
         ServiceStatus.reportError(error)
@@ -394,6 +427,7 @@ internal class SpeedbreakerService : AccessibilityService() {
     private fun tearDownConnection() {
         handler.removeCallbacks(ticker)
         if (::overlay.isInitialized) overlay.dismiss()
+        if (::mediaQuieter.isInitialized) mediaQuieter.release()
         engine = null
         enginePauses = emptyMap()
         expectedPauseEnds.clear()

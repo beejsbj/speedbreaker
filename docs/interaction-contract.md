@@ -17,6 +17,7 @@ Build a rough, runnable phone-scale prototype of Speedbreaker's settled interact
 * Total breath duration is a global 8–60 second slider, default 12 seconds. It never varies per app.
 * The first eight seconds are an invariant hard lock: show only the breathing experience; no action is available; Home, Back, and Recents do not dismiss the intervention.
 * Calls, emergency/dialer UI, lockscreen, Accessibility settings, and the phone becoming non-interactive override the hard lock immediately.
+* The notification shade and Quick Settings are not reachable during the eight-second lock, by design (owner decision, October 14, 2026): the lock is meant to be a hard lock from the phone itself. Calls still break through, and safety screens (Settings, Accessibility settings, dialer, emergency, lockscreen) still yield immediately if they become visible by any route.
 * At eight seconds, Leave, configured redirects, and Pause become actionable. Continue becomes actionable only when the configured total breath finishes. For a 30-second breath this is 8 locked seconds plus 22 seconds before Continue unlocks.
 * The fixed reflection is “What are you here for?” It requires no input and stores no answer.
 * Continue and Leave share the first row with equal width and emphasis: Continue left, Leave right. Continue dismisses the overlay and starts the session interval; Leave performs Android Home.
@@ -101,6 +102,18 @@ a fresh breath. A safety dismissal never forwards Back into the exposed call UI.
 
 Home now shows active pauses with an End now action for each app. These controls
 remain available if Android 14+ lets the user dismiss the pause notification.
+
+## 1.0.2 media quieting
+
+When a breath starts, Speedbreaker requests transient audio focus
+(`AUDIOFOCUS_GAIN_TRANSIENT`) so well-behaved players pause. The surface itself
+stays silent. Audio focus is phone-wide, so this also pauses background music or
+podcasts for the length of the breath; transient rather than permanent focus lets
+them resume afterwards instead of stopping for good. The target stops on its own
+once Leave or Redirect sends it to the background. Focus is requested once per
+breath, never while call safety is active, and abandoned whenever the breath ends
+for any reason. Apps that ignore audio focus are not affected. Device behavior
+with Instagram Reels is unverified until Burooj tests it.
 
 ## October 11 redirect-count owner correction
 

@@ -10,11 +10,17 @@ export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 python3 scripts/package_release.py
 ```
 
+Before any credential is requested it applies the same dependency and final-manifest
+policy as CI (`scripts/store_inventory.py`: no INTERNET, network-state, Billing,
+payment or diagnostics SDKs, no debuggable APK).
+
 The script prompts for the release-keystore password unless
 `SPEEDBREAKER_RELEASE_PASSWORD` is supplied in the process environment. On
 bjslab, `--password-secret <record-id>` reads that one record through `bjs-bws`
-without logging it. `--skip-build` signs an already built release variant.
-Use it only after building the current committed source.
+without logging it. For hosted builds, `--skip-build` requires an explicit unsigned
+community APK and the verified CI input receipt. See
+[distribution automation](store/automation.md) for artifact recovery and exact
+source/hash checks. Private keys stay on their existing signing host.
 
 ## Key custody and updates
 

@@ -60,6 +60,17 @@ internal fun openNotificationSettings(context: Context) {
     )
 }
 
+internal fun openPrivacyPolicy(context: Context) {
+    try {
+        context.startActivity(Intent(Intent.ACTION_VIEW,
+            Uri.parse("https://beejsbj.github.io/speedbreaker/privacy.html")))
+    } catch (_: android.content.ActivityNotFoundException) {
+        android.widget.Toast.makeText(context,
+            "Privacy: beejsbj.github.io/speedbreaker/privacy.html",
+            android.widget.Toast.LENGTH_LONG).show()
+    }
+}
+
 private fun looksSafetyCritical(packageName: String): Boolean {
     val normalized = packageName.lowercase(Locale.US)
     return safetyMarkers.any { it in normalized }

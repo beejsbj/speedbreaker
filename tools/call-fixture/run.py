@@ -220,7 +220,7 @@ def main():
     parser.add_argument("--serial", required=True)
     parser.add_argument("--reset-test-packages", action="store_true",
                         help="Confirm this is a disposable emulator; clears both packages and accessibility settings")
-    parser.add_argument("--app-apk", type=Path, default=ROOT / "app/build/outputs/apk/debug/app-debug.apk")
+    parser.add_argument("--app-apk", type=Path, default=ROOT / "app/build/outputs/apk/community/debug/app-community-debug.apk")
     parser.add_argument("--app-commit", help="Source commit of a separately built app APK, recorded with its SHA-256")
     parser.add_argument("--fixture-apk", type=Path,
                         default=ROOT / "tools/call-fixture/build/outputs/apk/debug/call-fixture-debug.apk")

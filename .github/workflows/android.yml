@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'app/**'
+      - 'scripts/store_inventory.py'
+      - 'docs/store/licenses.md'
       - 'gradle/**'
       - '*.gradle.kts'
       - 'gradle.properties'
@@ -13,6 +15,8 @@ on:
   pull_request:
     paths:
       - 'app/**'
+      - 'scripts/store_inventory.py'
+      - 'docs/store/licenses.md'
       - 'gradle/**'
       - '*.gradle.kts'
       - 'gradle.properties'
@@ -29,6 +33,14 @@ concurrency:
 
 jobs:
   verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - channel: community
+            variant: Community
+          - channel: play
+            variant: Play
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -39,26 +51,62 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
       - name: Install Android SDK packages
-        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;36.0.0"'
-      - name: Build unsigned release
-        run: ./gradlew assembleRelease --no-daemon --no-configuration-cache --max-workers=2
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"'
+      - name: Validate inventory script
+        run: python3 scripts/store_inventory.py self-test
+      - name: Build unsigned release and resolve runtime inventory
+        run: ./gradlew :app:assemble${{ matrix.variant }}Release :app:inventory${{ matrix.variant }}Release --no-daemon --no-configuration-cache --max-workers=2
       - name: Preserve unsigned APK from this commit
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: unsigned-release-${{ github.sha }}
-          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          name: unsigned-${{ matrix.channel }}-release-${{ github.sha }}
+          path: app/build/outputs/apk/${{ matrix.channel }}/release/app-${{ matrix.channel }}-release-unsigned.apk
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 30
+      - name: Build unsigned Play bundle
+        if: matrix.channel == 'play'
+        run: ./gradlew :app:bundlePlayRelease --no-daemon --no-configuration-cache --max-workers=2
+      - name: Preserve unsigned bundle from this commit
+        if: matrix.channel == 'play'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: unsigned-bundle-${{ github.sha }}
+          path: app/build/outputs/bundle/playRelease/app-play-release.aab
+          if-no-files-found: error
+          retention-days: 30
+      - name: Collect POM licenses and verify final APK manifest
+        id: manifest
+        continue-on-error: true
+        env:
+          CHANNEL: ${{ matrix.channel }}
+        run: |
+          python3 scripts/store_inventory.py collect --dependencies "app/build/store-inventory/$CHANNEL/dependencies.json" --output "app/build/store-inventory/$CHANNEL"
+          if [ "$CHANNEL" = play ]; then
+            python3 scripts/store_inventory.py verify --channel "$CHANNEL" --apk "app/build/outputs/apk/$CHANNEL/release/app-$CHANNEL-release-unsigned.apk" --aab app/build/outputs/bundle/playRelease/app-play-release.aab --aapt "$ANDROID_HOME/build-tools/36.0.0/aapt" --output "app/build/store-inventory/$CHANNEL"
+          else
+            python3 scripts/store_inventory.py verify --channel "$CHANNEL" --apk "app/build/outputs/apk/$CHANNEL/release/app-$CHANNEL-release-unsigned.apk" --aapt "$ANDROID_HOME/build-tools/36.0.0/aapt" --output "app/build/store-inventory/$CHANNEL"
+          fi
+      - name: Preserve inventory and manifest evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: store-inventory-${{ matrix.channel }}-${{ github.sha }}
+          path: app/build/store-inventory/${{ matrix.channel }}/
+          if-no-files-found: warn
+          retention-days: 30
       - name: Unit and UI regression tests
-        run: ./gradlew testDebugUnitTest --no-daemon --no-configuration-cache --max-workers=2
+        run: ./gradlew :app:test${{ matrix.variant }}DebugUnitTest --no-daemon --no-configuration-cache --max-workers=2
       - name: Release lint
-        run: ./gradlew lintRelease --no-daemon --no-configuration-cache --max-workers=2
+        run: ./gradlew :app:lint${{ matrix.variant }}Release --no-daemon --no-configuration-cache --max-workers=2
       - name: Preserve verification reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: verification-${{ github.sha }}
+          name: verification-${{ matrix.channel }}-${{ github.sha }}
           path: |
             app/build/test-results/
             app/build/reports/
-          retention-days: 7
+          retention-days: 30
+      - name: Enforce final APK policy
+        if: always()
+        run: test "${{ steps.manifest.outcome }}" = success

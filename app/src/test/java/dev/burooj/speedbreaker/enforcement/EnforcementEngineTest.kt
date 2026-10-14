@@ -533,7 +533,7 @@ class EnforcementEngineTest {
         assertNull(
             navigationEngine.update(
                 settings,
-                observation(navigationAway = true, elapsedMs = 8_000),
+                observation(visible = emptySet(), navigationAway = true, elapsedMs = 8_000),
             ).breaker,
         )
         assertNull(navigationEngine.update(settings, observation(elapsedMs = 8_001)).breaker)
@@ -568,6 +568,131 @@ class EnforcementEngineTest {
                 settings,
                 observation(visible = emptySet(), elapsedMs = 8_000),
             ).breaker,
+        )
+    }
+
+    @Test
+    fun `target visible again at eight seconds keeps the breath despite pending navigation`() {
+        val settings = settings()
+        val engine = EnforcementEngine()
+        engine.update(settings, observation())
+        engine.update(settings, observation(visible = emptySet(), navigationAway = true, elapsedMs = 2_000))
+
+        assertEquals(
+            TARGET,
+            engine.update(settings, observation(elapsedMs = 8_000)).breaker?.packageName,
+        )
+        // The stale pending flag was cleared, so a later tick keeps the breath too.
+        assertEquals(
+            TARGET,
+            engine.update(settings, observation(elapsedMs = 9_000)).breaker?.packageName,
+        )
+    }
+
+    @Test
+    fun `latched navigation with the target still visible at eight seconds keeps the breath`() {
+        val settings = settings()
+        val engine = EnforcementEngine()
+        engine.update(settings, observation())
+
+        assertEquals(
+            TARGET,
+            engine.update(settings, observation(navigationAway = true, elapsedMs = 8_000))
+                .breaker?.packageName,
+        )
+    }
+
+    @Test
+    fun `Back on the overlay after the lock still releases a visible target`() {
+        val settings = settings()
+        val engine = EnforcementEngine()
+        engine.update(settings, observation())
+
+        assertNull(
+            engine.update(
+                settings,
+                observation(navigationAway = true, userBack = true, elapsedMs = 8_000),
+            ).breaker,
+        )
+    }
+
+    @Test
+    fun `another app replacing the target during hard lock yields at exactly eight seconds`() {
+        val settings = settings()
+        val engine = EnforcementEngine()
+        engine.update(settings, observation())
+
+        // Notification tap: no navigation signal, target gone, another app foreground.
+        val replaced = setOf("other.app")
+        assertEquals(
+            TARGET,
+            engine.update(settings, observation(visible = replaced, elapsedMs = 2_000))
+                .breaker?.packageName,
+        )
+        assertEquals(
+            TARGET,
+            engine.update(settings, observation(visible = replaced, elapsedMs = 7_999))
+                .breaker?.packageName,
+        )
+        assertNull(engine.update(settings, observation(visible = replaced, elapsedMs = 8_000)).breaker)
+        assertNull(engine.update(settings, observation(visible = replaced, elapsedMs = 8_001)).breaker)
+    }
+
+    @Test
+    fun `another app replacing the target after hard lock yields immediately`() {
+        val settings = settings()
+        val engine = EnforcementEngine()
+        engine.update(settings, observation())
+
+        assertNull(
+            engine.update(settings, observation(visible = setOf("other.app"), elapsedMs = 9_000)).breaker,
+        )
+    }
+
+    @Test
+    fun `system ui alone or an unseen target does not count as replacement`() {
+        val settings = settings()
+        val engine = EnforcementEngine()
+        engine.update(settings, observation())
+
+        assertEquals(
+            TARGET,
+            engine.update(
+                settings,
+                observation(visible = setOf("com.android.systemui"), elapsedMs = 9_000),
+            ).breaker?.packageName,
+        )
+        assertEquals(
+            TARGET,
+            engine.update(settings, observation(visible = emptySet(), elapsedMs = 10_000))
+                .breaker?.packageName,
+        )
+        // The target still visible beside another app (split screen) keeps the breath.
+        assertEquals(
+            TARGET,
+            engine.update(
+                settings,
+                observation(visible = setOf(TARGET, "other.app"), elapsedMs = 11_000),
+            ).breaker?.packageName,
+        )
+    }
+
+    @Test
+    fun `switching to another target app hands over when the first breath yields`() {
+        val settings = settings(apps = mapOf(TARGET to AppPolicy(), "second.app" to AppPolicy()))
+        val engine = EnforcementEngine()
+        engine.update(settings, observation())
+
+        val second = setOf("second.app")
+        assertEquals(
+            TARGET,
+            engine.update(settings, observation(visible = second, elapsedMs = 7_999))
+                .breaker?.packageName,
+        )
+        assertEquals(
+            "second.app",
+            engine.update(settings, observation(visible = second, elapsedMs = 8_000))
+                .breaker?.packageName,
         )
     }
 
@@ -719,7 +844,7 @@ class EnforcementEngineTest {
             engine.update(
                 settings,
                 observation(
-                    visible = apps.keys,
+                    visible = setOf("z.app"),
                     navigationAway = true,
                     elapsedMs = 8_000,
                 ),
@@ -765,6 +890,7 @@ class EnforcementEngineTest {
         interactive: Boolean = true,
         safety: Boolean = false,
         navigationAway: Boolean = false,
+        userBack: Boolean = false,
         elapsedMs: Long = 0,
         epochMs: Long = epoch(DEFAULT_TIME),
         at: String? = null,
@@ -773,6 +899,7 @@ class EnforcementEngineTest {
         interactive = interactive,
         safetyUiVisible = safety,
         navigationAway = navigationAway,
+        userBack = userBack,
         elapsedMs = elapsedMs,
         epochMs = at?.let(::epoch) ?: epochMs,
         zoneId = UTC,

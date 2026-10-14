@@ -1,0 +1,45 @@
+name: Public privacy and support pages
+
+on:
+  push:
+    branches: [main, release/store-distribution]
+    paths:
+      - 'docs/privacy.md'
+      - 'docs/brand/**'
+      - 'scripts/build_public_site.py'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install pinned document renderer
+        run: python3 -m pip install Markdown==3.11
+      - name: Render public documents
+        run: python3 scripts/build_public_site.py
+      - name: Upload static site
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: build/public-site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy public policy and help
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

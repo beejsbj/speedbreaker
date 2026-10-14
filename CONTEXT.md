@@ -66,5 +66,30 @@ required, and missing access suspends breaths.
 Burooj requested visible app icons for redirects and a quiet optional support
 link in the app. He prefers the Mac for local heavy jobs; use hosted CI or the
 Mac for Gradle rather than bjslab. GitHub is the current distribution channel;
-F-Droid, Play and an iOS implementation remain future work described in the
-[distribution guide](docs/distribution.md).
+F-Droid and Play preparation are described in the
+[distribution guide](docs/distribution.md). The separate iOS prototype is
+retained; the owner stopped Apple Developer/App Store work.
+
+## Store work — October 11, 2026
+
+Active implementation thread `98543987-c8a8-4578-921d-a593647b609a`, branch
+`release/store-distribution`, PR #8, Linear BJS-532. Authoritative evidence:
+[docs/store/status.md](docs/store/status.md). Candidate1.0.2/code6/API36 has
+community and Play source sets; neither includes a payment SDK. Play prepares an external direct-tip link,
+hidden until actual destination/fee eligibility is verified. Native Billing
+prototype retained separately on fix/play-tip-concurrency-e0be3c1 after privacy/fee audit.
+Stable1.0.1 remains unchanged. Public privacy/support Pages deployed. Historical
+APK signature-copy reproduction passed hostedCI38157458089, not F-Droid server.
+Owner retains Android8 on F-Droid and waits for valid-key-rotation support; no
+signing replacement. Owner abandoned Apple Developer/App Store path; preserve
+compiled native prototype without promising iOS parity. Google Play public
+mailbox, external-tip destination, signing and test-track prerequisites remain
+pending. Enrollment and payment are complete; authenticated Mac Chrome shows
+identity verification pending and app creation disabled.
+
+On October 11 the owner supplied a Play Console registration-success screenshot:
+developer account created and registration payment completed. This clears
+enrollment/payment; it does not establish identity approval, app submission or
+agent Console access. Keep the personal receipt email out of public store
+contact fields unless the owner explicitly chooses it. Private screenshot is
+not a public artifact.

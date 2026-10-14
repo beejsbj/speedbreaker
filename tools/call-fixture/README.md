@@ -12,7 +12,7 @@ would disable the very service being tested.
 
 ## Run
 
-Use a **disposable, English, unlocked API 35 Google APIs phone emulator**. The
+Use a **disposable, English, unlocked API 35 or 36 Google APIs phone emulator**. The
 script refuses non-emulator serials/devices and API levels below 33. It clears
 both Speedbreaker and fixture data, replaces enabled accessibility services,
 and changes notification/ringer/display settings. Do not use a personal AVD.
@@ -20,7 +20,7 @@ and changes notification/ringer/display settings. Do not use a personal AVD.
 Build on GitHub CI or another authorized compute worker, not a busy local host:
 
 ```sh
-./gradlew -PcallFixture=true :app:assembleDebug :call-fixture:assembleDebug --no-daemon --no-configuration-cache --max-workers=2
+./gradlew -PcallFixture=true :app:assembleCommunityDebug :call-fixture:assembleDebug --no-daemon --no-configuration-cache --max-workers=2
 python3 tools/call-fixture/run.py --serial emulator-5554 --reset-test-packages
 ```
 
@@ -31,21 +31,22 @@ notification-policy access to enter silent mode reproducibly.
 
 The separate `Android device regression` workflow checks out the app candidate
 separately from the fixture. No production source is copied into this test branch.
-It runs on pushes to the isolated `test/device-regression` branch and supports
-manual dispatch with an independent app revision:
+It runs for app/tooling pull requests and main pushes, and supports manual
+dispatch with an independent app revision:
 
 ```sh
-gh workflow run android-device.yml --ref test/device-regression -f app_ref=2b0bbddbd3ce647c67282a6c6680d072421a647f
+gh workflow run android-device.yml --ref release/store-distribution
 gh run list --workflow android-device.yml --limit 3
 gh run watch <run-id> --exit-status
 gh run download <run-id> --dir build/device-evidence
 ```
 
-GitHub requires a workflow to be registered before manual dispatch. The isolated
-branch push trigger permits initial registration without editing the main Android
-workflow. On that isolated branch the default candidate is pinned to `2b0bbdd`;
-elsewhere an empty `app_ref` tests the workflow's own revision. APK SHA-256 values
-and the separate app commit are recorded in `environment.json`.
+An empty `app_ref` tests the workflow's source revision. For a historical
+pre-flavor APK, explicitly pass its old `app/build/outputs/apk/debug/app-debug.apk`
+path to the local runner. The hosted workflow selects the matching build task
+for historical revisions. APK SHA-256 values and the separate app commit are
+recorded in `environment.json`. The first-run store demo is separate from these
+seeded regression scenarios and applies only to the current candidate.
 
 For a pre-fix negative control, select the old app revision and explicitly set
 `-f baseline_without_phone_permission=true`. This allows the old APK's absent

@@ -13,6 +13,8 @@ internal data class Observation(
     val interactive: Boolean,
     val safetyUiVisible: Boolean,
     val navigationAway: Boolean = false,
+    /** The user pressed Back on the overlay itself; the visible target is not a reason to hold. */
+    val userBack: Boolean = false,
     val elapsedMs: Long,
     val epochMs: Long,
     val zoneId: ZoneId,
@@ -221,18 +223,29 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
             val mustYield = !selectedAndScheduled ||
                 !observation.interactive ||
                 observation.safetyUiVisible
+            // The target is gone and another application owns the screen (for example a
+            // notification tap from the shade). That is navigation even though no
+            // launcher or Recents event announced it.
+            val targetReplaced = current.packageName !in observation.visiblePackages &&
+                observation.visiblePackages.any { it != SYSTEM_UI_PACKAGE }
+            val navigationAway = observation.navigationAway || targetReplaced
             when {
                 mustYield -> {
                     breaker = null
                     navigationPendingDuringHardLock = false
                     sessions.remove(current.packageName)
                 }
-                hardLockFinished &&
-                    (observation.navigationAway || navigationPendingDuringHardLock) -> {
-                    finishAndSuppress(current.packageName)
+                hardLockFinished && (navigationAway || navigationPendingDuringHardLock) -> {
+                    if (observation.userBack || current.packageName !in observation.visiblePackages) {
+                        finishAndSuppress(current.packageName)
+                    } else {
+                        // The target is on screen again (the user came back within the lock, or
+                        // a transient frame hid it). Navigation that no longer holds must not
+                        // remove the breath before its choices appear.
+                        navigationPendingDuringHardLock = false
+                    }
                 }
-                observation.navigationAway &&
-                    current.packageName !in observation.visiblePackages -> {
+                navigationAway && current.packageName !in observation.visiblePackages -> {
                     // The navigation signal is one-shot. If Android already hid the
                     // target during hard lock, remember it and yield exactly at 8s.
                     navigationPendingDuringHardLock = true
@@ -466,6 +479,7 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
         if (right > 0 && left > Long.MAX_VALUE - right) Long.MAX_VALUE else left + right
 
     private companion object {
+        const val SYSTEM_UI_PACKAGE = "com.android.systemui"
         const val MILLIS_PER_SECOND = 1_000L
         const val HARD_LOCK_MS = 8_000L
         const val ABSENCE_GRACE_MS = 60_000L
