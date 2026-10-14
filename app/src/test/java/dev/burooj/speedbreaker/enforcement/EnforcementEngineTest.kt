@@ -572,6 +572,51 @@ class EnforcementEngineTest {
     }
 
     @Test
+    fun `target visible again at eight seconds keeps the breath despite pending navigation`() {
+        val settings = settings()
+        val engine = EnforcementEngine()
+        engine.update(settings, observation())
+        engine.update(settings, observation(visible = emptySet(), navigationAway = true, elapsedMs = 2_000))
+
+        assertEquals(
+            TARGET,
+            engine.update(settings, observation(elapsedMs = 8_000)).breaker?.packageName,
+        )
+        // The stale pending flag was cleared, so a later tick keeps the breath too.
+        assertEquals(
+            TARGET,
+            engine.update(settings, observation(elapsedMs = 9_000)).breaker?.packageName,
+        )
+    }
+
+    @Test
+    fun `latched navigation with the target still visible at eight seconds keeps the breath`() {
+        val settings = settings()
+        val engine = EnforcementEngine()
+        engine.update(settings, observation())
+
+        assertEquals(
+            TARGET,
+            engine.update(settings, observation(navigationAway = true, elapsedMs = 8_000))
+                .breaker?.packageName,
+        )
+    }
+
+    @Test
+    fun `Back on the overlay after the lock still releases a visible target`() {
+        val settings = settings()
+        val engine = EnforcementEngine()
+        engine.update(settings, observation())
+
+        assertNull(
+            engine.update(
+                settings,
+                observation(navigationAway = true, userBack = true, elapsedMs = 8_000),
+            ).breaker,
+        )
+    }
+
+    @Test
     fun `another app replacing the target during hard lock yields at exactly eight seconds`() {
         val settings = settings()
         val engine = EnforcementEngine()
@@ -845,6 +890,7 @@ class EnforcementEngineTest {
         interactive: Boolean = true,
         safety: Boolean = false,
         navigationAway: Boolean = false,
+        userBack: Boolean = false,
         elapsedMs: Long = 0,
         epochMs: Long = epoch(DEFAULT_TIME),
         at: String? = null,
@@ -853,6 +899,7 @@ class EnforcementEngineTest {
         interactive = interactive,
         safetyUiVisible = safety,
         navigationAway = navigationAway,
+        userBack = userBack,
         elapsedMs = elapsedMs,
         epochMs = at?.let(::epoch) ?: epochMs,
         zoneId = UTC,
