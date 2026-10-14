@@ -11,8 +11,10 @@ Version code: **6**. No APK, Play release or F-Droid build has been published.
   Accessibility disclosure and an explicit decline action.
 - Ask other apps to pause media (such as Instagram Reels) while a breath is
   showing, by requesting transient audio focus once per breath and releasing it
-  when the breath ends, so background music resumes afterwards. Speedbreaker plays no sound and needs no new permission; apps that
-  ignore audio focus may keep playing. Never requested during call safety.
+  when the breath ends, so background music resumes afterwards. For apps that
+  ignore audio focus, mute the music stream half a second in and unmute it when
+  the breath ends (recovering a stuck mute after a crash). Speedbreaker plays no
+  sound and needs no new permission. Never touched during call safety.
 - Keep Play's external direct-tip action hidden until its destination and payment
   eligibility are verified. All features remain free, with no payment SDK.
 - The optional support link on Home now opens Ko-fi (ko-fi.com/beejsbj) instead of

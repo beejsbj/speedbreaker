@@ -29,6 +29,7 @@ These are transient window metadata, not notification or screen contents.
 
 Current visibility and continuous-use timers are held in memory. They are not
 saved as a usage log. Screen-off time does not count toward check-ins.
+A single on-device flag records only that Speedbreaker muted the music stream during a breath, so it can unmute after a crash; it is cleared when the breath ends and holds no app or time information.
 
 ## Call safety
 
