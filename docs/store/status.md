@@ -13,7 +13,7 @@ Tracking: Linear BJS-532. Working branch: `release/store-distribution`.
 | Original 1.0.1 reproduction | **Verified:** clean hosted rebuild and signature-copy run 38157458089 passed. Source tree matches canonical release tag. **Not an F-Droid buildserver verification.** | Complete F-Droid pipeline verification still required. |
 | F-Droid | Metadata lint/read/rewrite validated. **Blocked; not submitted.** | fdroidserver 2.4.5 rejects valid legacy/release v2/v3 rotation. Owner chose Android 8 retained and wait for support; no authenticated GitLab access established. |
 | Google Play | API 36 build, external direct-tip preparation, listing/declaration drafts and CI implemented. **Not submitted; no app draft.** Authenticated Mac Chrome Console inspected October 11: personal account, identity documents uploaded, Google verification pending. **Create app disabled** until account verification completes. | Google's identity approval, followed by owner phone verification. Public email, signing setup, external-tip destination/fee eligibility, legal facts, internal installation tests and production testing remain. |
-| Native 16 KB / policy demo | Native compatibility-off x86_64 test, JNI conversion, app launch and crash checks **passed** in integrated root run 38169807955 at 467d700. Independent review found a failed-transfer acceptance gap; fixed in 45e09ac and independently verified by both models. ARM64 runtime untested; literal RELRO formula warnings retained. Fresh consent/Settings recording remains **unverified**. | No account dependency. Persistent UI observer now preserves the service and synthetic target. Complete native Settings reachability during the initial hold, disablement, reviewed video and final screenshot packet remain. |
+| Native 16 KB / policy demo | Native compatibility-off x86_64 test, JNI conversion, app launch and crash checks **passed** in integrated root run 38169807955 at 467d700. Independent review found a failed-transfer acceptance gap; fixed in 45e09ac and independently verified by both models. ARM64 runtime untested; literal RELRO formula warnings retained. Fresh consent/Settings recording remains **unverified**. | No account dependency. Persistent UI observer now preserves the service and synthetic target. Settings yield if reached by any route, disablement, reviewed video and final screenshot packet remain. |
 | iOS feasibility | Native SwiftUI/Screen Time source retained on separate `release/ios-feasibility` branch; all four targets compiled unsigned in hosted run 38157800786. No opening/breathing-overlay parity claim. | **App Store path discontinued at owner's request October 11.** No Apple membership/entitlement/submission pursued. Real-device behavior unverified. |
 | Independent code review | Astra high reviewed cc5d370; no new substantive source finding, stale status wording corrected. Actual Sol6.1 xhigh review identified an editable signing-receipt gap; fixed in b899ff0 and independently reproduced positive/tampered host checks. Astra and Sol 6.1 reviewed native integration at eb14946. Sol found a failed-ADB-transfer acceptance gap; resolved in 45e09ac, verified by both models. Final device-tooling review remains pending. | None; receipt and reconciled findings will be recorded here. |
 
@@ -48,15 +48,15 @@ native 38166287973 and metadata 38166287891. The
 main integration and the remaining candidate/device boundary. No new signing
 or publication followed that merge.
 
-The subsequent native-route investigation found two input/presentation barriers:
-outside-window status-bar touches were consumed by the focusable touch-modal
-overlay; after adding NOT_TOUCH_MODAL, API 36 showed a full-display native shade
-still covered by the breathing surface. Candidate source now prepares temporary
-window detachment while a trusted SYSTEM SystemUI panel owns the display,
-retaining the original engine timer and haptic state. This repair and its final
-Settings/early-close/navigation checks are **not yet verified**. Android 8–10
-uses a bounds fallback because exact touch regions are public only from API 30;
-its runtime geometry remains unverified. No minimum SDK or signing change.
+On October 14 the owner chose a true hard lock: the notification shade and
+Quick Settings must not be reachable during the eight-second lock ("a hard lock
+from the phone itself"), matching 1.0.1 on his Samsung S23+. The October 11-13
+native-route repair (touch-modal change, temporary overlay detachment while a
+SystemUI panel owns the display, window-type history and panel-aware Back) was
+removed. The engine rule that a replaced target counts as navigation, call
+safety and immediate safety-screen yield are kept. Google Play's
+AccessibilityService policy review may object to a lock that blocks system
+UI; this is unresolved, and Play submission remains paused.
 
 The integrated 467d700 checkpoint passed Android
 [38169807900](https://github.com/beejsbj/speedbreaker/actions/runs/38169807900),

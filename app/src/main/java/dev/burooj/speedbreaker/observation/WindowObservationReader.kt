@@ -1,92 +1,7 @@
 package dev.burooj.speedbreaker.observation
 
 import android.accessibilityservice.AccessibilityService
-import android.graphics.Rect
-import android.graphics.Region
-import android.os.Build
-import android.util.DisplayMetrics
-import android.view.WindowManager
-import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityWindowInfo
-
-internal data class WindowSnapshot(
-    val applicationPackages: Set<String>,
-    val systemPanelOwnsDisplay: Boolean,
-    val systemUiApplicationVisible: Boolean,
-)
-
-/** Retain type attribution briefly when a transition removes its source window. */
-internal class WindowTypeHistory(private val graceMs: Long = 750L) {
-    private data class Seen(val type: Int, val atElapsedMs: Long)
-    private val seen = mutableMapOf<Int, Seen>()
-
-    fun record(types: Map<Int, Int>, nowElapsedMs: Long) {
-        seen.entries.removeAll { nowElapsedMs - it.value.atElapsedMs > graceMs }
-        types.forEach { (id, type) -> if (id >= 0) seen[id] = Seen(type, nowElapsedMs) }
-    }
-
-    fun isApplicationTransition(id: Int, nowElapsedMs: Long): Boolean {
-        val previous = seen[id] ?: return false
-        return id >= 0 && nowElapsedMs - previous.atElapsedMs in 0..graceMs &&
-            previous.type == AccessibilityWindowInfo.TYPE_APPLICATION
-    }
-}
-
-/**
- * A native panel that owns the display receives Back itself, so Back must not count as
- * navigation away from the retained breath. Otherwise Back is genuine navigation.
- */
-internal fun navigationAwayForBack(panelOwnsDisplay: Boolean, latched: Boolean): Boolean =
-    if (panelOwnsDisplay) latched else true
-
-/**
- * Cheap checks run first: without a breath there is nothing to latch, so SystemUI events
- * must not cost a window-list read.
- */
-internal inline fun navigationEvent(
-    hasBreaker: Boolean,
-    windowTransition: Boolean,
-    isNavigationPackage: () -> Boolean,
-    applicationTransition: () -> Boolean,
-): Boolean = hasBreaker && windowTransition && isNavigationPackage() && applicationTransition()
-
-/** Panel inspection fetches window roots, so it runs only while a breath is retained. */
-internal fun shouldInspectWindow(type: Int, inspectSystemPanels: Boolean): Boolean =
-    type == AccessibilityWindowInfo.TYPE_APPLICATION ||
-        (type == AccessibilityWindowInfo.TYPE_SYSTEM && inspectSystemPanels)
-
-/** Only window-set changes can introduce a window whose type is worth remembering. */
-internal fun shouldRecordWindowTypes(eventType: Int, windowChanges: Int, sdkInt: Int): Boolean {
-    if (eventType != AccessibilityEvent.TYPE_WINDOWS_CHANGED) return false
-    // windowChanges does not exist before API 28; record on every window-set change there.
-    return sdkInt < 28 || windowChanges and AccessibilityEvent.WINDOWS_CHANGE_ADDED != 0
-}
-
-/**
- * Before API 30 AccessibilityService.getWindows() lists only the default display and
- * AccessibilityWindowInfo has no public display id, so every listed window is on it.
- */
-internal fun windowOnDisplay(sdkInt: Int, windowDisplayId: Int, displayId: Int): Boolean =
-    sdkInt < 30 || windowDisplayId == displayId
-
-/** Bars, small system popups and application windows cannot suspend the overlay. */
-internal fun systemPanelOwnsDisplay(
-    type: Int,
-    packageName: String?,
-    displayMatches: Boolean,
-    screen: Rect,
-    bounds: Rect,
-    touchRegion: Region?,
-): Boolean {
-    if (type != AccessibilityWindowInfo.TYPE_SYSTEM ||
-        packageName != "com.android.systemui" || !displayMatches || screen.isEmpty
-    ) return false
-    if (touchRegion == null) return bounds.contains(screen)
-    // A bounding rectangle can conceal holes or disconnected status/navigation bars.
-    val uncovered = Region(screen)
-    uncovered.op(touchRegion, Region.Op.DIFFERENCE)
-    return uncovered.isEmpty
-}
 
 /** Reads every sighted-user-interactive application window, including PiP and split screen. */
 internal class WindowObservationReader(
@@ -94,68 +9,27 @@ internal class WindowObservationReader(
 ) {
     private var lastNonEmpty: Set<String> = emptySet()
     private var lastNonEmptyElapsedMs: Long = 0L
-    private val typeHistory = WindowTypeHistory()
 
-    fun isApplicationTransition(windowId: Int, nowElapsedMs: Long): Boolean {
-        typeHistory.record(service.windows.associate { it.id to it.type }, nowElapsedMs)
-        return typeHistory.isApplicationTransition(windowId, nowElapsedMs)
-    }
-
-    /** Remember a window's type when it is added, before a fast removal can hide it. */
-    fun noteWindows(nowElapsedMs: Long) {
-        typeHistory.record(service.windows.associate { it.id to it.type }, nowElapsedMs)
-    }
-
-    @Suppress("DEPRECATION")
-    fun snapshot(nowElapsedMs: Long, inspectSystemPanels: Boolean): WindowSnapshot {
-        val display = service.getSystemService(WindowManager::class.java).defaultDisplay
-        val metrics = DisplayMetrics().also(display::getRealMetrics)
-        val screen = Rect(0, 0, metrics.widthPixels, metrics.heightPixels)
-        val packages = mutableSetOf<String>()
-        var panelOwnsDisplay = false
-        val windows = service.windows
-        typeHistory.record(windows.associate { it.id to it.type }, nowElapsedMs)
-        windows.forEach { window ->
-            if (!shouldInspectWindow(window.type, inspectSystemPanels)) return@forEach
-            // Disable descendant prefetch where Android exposes that option: only
-            // the root package identity and window metadata are needed.
-            val root = if (Build.VERSION.SDK_INT >= 33) window.getRoot(0) else window.root
-            val packageName = root?.packageName?.toString()
-            root?.recycle()
-            if (window.type == AccessibilityWindowInfo.TYPE_APPLICATION) {
-                packageName?.let(packages::add)
-            } else if (packageName == "com.android.systemui") {
-                val bounds = Rect().also(window::getBoundsInScreen)
-                val region = if (Build.VERSION.SDK_INT >= 30) {
-                    Region().also(window::getRegionInScreen)
-                } else null
-                panelOwnsDisplay = panelOwnsDisplay || systemPanelOwnsDisplay(
-                    window.type, packageName,
-                    windowOnDisplay(
-                        Build.VERSION.SDK_INT,
-                        if (Build.VERSION.SDK_INT >= 30) window.displayId else display.displayId,
-                        display.displayId,
-                    ),
-                    screen, bounds, region,
-                )
+    fun visiblePackages(nowElapsedMs: Long): Set<String> {
+        val packages = buildSet {
+            service.windows.forEach { window ->
+                if (window.type != AccessibilityWindowInfo.TYPE_APPLICATION) return@forEach
+                window.root?.packageName?.toString()?.let(::add)
             }
         }
-        val systemUiApplicationVisible = "com.android.systemui" in packages
         if (packages.isNotEmpty()) {
             lastNonEmpty = packages
             lastNonEmptyElapsedMs = nowElapsedMs
+            return packages
         }
 
         // Window roots can be unavailable for a frame during transitions. A short hold avoids
         // treating the target's keyboard or transient window as an app departure.
-        val visible = if (packages.isNotEmpty()) packages else if (
-            nowElapsedMs - lastNonEmptyElapsedMs <= EMPTY_WINDOW_GRACE_MS
-        ) {
+        return if (nowElapsedMs - lastNonEmptyElapsedMs <= EMPTY_WINDOW_GRACE_MS) {
             lastNonEmpty
         } else {
             emptySet()
         }
-        return WindowSnapshot(visible, panelOwnsDisplay, systemUiApplicationVisible)
     }
 
     private companion object {
