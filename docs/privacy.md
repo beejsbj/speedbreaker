@@ -102,7 +102,7 @@ Speedbreaker cloud backup or account to delete.
 ### GitHub and community builds
 
 The optional **Buy me a coffee** action opens
-[buymeacoffee.com/beejsbj](https://buymeacoffee.com/beejsbj) outside Speedbreaker.
+[ko-fi.com/beejsbj](https://ko-fi.com/beejsbj) outside Speedbreaker.
 That website and its payment providers handle any visit or contribution under
 their own privacy terms. Speedbreaker sends no settings or app-usage data with
 the link, embeds no payment SDK, and does not receive or store payment details.
