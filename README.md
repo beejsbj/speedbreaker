@@ -88,9 +88,11 @@ choices unlock. You can turn Speedbreaker off in Android Accessibility settings.
 
 Accessibility lets Speedbreaker identify visible apps and display its pause.
 Phone permission supports a call-state check, without reading numbers, call
-history, or audio. The app does not read message text, take screenshots, or store
-usage history.
-Settings and pause state stay on the phone. It requests no Internet, Usage
+history, or audio. The app does not read message text or take screenshots. It keeps
+only a running total of the seconds you have breathed and the breaths you have taken
+(overall and today), shown on Home and resettable there. It never sends them anywhere,
+and keeps no per-app or time-stamped history.
+Settings, pause state, and that total stay on the phone. It requests no Internet, Usage
 Access, or separate “display over other apps” permission. Android backup and
 device transfer of app data are disabled in its configuration.
 [Read the full privacy details](docs/privacy.md).

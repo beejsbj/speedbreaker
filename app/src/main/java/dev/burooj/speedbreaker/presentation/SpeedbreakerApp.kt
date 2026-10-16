@@ -46,6 +46,7 @@ internal fun SpeedbreakerApp() {
         val repository = remember(context) { SpeedbreakerRepository.get(context) }
         val settings by repository.settings.collectAsStateWithLifecycle()
         val pauses by repository.pauses.collectAsStateWithLifecycle()
+        val stats by repository.stats.collectAsStateWithLifecycle()
         val ready by repository.ready.collectAsStateWithLifecycle()
         val repositoryError by repository.error.collectAsStateWithLifecycle()
         val connected by ServiceStatus.connected.collectAsStateWithLifecycle()
@@ -134,6 +135,8 @@ internal fun SpeedbreakerApp() {
                     notificationsAllowed = notificationsAllowed,
                     pauses = pauses,
                     nowEpochMs = nowEpochMs,
+                    stats = stats,
+                    onResetStats = { scope.launch { repository.resetStats() } },
                     onEndPause = { packageName ->
                         // Share the notification action's service coordination and durable transaction.
                         context.sendBroadcast(

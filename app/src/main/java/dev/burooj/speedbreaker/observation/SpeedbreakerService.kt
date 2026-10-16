@@ -17,6 +17,7 @@ import dev.burooj.speedbreaker.enforcement.EngineUpdate
 import dev.burooj.speedbreaker.enforcement.Observation
 import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.model.Settings
+import dev.burooj.speedbreaker.model.localDayKey
 import dev.burooj.speedbreaker.model.effectiveRedirects
 import dev.burooj.speedbreaker.persistence.SpeedbreakerRepository
 import dev.burooj.speedbreaker.presentation.RedirectDestination
@@ -59,6 +60,7 @@ internal class SpeedbreakerService : AccessibilityService() {
     private var navigationLatchLogged = false
     private var lastBreaker: Breaker? = null
     private var suspendedFor: SuspendReason? = null
+    private val breathCounter = BreathCounter()
     private val labelCache = mutableMapOf<String, String>()
 
     /** Why enforcement is held off, for the diagnostic log; never shown or stored. */
@@ -487,6 +489,7 @@ internal class SpeedbreakerService : AccessibilityService() {
 
     private fun logDecisions(decisions: List<EngineDecision>, observation: Observation) {
         decisions.forEach(Diag::log)
+        decisions.forEach { countBreath(it, observation.epochMs, observation.zoneId) }
         if (decisions.any { it.involvesSafety() }) {
             Diag.i(safetyPolicy.safetyDetail(observation.visiblePackages).logLine(observation.interactive))
         }
@@ -494,16 +497,34 @@ internal class SpeedbreakerService : AccessibilityService() {
 
     /** The engine is about to be discarded: log what it decided, and the breath that goes with it. */
     private fun noteEngineDropped() {
-        engine?.takeDecisions()?.forEach(Diag::log)
+        var alreadyEnded = false
+        engine?.takeDecisions()?.forEach { decision ->
+            Diag.log(decision)
+            if (decision is EngineDecision.BreakerEnded) alreadyEnded = true
+            countBreath(decision, System.currentTimeMillis(), ZoneId.systemDefault())
+        }
         val dropped = lastBreaker ?: return
         lastBreaker = null
-        Diag.log(
-            EngineDecision.BreakerEnded(
-                packageName = dropped.packageName,
-                reason = BreakerEnd.ENGINE_RESET,
-                ageMs = (SystemClock.elapsedRealtime() - dropped.startedElapsedMs).coerceAtLeast(0),
-            ),
+        val ended = EngineDecision.BreakerEnded(
+            packageName = dropped.packageName,
+            reason = BreakerEnd.ENGINE_RESET,
+            ageMs = (SystemClock.elapsedRealtime() - dropped.startedElapsedMs).coerceAtLeast(0),
         )
+        Diag.log(ended)
+        if (!alreadyEnded) countBreath(ended, System.currentTimeMillis(), ZoneId.systemDefault())
+    }
+
+    /**
+     * A breath counts once, when it ends, by whatever path. Only the running totals are
+     * written, off the main thread by the repository; a failed write never touches enforcement.
+     */
+    private fun countBreath(decision: EngineDecision, epochMs: Long, zoneId: ZoneId) {
+        val shownMs = breathCounter.consume(
+            decision,
+            fallbackBreathSeconds = repository.settings.value.breathSeconds,
+        ) ?: return
+        val today = localDayKey(epochMs, zoneId)
+        scope.launch { repository.recordBreath(shownMs, today) }
     }
 
     private fun tearDownConnection() {

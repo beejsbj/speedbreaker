@@ -2,6 +2,7 @@ package dev.burooj.speedbreaker.persistence
 
 import android.content.Context
 import androidx.room.Room
+import dev.burooj.speedbreaker.model.BreathStats
 import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.model.Settings
 import kotlinx.coroutines.CancellationException
@@ -37,6 +38,9 @@ internal class SpeedbreakerRepository internal constructor(private val dao: Stat
     val settings: StateFlow<Settings> = _settings.asStateFlow()
     private val _pauses = MutableStateFlow<Map<String, PauseState>>(emptyMap())
     val pauses: StateFlow<Map<String, PauseState>> = _pauses.asStateFlow()
+    private val _stats = MutableStateFlow(BreathStats())
+    /** Breathing totals are a keepsake, not enforcement state: they never raise [error]. */
+    val stats: StateFlow<BreathStats> = _stats.asStateFlow()
     private val _ready = MutableStateFlow(false)
     val ready: StateFlow<Boolean> = _ready.asStateFlow()
     private val _error = MutableStateFlow<String?>(null)
@@ -53,7 +57,12 @@ internal class SpeedbreakerRepository internal constructor(private val dao: Stat
                     val loadedPauses = dao.read(PAUSES_KEY)?.value
                         ?.let(SettingsJson::decodePauses)
                         ?: emptyMap()
+                    // Absent on installs from before the count, and unreadable means start again.
+                    val loadedStats = runCatching {
+                        dao.read(STATS_KEY)?.value?.let(SettingsJson::decodeStats)
+                    }.getOrNull() ?: BreathStats()
                     _settings.value = loadedSettings
+                    _stats.value = loadedStats
                     _pauses.value = loadedPauses
                     _ready.value = true
                 }
@@ -99,6 +108,30 @@ internal class SpeedbreakerRepository internal constructor(private val dao: Stat
         }
     }
 
+    /** Adds one finished breath to the running totals. A failed write is dropped silently. */
+    suspend fun recordBreath(shownMs: Long, today: String) {
+        updateStats { it.withBreath(shownMs, today) }
+    }
+
+    suspend fun resetStats() {
+        updateStats { BreathStats() }
+    }
+
+    private suspend fun updateStats(transform: (BreathStats) -> BreathStats) {
+        stateMutex.withLock {
+            if (!_ready.value) return
+            val updated = transform(_stats.value)
+            try {
+                persistAndPublish(StateRecord(STATS_KEY, SettingsJson.encodeStats(updated))) {
+                    _stats.value = updated
+                }
+            } catch (error: Throwable) {
+                if (error is CancellationException) throw error
+                // Losing a count must never stop enforcement or surface an error.
+            }
+        }
+    }
+
     /** Notification fallback when the Accessibility service is disconnected. */
     suspend fun endPause(packageName: String, nowEpochMs: Long): Boolean = stateMutex.withLock {
         if (!_ready.value || _error.value != null) return@withLock false
@@ -136,6 +169,7 @@ internal class SpeedbreakerRepository internal constructor(private val dao: Stat
     companion object {
         private const val SETTINGS_KEY = "settings"
         private const val PAUSES_KEY = "pauses"
+        private const val STATS_KEY = "breath_stats"
         @Volatile private var instance: SpeedbreakerRepository? = null
 
         fun get(context: Context): SpeedbreakerRepository = instance ?: synchronized(this) {

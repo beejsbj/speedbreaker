@@ -81,5 +81,6 @@ navigation, lost settings/pauses and battery/background survival. Resolve
 material failures and repeat affected checks before accepting the production
 build. Record Burooj's actual verdict; elapsed time alone is not acceptance.
 
-The app keeps no usage history. Test evidence therefore comes from controlled
+The app keeps no per-app or time-stamped usage history; its only record is the
+resettable breathing total on Home. Test evidence therefore comes from controlled
 observations and Burooj's report, not hidden telemetry or historical counters.

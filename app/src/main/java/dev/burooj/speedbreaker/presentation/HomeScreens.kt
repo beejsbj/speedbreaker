@@ -17,11 +17,17 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,7 +36,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import java.time.ZoneId
+import dev.burooj.speedbreaker.model.BreathStats
 import dev.burooj.speedbreaker.model.Settings
+import dev.burooj.speedbreaker.model.localDayKey
 import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.presentation.components.AppGlyph
 import dev.burooj.speedbreaker.presentation.components.ContentMaxWidth
@@ -94,8 +103,8 @@ internal fun WelcomeScreen(onDecline: () -> Unit = {}, onPrivacy: () -> Unit = {
                 )
                 Promise(
                     heading = "What it keeps",
-                    body = "Your settings and today’s pauses. No usage history, no answers, " +
-                        "no analytics, no cloud. No Usage Access or overlay permission.",
+                    body = "Your settings, today’s pauses, and a running total of breaths and seconds you can reset. " +
+                        "No per-app history, no answers, no analytics, no cloud. No Usage Access or overlay permission.",
                 )
             }
             Spacer(Modifier.height(40.dp))
@@ -199,6 +208,8 @@ internal fun HomeScreen(
     supportLabel: String = "Buy me a coffee",
     supportSummary: String = "Opens ko-fi.com in your browser",
     supportAvailable: Boolean = true,
+    stats: BreathStats = BreathStats(),
+    onResetStats: () -> Unit = {},
 ) {
     val appCount = settings.apps.size
     val title = when (protection) {
@@ -224,6 +235,13 @@ internal fun HomeScreen(
             onOpenAppInfo = onOpenAppInfo,
             onChooseApps = onChooseApps,
             onCallAccess = onCallAccess,
+        )
+
+        BreathStatsPanel(
+            stats = stats,
+            today = localDayKey(nowEpochMs, ZoneId.systemDefault()),
+            showPlaceholder = protection == Protection.On && appCount > 0,
+            onReset = onResetStats,
         )
 
         val catalog = appCatalog()
@@ -308,6 +326,61 @@ internal fun HomeScreen(
                 onClick = onPrivacy,
             )
         }
+    }
+}
+
+/** A quiet line of what has been breathed so far, with a small way to start the count over. */
+@Composable
+private fun BreathStatsPanel(
+    stats: BreathStats,
+    today: String,
+    showPlaceholder: Boolean,
+    onReset: () -> Unit,
+) {
+    if (stats.isEmpty) {
+        if (showPlaceholder) {
+            Text(
+                text = "Your first breath will show here.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+        }
+        return
+    }
+    var confirming by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(totalBreathedLine(stats), style = MaterialTheme.typography.bodyLarge)
+            Text(
+                todayBreathedLine(stats, today),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        TextButton(onClick = { confirming = true }) {
+            Text("Reset count", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+    if (confirming) {
+        AlertDialog(
+            onDismissRequest = { confirming = false },
+            title = { Text("Reset your count?") },
+            text = {
+                Text(
+                    "This sets the total and today’s time back to zero. It stays on this phone " +
+                        "and can’t be undone.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { confirming = false; onReset() }) { Text("Reset") }
+            },
+            dismissButton = { TextButton(onClick = { confirming = false }) { Text("Cancel") } },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        )
     }
 }
 

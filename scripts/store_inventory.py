@@ -131,6 +131,14 @@ def collect(args):
           f"{sum(item['status'] != 'found' for item in results)} POM/license unknowns")
 
 
+def expected_version_code():
+    """The versionCode declared in the app build, so a release bump needs no script edit."""
+    build = (Path(__file__).resolve().parent.parent / "app/build.gradle.kts").read_text()
+    match = re.search(r"^\s*versionCode\s*=\s*(\d+)", build, re.M)
+    assert match, "app/build.gradle.kts declares no versionCode"
+    return match.group(1)
+
+
 def verify(args):
     apk = Path(args.apk)
     aapt = args.aapt
@@ -146,7 +154,8 @@ def verify(args):
     # Android's binary XML rendering uses android:debuggable(0x0101000f).
     debuggable = bool(re.search(r"android:debuggable(?:\([^)]*\))?=.*(?:0xffffffff|true)", xmltree, re.I))
     violations = []
-    if (package.group(1), package.group(2), sdk.group(1), target.group(1)) != ("dev.burooj.speedbreaker", "6", "26", "36"):
+    expected = ("dev.burooj.speedbreaker", expected_version_code(), "26", "36")
+    if (package.group(1), package.group(2), sdk.group(1), target.group(1)) != expected:
         violations.append("package/version/SDK mismatch")
     if "android.permission.INTERNET" in permissions:
         violations.append("INTERNET permission present")

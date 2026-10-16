@@ -65,10 +65,16 @@ Speedbreaker stores these records in its private local app database:
 - Your acknowledgment of the onboarding disclosure.
 - Breath length, selected app package names, check-in settings, active schedules,
   and redirect package names.
+- A running total of the seconds you have breathed and the number of breaths, overall
+  and for the current local day. Home shows it, and **Reset count** there sets it back
+  to zero. It is never sent anywhere.
 - A rolling pause-state record for each relevant app: the allowance day, how many
   pauses were used, and the active pause's expiry time.
 
-There is no timeline of app usage, daily usage total, or archive of pause events.
+The breathing total holds four numbers: total time, total breaths, today's date, and
+today's time. It is not per app and has no timestamps, list of breaths, or history, so
+it cannot say which app a breath was for or when it happened. There is no timeline of
+app usage, daily usage total, or archive of pause events.
 Pause-state dates and allowances are reconciled as the service runs; an active
 pause can outlast midnight without receiving a new fifteen-minute duration.
 The reflection asks for no input, so no answer is collected or stored.
@@ -110,7 +116,7 @@ extraction rules.
 Disable **Speedbreaker attention pauses** in Android Accessibility settings to
 stop the service. Your saved settings remain on the phone. Uninstall the app,
 or clear its storage in Android Settings, to remove its local data. Clearing
-storage also resets consent, chosen apps, and pause allowances. There is no
+storage also resets consent, chosen apps, pause allowances, and the breathing total. There is no
 Speedbreaker cloud backup or account to delete.
 
 ## Optional support and payments

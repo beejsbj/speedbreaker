@@ -50,12 +50,12 @@ Build a rough, runnable phone-scale prototype of Speedbreaker's settled interact
 * Request neither Usage Access nor a separate overlay permission.
 * Show prominent Samsung battery/background guidance without blocking setup.
 * If Accessibility is disabled, show a prominent inactive/repair state, never imply protection is active, keep settings editable, and link directly to Android Accessibility settings.
-* Persist only settings and current-local-day pause state. No usage history, analytics, reflection data, or cloud path exists in V1.
+* Persist only settings, current-local-day pause state, and a running breathing total (total and current-local-day breath time, plus breath count; see the October 16 breathing-total correction). No per-app or time-stamped usage history, analytics, reflection data, or cloud path exists in V1.
 * V1 is a sideloaded APK for Burooj's Galaxy S23+; Play Store acceptance is not a pre-trial gate.
 
 ## Explicitly absent
 
-Cumulative usage, daily usage budgets or resets, over-budget state, escalating 5/10/20/40 ladders, mercy allowance, Usage Access, usage counters/history, multiple schedule windows per day, and time-dependent strictness profiles.
+Cumulative usage, daily usage budgets or resets, over-budget state, escalating 5/10/20/40 ladders, mercy allowance, Usage Access, per-app usage counters or time-stamped history (the single breathing total is allowed), multiple schedule windows per day, and time-dependent strictness profiles.
 
 Future note only: V2 may allow stricter policy during selected windows, such as a longer breath and shorter continuous-use interval before sleep. Do not add hidden V1 state or settings for it.
 
@@ -147,3 +147,18 @@ Existing four-app settings keep their order and meaning. Per-app Default
 continues to inherit, Custom replaces the entire set, and clearing Custom keeps
 an explicit empty override. Breath timing, navigation, safety escape, schedules,
 pauses, local privacy, and all-free behavior retain their existing contracts.
+
+## October 16 breathing-total owner correction
+
+Burooj asked on October 16, 2026 for a simple way to see how many seconds he has
+breathed. This amends the earlier "no usage history" rule narrowly. Home now shows
+the total breath time and breath count, plus today's time, with a confirmed
+**Reset count** action.
+
+Only four aggregates are stored on the device: total milliseconds, total breaths,
+today's local date, and today's milliseconds. A breath counts once, when it ends by
+any path, for the time its overlay was shown capped at its configured length;
+breaths shown for under one second (such as transient safety restarts) are not
+counted. "Today" restarts at local midnight. There is no per-app figure, timestamp,
+list of breaths, or other history; the total is never sent anywhere, and a failed
+write to it never affects enforcement.

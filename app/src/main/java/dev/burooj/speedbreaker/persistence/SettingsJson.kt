@@ -1,6 +1,7 @@
 package dev.burooj.speedbreaker.persistence
 
 import dev.burooj.speedbreaker.model.AppPolicy
+import dev.burooj.speedbreaker.model.BreathStats
 import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.model.Redirects
 import dev.burooj.speedbreaker.model.Settings
@@ -124,6 +125,29 @@ internal object SettingsJson {
                 )
             }
         }
+    }
+
+    fun encodeStats(stats: BreathStats): String = JSONObject().apply {
+        put("totalMs", stats.totalMs)
+        put("totalBreaths", stats.totalBreaths)
+        put("todayKey", stats.todayKey)
+        put("todayMs", stats.todayMs)
+    }.toString()
+
+    fun decodeStats(json: String): BreathStats {
+        val root = JSONObject(json)
+        requireExactFields(root, "totalMs", "totalBreaths", "todayKey", "todayMs")
+        val todayKey = stringField(root, "todayKey")
+        require(
+            todayKey.isEmpty() ||
+                runCatching { LocalDate.parse(todayKey).toString() == todayKey }.getOrDefault(false),
+        ) { "Breath day must be empty or an ISO local date." }
+        return BreathStats(
+            totalMs = longField(root, "totalMs", minimum = 0),
+            totalBreaths = longField(root, "totalBreaths", minimum = 0),
+            todayKey = todayKey,
+            todayMs = longField(root, "todayMs", minimum = 0),
+        )
     }
 
     private fun array(values: List<String>) = JSONArray().apply { values.forEach(::put) }

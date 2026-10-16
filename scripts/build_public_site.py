@@ -70,7 +70,7 @@ no store availability is claimed.</p><h2>What the pause does</h2>
 <p>The first eight seconds hold ordinary navigation. Settings and Android-reported calls yield.
 Breaths stay off without Phone permission. Calling apps exposing neither Android call state nor communication audio
 may not be detected. You choose every target and optional redirect.</p>
-<p>No account, ads, analytics or usage history. Settings and pause state stay on the phone.</p>''')
+<p>No account, ads, analytics or per-app usage history. Settings, pause state and a resettable total of time breathed stay on the phone.</p>''')
     page("privacy.html", "Privacy policy", render_document("docs/privacy.md"))
     page("support.html", "Setup and support", f'''
 <h1>Help with Speedbreaker</h1><p><a href="{REPO}/blob/main/docs/getting-started.md">Setup and troubleshooting</a></p>

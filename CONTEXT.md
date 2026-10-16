@@ -37,6 +37,11 @@ which supersedes the earlier exactly-four requirement for the next candidate.
 minutes immediately. The active pause and today's token count persist locally;
 End now on Home or the notification resumes enforcement.
 
+**Breathing total**: the only usage figure kept, shown on Home and resettable
+there: total and today's time a breath was on screen (capped at its configured
+length, counted once when it ends, ignored under one second) and the breath count.
+Four numbers, no per-app or time-stamped history, never sent anywhere.
+
 **Active schedule**: the optional hours when a target's policy applies.
 A per-app schedule replaces the global schedule. Outside it, enforcement and
 the current session stop.

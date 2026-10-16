@@ -3,7 +3,7 @@
 The accepted product behavior is in `interaction-contract.md` (BJS-346, approved
 2026-08-21). `CONTEXT.md` supplies vocabulary. The contract takes precedence over
 older prototype or architecture wording, including data retention: persist only
-settings and current-day pause state, never app visibility or usage history.
+settings, current-day pause state, and the running breathing total (see the October 16 correction), never app visibility or per-app or time-stamped usage history.
 
 One `:app` Gradle module, package `dev.burooj.speedbreaker`.
 
