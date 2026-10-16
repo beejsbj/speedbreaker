@@ -32,4 +32,27 @@ internal class CallSafety(private val context: Context) {
             Status.Unavailable
         }
     }
+
+    /**
+     * The aggregate signals behind [status], for the diagnostic log only. A signal that
+     * cannot be read is null. Booleans and an audio-mode number; nothing about any call.
+     */
+    data class Detail(val status: Status, val telecomInCall: Boolean?, val audioMode: Int?)
+
+    fun detail(): Detail = Detail(
+        status = status(),
+        telecomInCall = try {
+            context.getSystemService(TelecomManager::class.java)?.isInCall
+        } catch (_: SecurityException) {
+            // Phone permission not granted: status() already says PermissionRequired.
+            null
+        } catch (_: RuntimeException) {
+            null
+        },
+        audioMode = try {
+            context.getSystemService(AudioManager::class.java)?.mode
+        } catch (_: RuntimeException) {
+            null
+        },
+    )
 }

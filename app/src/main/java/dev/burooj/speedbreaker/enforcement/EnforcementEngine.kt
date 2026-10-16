@@ -56,6 +56,7 @@ internal data class EngineUpdate(
  */
 internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyMap()) {
     private data class Session(
+        val startedElapsedMs: Long,
         var activeMs: Long,
         var lastElapsedMs: Long,
         var wasActivelyVisible: Boolean,
@@ -66,6 +67,8 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
     private data class Reconciliation(
         val expiredPauses: Set<String>,
         val activeNow: Map<String, Boolean>,
+        /** Diagnostics only: how long a resumed session's target was away. */
+        val resumedAfterMs: Map<String, Long> = emptyMap(),
     )
 
     private val sessions = mutableMapOf<String, Session>()
@@ -75,6 +78,18 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
     private var pauses: Map<String, PauseState> = initialPauses.toMap()
     private var breaker: Breaker? = null
     private var navigationPendingDuringHardLock = false
+
+    // Diagnostics only. Nothing below is read by enforcement decisions.
+    private val decisions = ArrayDeque<EngineDecision>()
+
+    /** Per selected target in view: the last opening verdict logged, null while it has a breath. */
+    private val lastVerdict = mutableMapOf<String, OpeningSkip?>()
+
+    /**
+     * Drains what the engine decided since the last call, oldest first. The caller logs it;
+     * the engine stays free of Android. Unread decisions are capped, oldest dropped first.
+     */
+    fun takeDecisions(): List<EngineDecision> = decisions.toList().also { decisions.clear() }
 
     fun update(settings: Settings, observation: Observation): EngineUpdate {
         val reconciliation = reconcile(settings, observation)
@@ -99,9 +114,10 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
             Choice.Continue -> {
                 val breathMs = current.breathSeconds * MILLIS_PER_SECOND
                 if (elapsed < breathMs) return result()
-                breaker = null
+                clearBreaker(BreakerEnd.CHOICE_CONTINUE, observation.elapsedMs)
                 navigationPendingDuringHardLock = false
                 sessions[current.packageName] = Session(
+                    startedElapsedMs = observation.elapsedMs,
                     activeMs = 0,
                     lastElapsedMs = observation.elapsedMs,
                     wasActivelyVisible = true,
@@ -114,7 +130,7 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
 
             Choice.Leave -> {
                 if (!hardLockFinished) return result()
-                finishAndSuppress(current.packageName)
+                finishAndSuppress(current.packageName, BreakerEnd.CHOICE_LEAVE, observation.elapsedMs)
                 return result(Effect.GoHome, Effect.Acknowledge)
             }
 
@@ -131,7 +147,7 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
                     used = state.used + 1,
                     untilEpochMs = safeAdd(observation.epochMs, PAUSE_DURATION_MS),
                 ))
-                breaker = null
+                clearBreaker(BreakerEnd.CHOICE_PAUSE, observation.elapsedMs)
                 navigationPendingDuringHardLock = false
                 sessions.remove(current.packageName)
                 previouslyActive[current.packageName] = false
@@ -146,7 +162,7 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
                 ) {
                     return result()
                 }
-                finishAndSuppress(current.packageName)
+                finishAndSuppress(current.packageName, BreakerEnd.CHOICE_REDIRECT, observation.elapsedMs)
                 return result(Effect.LaunchApp(choice.packageName), Effect.Acknowledge)
             }
         }
@@ -168,7 +184,7 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
         sessions.remove(packageName)
         previouslyActive[packageName] = false
         if (breaker?.packageName == packageName) {
-            breaker = null
+            clearBreaker(BreakerEnd.PAUSE_ENDED, observation.elapsedMs)
             navigationPendingDuringHardLock = false
         }
 
@@ -190,9 +206,10 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
         previouslyActive.keys.retainAll(selected)
         suppressedUntilInactive.retainAll(selected)
         pendingTriggers.keys.retainAll(selected)
+        lastVerdict.keys.retainAll(selected)
 
         if (!settings.consentAccepted) {
-            breaker = null
+            clearBreaker(BreakerEnd.CONSENT_OFF, observation.elapsedMs)
             navigationPendingDuringHardLock = false
             sessions.clear()
             previouslyActive.clear()
@@ -231,13 +248,17 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
             val navigationAway = observation.navigationAway || targetReplaced
             when {
                 mustYield -> {
-                    breaker = null
+                    clearBreaker(yieldReason(current, settings, observation), observation.elapsedMs)
                     navigationPendingDuringHardLock = false
                     sessions.remove(current.packageName)
                 }
                 hardLockFinished && (navigationAway || navigationPendingDuringHardLock) -> {
                     if (observation.userBack || current.packageName !in observation.visiblePackages) {
-                        finishAndSuppress(current.packageName)
+                        finishAndSuppress(
+                            current.packageName,
+                            if (observation.userBack) BreakerEnd.USER_BACK else BreakerEnd.NAV_RELEASE,
+                            observation.elapsedMs,
+                        )
                     } else {
                         // The target is on screen again (the user came back within the lock, or
                         // a transient frame hid it). Navigation that no longer holds must not
@@ -254,6 +275,7 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
         }
 
         val overlayShowing = breaker != null
+        val resumedAfterMs = mutableMapOf<String, Long>()
         for (packageName in selected.sorted()) {
             val session = sessions[packageName] ?: continue
             val scheduleActive = isScheduleActive(effectiveSchedule(packageName, settings), observation)
@@ -284,6 +306,7 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
                     sessions.remove(packageName)
                     continue
                 }
+                if (absence != null) resumedAfterMs[packageName] = absence
                 if (session.wasActivelyVisible && !overlayShowing) {
                     session.activeMs = safeAdd(
                         session.activeMs,
@@ -308,7 +331,7 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
             session.lastElapsedMs = observation.elapsedMs
         }
 
-        return Reconciliation(expiredPauses, activeNow)
+        return Reconciliation(expiredPauses, activeNow, resumedAfterMs)
     }
 
     private fun maybeStartBreaker(
@@ -317,6 +340,7 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
         reconciliation: Reconciliation,
     ) {
         if (!settings.consentAccepted) {
+            noteTargets(settings, observation, reconciliation, openingSkips(settings, observation), null)
             rememberActivity(reconciliation.activeNow)
             return
         }
@@ -345,18 +369,27 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
             pendingTriggers.putIfAbsent(it, Trigger.CONTINUOUS)
         }
 
+        val skips = openingSkips(settings, observation)
         rememberActivity(reconciliation.activeNow)
         // A navigation event must yield the surface before another queued
         // split-screen target can be presented from the same stale window set.
-        if (breaker != null || observation.navigationAway) return
+        val started = if (breaker != null || observation.navigationAway) {
+            null
+        } else {
+            startNextPending(settings, observation)
+        }
+        noteTargets(settings, observation, reconciliation, skips, started)
+    }
 
+    private fun startNextPending(settings: Settings, observation: Observation): String? {
         val next = pendingTriggers.entries
             .sortedWith(compareBy<Map.Entry<String, Trigger>> { it.value != Trigger.OPENING }.thenBy { it.key })
             .firstOrNull()
-            ?: return
+            ?: return null
         pendingTriggers.remove(next.key)
         if (next.value == Trigger.CONTINUOUS) sessions[next.key]?.activeMs = 0
         startBreaker(next.key, next.value, settings, observation)
+        return next.key
     }
 
     private fun rememberActivity(activeNow: Map<String, Boolean>) {
@@ -369,14 +402,17 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
         settings: Settings,
         observation: Observation,
     ) {
-        breaker = Breaker(
+        val started = Breaker(
             packageName = packageName,
             trigger = trigger,
             startedElapsedMs = observation.elapsedMs,
             breathSeconds = settings.breathSeconds.coerceIn(MIN_BREATH_SECONDS, MAX_BREATH_SECONDS),
         )
+        breaker = started
         pendingTriggers.remove(packageName)
         navigationPendingDuringHardLock = false
+        record(EngineDecision.BreakerStarted(packageName, trigger, started.breathSeconds))
+        lastVerdict[packageName] = null
     }
 
     private fun canActOn(
@@ -385,12 +421,131 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
         observation: Observation,
     ): Boolean = breaker == current && isEligible(current.packageName, settings, observation)
 
-    private fun finishAndSuppress(packageName: String) {
-        breaker = null
+    private fun finishAndSuppress(packageName: String, reason: BreakerEnd, nowElapsedMs: Long) {
+        clearBreaker(reason, nowElapsedMs)
         navigationPendingDuringHardLock = false
         sessions.remove(packageName)
         pendingTriggers.remove(packageName)
         suppressedUntilInactive += packageName
+    }
+
+    /** Drops the breath, noting why. Every place that ends one goes through here. */
+    private fun clearBreaker(reason: BreakerEnd, nowElapsedMs: Long) {
+        val ended = breaker ?: return
+        breaker = null
+        record(
+            EngineDecision.BreakerEnded(
+                packageName = ended.packageName,
+                reason = reason,
+                ageMs = nonNegativeDelta(nowElapsedMs, ended.startedElapsedMs),
+            ),
+        )
+        // The end itself explains why the target gets no breath next; only a different
+        // verdict while it stays in view is worth another line.
+        if (reason == BreakerEnd.PAUSE_ENDED) {
+            lastVerdict.remove(ended.packageName)
+        } else {
+            lastVerdict[ended.packageName] = expectedSkip(reason)
+        }
+    }
+
+    private fun expectedSkip(reason: BreakerEnd): OpeningSkip? = when (reason) {
+        BreakerEnd.CHOICE_CONTINUE -> OpeningSkip.IN_SESSION
+        BreakerEnd.CHOICE_LEAVE,
+        BreakerEnd.CHOICE_REDIRECT,
+        BreakerEnd.NAV_RELEASE,
+        BreakerEnd.USER_BACK -> OpeningSkip.SUPPRESSED_UNTIL_INACTIVE
+        BreakerEnd.CHOICE_PAUSE,
+        BreakerEnd.PAUSED -> OpeningSkip.PAUSED
+        BreakerEnd.SAFETY -> OpeningSkip.SAFETY
+        BreakerEnd.NONINTERACTIVE -> OpeningSkip.NONINTERACTIVE
+        BreakerEnd.SCHEDULE -> OpeningSkip.SCHEDULE_INACTIVE
+        BreakerEnd.CONSENT_OFF -> OpeningSkip.CONSENT_OFF
+        BreakerEnd.DESELECTED,
+        BreakerEnd.PAUSE_ENDED,
+        BreakerEnd.ENGINE_RESET -> null
+    }
+
+    private fun yieldReason(current: Breaker, settings: Settings, observation: Observation): BreakerEnd = when {
+        !observation.interactive -> BreakerEnd.NONINTERACTIVE
+        observation.safetyUiVisible -> BreakerEnd.SAFETY
+        current.packageName !in settings.apps -> BreakerEnd.DESELECTED
+        isPaused(current.packageName, observation.epochMs) -> BreakerEnd.PAUSED
+        else -> BreakerEnd.SCHEDULE
+    }
+
+    /** Verdicts for the selected targets in view, taken before this observation is remembered. */
+    private fun openingSkips(settings: Settings, observation: Observation): Map<String, OpeningSkip?> =
+        settings.apps.keys
+            .filter { it in observation.visiblePackages }
+            .associateWith { packageName ->
+                openingSkipReason(
+                    OpeningFacts(
+                        consentAccepted = settings.consentAccepted,
+                        interactive = observation.interactive,
+                        safetyUiVisible = observation.safetyUiVisible,
+                        paused = isPaused(packageName, observation.epochMs),
+                        scheduleActive = isScheduleActive(
+                            effectiveSchedule(packageName, settings),
+                            observation,
+                        ),
+                        triggerQueued = packageName in pendingTriggers,
+                        inSession = packageName in sessions,
+                        suppressedUntilInactive = packageName in suppressedUntilInactive,
+                        previouslyActive = previouslyActive[packageName] == true,
+                        otherBreakerActive = breaker?.let { it.packageName != packageName } == true,
+                        navigationAway = observation.navigationAway,
+                    ),
+                )
+            }
+
+    /**
+     * Records a target leaving view, and why a target in view got no breath. A verdict is
+     * recorded when it changes, not at every observation, so a capture shows decisions
+     * rather than the 250 ms tick.
+     */
+    private fun noteTargets(
+        settings: Settings,
+        observation: Observation,
+        reconciliation: Reconciliation,
+        skips: Map<String, OpeningSkip?>,
+        started: String?,
+    ) {
+        for (packageName in settings.apps.keys.sorted()) {
+            if (packageName !in observation.visiblePackages) {
+                if (lastVerdict.containsKey(packageName)) {
+                    lastVerdict.remove(packageName)
+                    record(EngineDecision.TargetHidden(packageName))
+                }
+                continue
+            }
+            val current = breaker
+            val verdict = when {
+                packageName == started || current?.packageName == packageName -> null
+                // The breath that started this observation belongs to someone else.
+                skips[packageName] == null && current != null -> OpeningSkip.OTHER_BREAKER_ACTIVE
+                else -> skips[packageName]
+            }
+            if (lastVerdict.containsKey(packageName) && lastVerdict[packageName] == verdict) continue
+            lastVerdict[packageName] = verdict
+            if (verdict == null) continue
+            val session = sessions[packageName].takeIf { verdict == OpeningSkip.IN_SESSION }
+            record(
+                EngineDecision.OpeningSkipped(
+                    packageName = packageName,
+                    reason = verdict,
+                    absenceMs = session?.let { reconciliation.resumedAfterMs[packageName] },
+                    sessionAgeMs = session?.let {
+                        nonNegativeDelta(observation.elapsedMs, it.startedElapsedMs)
+                    },
+                ),
+            )
+        }
+    }
+
+    private fun record(decision: EngineDecision) {
+        if (decisions.size >= MAX_UNREAD_DECISIONS) decisions.removeFirst()
+        decisions.addLast(decision)
     }
 
     private fun normalizePauses(settings: Settings, observation: Observation): Set<String> {
@@ -489,5 +644,6 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
         const val MAX_BREATH_SECONDS = 60
         const val MINUTES_PER_HOUR = 60
         const val MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR
+        const val MAX_UNREAD_DECISIONS = 64
     }
 }

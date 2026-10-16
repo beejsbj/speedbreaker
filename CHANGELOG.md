@@ -15,6 +15,11 @@ Version code: **6**. No APK, Play release or F-Droid build has been published.
   ignore audio focus, mute the music stream half a second in and unmute it when
   the breath ends (recovering a stuck mute after a crash). Speedbreaker plays no
   sound and needs no new permission. Never touched during call safety.
+- Add logcat-only diagnostics (`adb logcat -s Speedbreaker:I`) that explain why a
+  breath started, ended, or was skipped when a chosen app came into view, with the
+  safety, service, overlay and media steps behind it. Reason codes and numbers only;
+  nothing is stored or sent, and the only package names are your chosen targets.
+  Enforcement behavior is unchanged.
 - Keep Play's external direct-tip action hidden until its destination and payment
   eligibility are verified. All features remain free, with no payment SDK.
 - The optional support link on Home now opens Ko-fi (ko-fi.com/beejsbj) instead of

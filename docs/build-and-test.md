@@ -88,6 +88,26 @@ is a historical test checklist; report which cases you actually checked on your
 build. The [October 11 release record](reviews/2026-10-11-release.md) identifies
 what was verified on 1.0.0. Older observations are not evidence for a new build.
 
+## Device diagnostics
+
+When a breath does not appear, or ends unexpectedly, a capture from the phone explains
+each decision. With the phone connected over USB debugging, reproduce the problem and run:
+
+```sh
+adb logcat -s Speedbreaker:I
+```
+
+Every line uses the tag `Speedbreaker` and is logged only when something changes, not on
+every observation. Lines carry reason codes, booleans, small integers and elapsed
+milliseconds: why a breath started or ended, why a chosen app that came into view got no
+breath (`opening skipped reason=IN_SESSION`, `SUPPRESSED_UNTIL_INACTIVE`, `SAFETY` and so
+on), call-safety signals when safety held a breath back, service and overlay lifecycle,
+and the audio-focus and mute steps. The privacy rule is fixed: the only app package names
+are the target apps you chose yourself, and never another app's name, a window title or
+anything on screen. The log goes to Android's local log buffer only; Speedbreaker writes
+no file and sends nothing. Even so, read a capture before you share it, and trim it to the
+lines around the problem.
+
 ## Release builds
 
 `./gradlew :app:bundlePlayRelease` produces an **unsigned** Android App Bundle at
