@@ -43,6 +43,9 @@ internal class CallSafety(private val context: Context) {
         status = status(),
         telecomInCall = try {
             context.getSystemService(TelecomManager::class.java)?.isInCall
+        } catch (_: SecurityException) {
+            // Phone permission not granted: status() already says PermissionRequired.
+            null
         } catch (_: RuntimeException) {
             null
         },
