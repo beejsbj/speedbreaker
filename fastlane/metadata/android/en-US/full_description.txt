@@ -12,7 +12,7 @@ CHECK IN ON YOUR TERMS
 Check in again after ten minutes of continuous visible use by default, change the interval, or turn check-ins off for each app. Returning within sixty seconds resumes the current session. Choose active hours, with per-app schedules when needed. Each app gets two optional fifteen-minute pauses per local day, with End now controls in the app and its notification.
 
 LOCAL BY DESIGN
-No account, ads, analytics, cloud sync, usage history, streaks or screen-time scores. Settings and pause allowances stay on your phone. The reflection asks “What are you here for?” and stores no answer. All features are free. Optional support does not unlock anything.
+No account, ads, analytics, cloud sync, per-app or time-stamped history, streaks or screen-time scores. Home shows a running total of the time you have breathed, which you can reset. Settings, pause allowances and that total stay on your phone. The reflection asks “What are you here for?” and stores no answer. All features are free. Optional support does not unlock anything.
 
 ACCESSIBILITY AND PHONE PERMISSION
 Speedbreaker uses Android's AccessibilityService API to identify visible app package names, including relevant system screens, show its breathing pause and carry out your navigation choices. It does not read screen text or typed input, capture screenshots, or upload app activity. You see an in-app disclosure and choose whether to consent before enabling the service.

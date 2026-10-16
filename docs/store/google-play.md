@@ -99,7 +99,7 @@ manifest inventory before saving the actual form.
 | Data shared | No. No data payload is attached to browser links or redirect intents. External websites operate under their own policies. |
 | Card/payment information, purchase history | Not accessed by the app. No native billing SDK, receipts, payment status or purchase history. Current Play support action is inactive. |
 | Location, contacts, messages, media, health, identifiers/analytics/crash logs | No code or resolved runtime SDK collecting these off-device. |
-| Data deletion | Clear app storage/uninstall deletes local settings and pause records; there is no Speedbreaker account or cloud record. External website/payment records are separate. |
+| Data deletion | Clear app storage/uninstall deletes local settings, pause records and the breathing total (also resettable on Home); there is no Speedbreaker account or cloud record. External website/payment records are separate. |
 | Encryption in transit | No app data transmitted; follow the form's no-collection branch rather than imply a backend. |
 | Independent security review badge | No: code/model reviews are not a certified MASA review. |
 
