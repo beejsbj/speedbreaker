@@ -4,6 +4,15 @@ Updated October 11, 2026. Implementation PR:
 https://github.com/beejsbj/speedbreaker/pull/8
 Tracking: Linear BJS-532. Working branch: `release/store-distribution`.
 
+**October 16, 2026:** Speedbreaker **1.0.2** (code 6) is live as a
+[GitHub release](https://github.com/beejsbj/speedbreaker/releases/tag/v1.0.2),
+APK SHA-256 `8237f658d69bbb7b364035f501faf16eae4ca5501094d75d8b3fec376f9d5178`,
+source `94cbeaf`, installed and checked on the owner's S23+. **F-Droid:** waiting
+for fdroidserver key-rotation support (owner decision; tracked in
+[#20](https://github.com/beejsbj/speedbreaker/issues/20)). **Google Play:** paused
+by the owner (no closed-test testers). **iOS:** stopped. The table below is the
+October 11 history.
+
 | Channel / work | Evidence and status | External dependency |
 | --- | --- | --- |
 | GitHub stable Android 1.0.1 | **Live:** immutable public release/tag, version code 5. | None for current APK. |
