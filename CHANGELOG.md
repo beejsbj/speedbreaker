@@ -1,8 +1,13 @@
 # Changelog
 
-## 1.0.2 — unreleased candidate
+## 1.0.2 — October 16, 2026
 
-Version code: **6**. No APK, Play release or F-Droid build has been published.
+Version code: **6**. [GitHub release](https://github.com/beejsbj/speedbreaker/releases/tag/v1.0.2), source `94cbeaf`, APK SHA-256 `8237f658d69bbb7b364035f501faf16eae4ca5501094d75d8b3fec376f9d5178`. Not on F-Droid or Google Play.
+
+- Keep the notification shade and navigation blocked for the full eight-second
+  hold (owner decision), and stop volume popups or notifications from counting as
+  leaving, so the breath no longer vanishes before its choices.
+- Fill the breathing ring continuously instead of in tick-sized jumps.
 
 - Shorten the quick-return grace after Continue from 60 to 10 seconds: coming
   back to a chosen app more than ten seconds later starts a fresh breath.
