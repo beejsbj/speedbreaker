@@ -9,8 +9,10 @@ import android.os.PowerManager
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import dev.burooj.speedbreaker.enforcement.Breaker
+import dev.burooj.speedbreaker.enforcement.BreakerEnd
 import dev.burooj.speedbreaker.enforcement.Choice
 import dev.burooj.speedbreaker.enforcement.EnforcementEngine
+import dev.burooj.speedbreaker.enforcement.EngineDecision
 import dev.burooj.speedbreaker.enforcement.EngineUpdate
 import dev.burooj.speedbreaker.enforcement.Observation
 import dev.burooj.speedbreaker.model.PauseState
@@ -54,7 +56,18 @@ internal class SpeedbreakerService : AccessibilityService() {
     private val ownPauseWriteSnapshots = mutableListOf<Map<String, PauseState>>()
     private val expectedPauseEnds = mutableSetOf<String>()
     private var navigationAwayLatched = false
+    private var navigationLatchLogged = false
+    private var lastBreaker: Breaker? = null
+    private var suspendedFor: SuspendReason? = null
     private val labelCache = mutableMapOf<String, String>()
+
+    /** Why enforcement is held off, for the diagnostic log; never shown or stored. */
+    private enum class SuspendReason {
+        PERSISTENCE_NOT_READY,
+        PERSISTENCE_ERROR,
+        CONSENT_OFF,
+        PAUSE_WRITE_ERROR,
+    }
 
     private val ticker = object : Runnable {
         override fun run() {
@@ -93,6 +106,12 @@ internal class SpeedbreakerService : AccessibilityService() {
         ServiceStatus.setConnected(true)
         handler.removeCallbacks(ticker)
         handler.post(ticker)
+        Diag.i("service connected sdk=${Build.VERSION.SDK_INT}")
+        Diag.i(
+            safetyPolicy.safetyDetail(emptySet()).logLine(
+                interactive = getSystemService(PowerManager::class.java)?.isInteractive == true,
+            ),
+        )
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -124,7 +143,7 @@ internal class SpeedbreakerService : AccessibilityService() {
                 },
             )
         ) {
-            navigationAwayLatched = true
+            latchNavigation(if (packageName == "com.android.systemui") "systemui-app-window" else "launcher")
         }
         val forceSafetyYield = overlay.isShowing && safetyPolicy.isImmediateYieldPackage(packageName)
         reconcile(forceSafetyYield = forceSafetyYield)
@@ -133,11 +152,13 @@ internal class SpeedbreakerService : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     override fun onUnbind(intent: android.content.Intent?): Boolean {
+        Diag.i("service unbind")
         tearDownConnection()
         return super.onUnbind(intent)
     }
 
     override fun onDestroy() {
+        Diag.i("service destroy")
         tearDownConnection()
         scope.cancel()
         super.onDestroy()
@@ -151,19 +172,24 @@ internal class SpeedbreakerService : AccessibilityService() {
         if (!::repository.isInitialized) return null
         val persistenceError = repository.error.value
         if (!repository.ready.value || persistenceError != null) {
-            suspendEnforcement(persistenceError)
+            suspendEnforcement(persistenceError, persistenceSuspendReason(persistenceError))
             return null
         }
 
         val settings = safetyPolicy.filter(repository.settings.value)
         if (!settings.consentAccepted) {
-            suspendEnforcement(null)
+            suspendEnforcement(null, SuspendReason.CONSENT_OFF)
             return null
+        }
+        if (suspendedFor != null) {
+            suspendedFor = null
+            Diag.i("enforcement resumed")
         }
 
         val currentObservation = observation(navigationAway, forceSafetyYield, userBack)
         val storedPauses = repository.pauses.value
         if (engine == null) {
+            Diag.i("engine created pauses=${storedPauses.size}")
             engine = EnforcementEngine(storedPauses)
             enginePauses = storedPauses
             lastRepositoryPauses = storedPauses
@@ -184,6 +210,8 @@ internal class SpeedbreakerService : AccessibilityService() {
                 false
             }
             if (!ownAcknowledgement && !appliedExpectedEnd && storedPauses != enginePauses) {
+                noteEngineDropped()
+                Diag.i("engine rebuilt reason=EXTERNAL_PAUSE_CHANGE pauses=${storedPauses.size}")
                 engine = EnforcementEngine(storedPauses)
                 enginePauses = storedPauses
                 overlay.dismiss()
@@ -202,14 +230,17 @@ internal class SpeedbreakerService : AccessibilityService() {
                 }
         }
         apply(update, settings, currentObservation)
-        if (update.breaker == null) navigationAwayLatched = false
+        if (update.breaker == null) {
+            navigationAwayLatched = false
+            navigationLatchLogged = false
+        }
         return ObservedUpdate(update, currentObservation)
     }
 
     private fun handleChoice(choice: Choice) {
         val currentEngine = engine ?: return
         if (repository.error.value != null || !repository.ready.value) {
-            suspendEnforcement(repository.error.value)
+            suspendEnforcement(repository.error.value, persistenceSuspendReason(repository.error.value))
             return
         }
         if (choice == Choice.Pause && !notifications.isAvailable()) return
@@ -220,6 +251,7 @@ internal class SpeedbreakerService : AccessibilityService() {
 
     private fun handleBack() {
         val wasShowing = overlay.isShowing
+        if (wasShowing) noteNavigationSource("back")
         val result = reconcile(navigationAway = true, userBack = true) ?: return
         // A safety dismissal exposes call or system controls; do not send Back into them.
         if (wasShowing && result.update.breaker == null && !result.observation.safetyUiVisible) {
@@ -267,6 +299,8 @@ internal class SpeedbreakerService : AccessibilityService() {
     }
 
     private fun apply(update: EngineUpdate, settings: Settings, observation: Observation) {
+        engine?.let { logDecisions(it.takeDecisions(), observation) }
+        lastBreaker = update.breaker
         val pauseWriteBase = enginePauses
         enginePauses = update.pauses
         persistPausesIfChanged(pauseWriteBase, update.pauses)
@@ -315,7 +349,7 @@ internal class SpeedbreakerService : AccessibilityService() {
                 val error = repository.error.value
                 if (error != null) {
                     pauseWriteRunning = false
-                    suspendEnforcement(error)
+                    suspendEnforcement(error, SuspendReason.PAUSE_WRITE_ERROR)
                     return@launch
                 }
                 if (persisted == repository.pauses.value) {
@@ -391,7 +425,7 @@ internal class SpeedbreakerService : AccessibilityService() {
         val visiblePackages = windowReader.visiblePackages(elapsedMs)
         // Recents is a SystemUI application window: seeing it is navigation.
         if (overlay.isShowing && "com.android.systemui" in visiblePackages) {
-            navigationAwayLatched = true
+            latchNavigation("systemui-app-window")
         }
         val power = getSystemService(PowerManager::class.java)
         val interactive = power?.isInteractive == true
@@ -415,13 +449,23 @@ internal class SpeedbreakerService : AccessibilityService() {
         }.getOrDefault(packageName)
     }
 
-    private fun suspendEnforcement(error: String?) {
+    private fun persistenceSuspendReason(error: String?): SuspendReason =
+        if (error != null) SuspendReason.PERSISTENCE_ERROR else SuspendReason.PERSISTENCE_NOT_READY
+
+    private fun suspendEnforcement(error: String?, reason: SuspendReason) {
+        // Called every tick while held off; the log notes the change, not the wait.
+        if (suspendedFor != reason) {
+            suspendedFor = reason
+            Diag.i("enforcement suspended reason=$reason")
+        }
+        noteEngineDropped()
         engine = null
         enginePauses = emptyMap()
         pendingPauseWrite = null
         ownPauseWriteSnapshots.clear()
         expectedPauseEnds.clear()
         navigationAwayLatched = false
+        navigationLatchLogged = false
         overlay.dismiss()
         mediaQuieter.release()
         repository.pauses.value.keys.forEach(notifications::cancel)
@@ -429,14 +473,49 @@ internal class SpeedbreakerService : AccessibilityService() {
         ServiceStatus.reportError(error)
     }
 
+    private fun latchNavigation(source: String) {
+        navigationAwayLatched = true
+        noteNavigationSource(source)
+    }
+
+    /** Once per breath: which kind of event first asked the breath to yield. */
+    private fun noteNavigationSource(source: String) {
+        if (navigationLatchLogged) return
+        navigationLatchLogged = true
+        Diag.i("navigation latch source=$source")
+    }
+
+    private fun logDecisions(decisions: List<EngineDecision>, observation: Observation) {
+        decisions.forEach(Diag::log)
+        if (decisions.any { it.involvesSafety() }) {
+            Diag.i(safetyPolicy.safetyDetail(observation.visiblePackages).logLine(observation.interactive))
+        }
+    }
+
+    /** The engine is about to be discarded: log what it decided, and the breath that goes with it. */
+    private fun noteEngineDropped() {
+        engine?.takeDecisions()?.forEach(Diag::log)
+        val dropped = lastBreaker ?: return
+        lastBreaker = null
+        Diag.log(
+            EngineDecision.BreakerEnded(
+                packageName = dropped.packageName,
+                reason = BreakerEnd.ENGINE_RESET,
+                ageMs = (SystemClock.elapsedRealtime() - dropped.startedElapsedMs).coerceAtLeast(0),
+            ),
+        )
+    }
+
     private fun tearDownConnection() {
         handler.removeCallbacks(ticker)
         if (::overlay.isInitialized) overlay.dismiss()
         if (::mediaQuieter.isInitialized) mediaQuieter.release()
+        noteEngineDropped()
         engine = null
         enginePauses = emptyMap()
         expectedPauseEnds.clear()
         navigationAwayLatched = false
+        navigationLatchLogged = false
         if (activeService.get() === this) activeService.clear()
         ServiceStatus.setConnected(false)
     }

@@ -46,6 +46,8 @@ internal class MediaQuieter(
     private val focus: AudioFocusHolder,
     private val muter: StreamMuter,
     private val marker: MuteMarker,
+    /** Diagnostics: one short line per step, logcat only. */
+    private val log: (String) -> Unit = Diag::i,
 ) {
     private var held: Breaker? = null
     private var requestedAtMs = 0L
@@ -80,7 +82,9 @@ internal class MediaQuieter(
                 muteSettled = true
                 // Marker first: dying between the two leaves a harmless unmute, not a stuck mute.
                 marker.set = true
-                if (muter.mute()) weMuted = true else marker.set = false
+                val applied = muter.mute()
+                if (applied) weMuted = true else marker.set = false
+                log("media mute ${if (applied) "applied" else "refused"} afterMs=${nowMs - requestedAtMs}")
             }
         }
     }
@@ -89,10 +93,16 @@ internal class MediaQuieter(
         if (held != null) {
             held = null
             focus.abandon()
+            log("media focus abandoned")
         }
         if (weMuted) {
             weMuted = false
-            if (muter.isMusicMuted()) muter.unmute()
+            if (muter.isMusicMuted()) {
+                muter.unmute()
+                log("media unmute")
+            } else {
+                log("media unmute skipped, already unmuted by the user")
+            }
             marker.set = false
         }
     }
@@ -102,6 +112,7 @@ internal class MediaQuieter(
         if (!marker.set) return
         if (muter.isMusicMuted()) muter.unmute()
         marker.set = false
+        log("media unmute after crash recovery")
     }
 
     private companion object {
@@ -132,10 +143,13 @@ internal class SystemAudioFocusHolder(context: Context) : AudioFocusHolder {
             .build()
 
     override fun request() {
-        try {
+        val result = try {
             audio?.requestAudioFocus(request)
-        } catch (_: RuntimeException) {
+        } catch (error: RuntimeException) {
+            Diag.i("media focus request error=${error.javaClass.simpleName}")
+            return
         }
+        Diag.i("media focus request result=${focusResultName(result)} code=${result ?: "none"}")
     }
 
     override fun abandon() {
@@ -144,6 +158,15 @@ internal class SystemAudioFocusHolder(context: Context) : AudioFocusHolder {
         } catch (_: RuntimeException) {
         }
     }
+}
+
+/** Names the three documented results; anything else is logged as its number. */
+internal fun focusResultName(result: Int?): String = when (result) {
+    null -> "NO_AUDIO_MANAGER"
+    AudioManager.AUDIOFOCUS_REQUEST_FAILED -> "FAILED"
+    AudioManager.AUDIOFOCUS_REQUEST_GRANTED -> "GRANTED"
+    AudioManager.AUDIOFOCUS_REQUEST_DELAYED -> "DELAYED"
+    else -> result.toString()
 }
 
 internal class SystemStreamMuter(context: Context) : StreamMuter {

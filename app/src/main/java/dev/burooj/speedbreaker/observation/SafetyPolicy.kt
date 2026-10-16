@@ -73,10 +73,40 @@ internal class SafetyPolicy(context: Context) {
     fun isImmediateYieldPackage(packageName: String?): Boolean =
         packageName != null && packageName in immediateYieldPackages
 
+    /** Why safety may be holding breaths back, for the diagnostic log only. */
+    fun safetyDetail(visiblePackages: Set<String>): SafetyDetail {
+        val call = callSafety.detail()
+        return SafetyDetail(
+            callSafety = call.status,
+            telecomInCall = call.telecomInCall,
+            audioMode = call.audioMode,
+            keyguardLocked = try {
+                appContext.getSystemService(KeyguardManager::class.java)?.isKeyguardLocked
+            } catch (_: RuntimeException) {
+                null
+            },
+            yieldPackageVisible = visiblePackages.any { it in immediateYieldPackages },
+        )
+    }
+
     fun safetyUiVisible(visiblePackages: Set<String>): Boolean {
         if (callSafety.status() != CallSafety.Status.Idle) return true
         val keyguard = appContext.getSystemService(KeyguardManager::class.java)
         if (keyguard?.isKeyguardLocked == true) return true
         return visiblePackages.any { it in immediateYieldPackages }
     }
+}
+
+/** Aggregate booleans and small integers only; no package name, caller or call content. */
+internal data class SafetyDetail(
+    val callSafety: CallSafety.Status,
+    val telecomInCall: Boolean?,
+    val audioMode: Int?,
+    val keyguardLocked: Boolean?,
+    val yieldPackageVisible: Boolean,
+) {
+    fun logLine(interactive: Boolean): String =
+        "safety detail interactive=$interactive callSafety=$callSafety " +
+            "telecomInCall=${telecomInCall ?: "unknown"} audioMode=${audioMode ?: "unknown"} " +
+            "keyguardLocked=${keyguardLocked ?: "unknown"} yieldPackageVisible=$yieldPackageVisible"
 }

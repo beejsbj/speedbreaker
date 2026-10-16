@@ -91,6 +91,7 @@ internal class AccessibilityOverlayHost(
         runCatching { windowManager.removeViewImmediate(view) }
         view.disposeComposition()
         lifecycleOwner?.viewModelStore?.clear()
+        Diag.i("overlay dismissed")
     }
 
     private fun show() {
@@ -150,7 +151,9 @@ internal class AccessibilityOverlayHost(
             ServiceStatus.reportError(null)
             view.requestFocus()
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            Diag.i("overlay addView ok")
         } catch (error: RuntimeException) {
+            Diag.i("overlay addView failed error=${error.javaClass.simpleName}")
             unregisterBackCallback()
             composeView = null
             owner = null
