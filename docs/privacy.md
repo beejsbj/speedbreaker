@@ -36,7 +36,9 @@ A single on-device flag records only that Speedbreaker muted the music stream du
 Speedbreaker checks Android’s aggregate call-state boolean through
 `TelecomManager.isInCall()`, including silent ringing and calls registered by
 third-party calling apps. It also checks the current audio mode as a secondary
-signal for communication audio. These values are not logged or stored.
+signal for communication audio. These values are not stored. When a safety check
+holds back or ends a breath, the aggregate result (booleans and the audio-mode
+number) is written to Android's local diagnostic log described below.
 
 Android calls the required runtime permission **Phone**. Speedbreaker uses it
 only for the call-state check; it does not request contacts, call logs, microphone
@@ -70,6 +72,15 @@ There is no timeline of app usage, daily usage total, or archive of pause events
 Pause-state dates and allowances are reconciled as the service runs; an active
 pause can outlast midnight without receiving a new fifteen-minute duration.
 The reflection asks for no input, so no answer is collected or stored.
+
+## Diagnostic log
+
+Speedbreaker writes short decision codes to Android's local log buffer (logcat) so a
+problem can be explained: why a breath started or did not, and why it ended. Lines hold
+reason codes, booleans, small numbers and elapsed times, and name only the target apps
+you chose; never other apps, window titles or screen content. These logs stay in
+Android's local log buffer only. Speedbreaker does not save them to a file, upload them,
+or send them anywhere. See [Device diagnostics](build-and-test.md#device-diagnostics).
 
 ## Other Android permissions and surfaces
 
