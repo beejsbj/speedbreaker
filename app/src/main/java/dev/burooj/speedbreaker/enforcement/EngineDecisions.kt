@@ -34,7 +34,7 @@ internal enum class OpeningSkip {
     PAUSED,
     SCHEDULE_INACTIVE,
 
-    /** Returned within the sixty-second absence grace, or never observed leaving. */
+    /** Returned within the ten-second absence grace, or never observed leaving. */
     IN_SESSION,
     SUPPRESSED_UNTIL_INACTIVE,
 

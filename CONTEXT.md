@@ -17,7 +17,7 @@ dialer and safety-critical system apps cannot be targets.
 The first eight seconds lock ordinary navigation; safety UI always yields.
 
 **Opening**: the pause caused by newly entering a target outside its active
-session. Returning within sixty seconds resumes the current check-in interval.
+session. Returning within ten seconds resumes the current check-in interval.
 
 **Checking in**: the pause caused by reaching a target's continuous-use interval.
 Active use means screen-on visibility, including split-screen and PiP.

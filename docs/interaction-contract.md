@@ -8,7 +8,7 @@ Build a rough, runnable phone-scale prototype of Speedbreaker's settled interact
 * Opening a selected app triggers an intervention immediately.
 * Meaningful selected-app visibility counts as continuous use, including split-screen and picture-in-picture, only while the phone is interactive.
 * Continuing starts a 10-minute continuous-use interval by default. The interval can be changed or disabled per app.
-* Leaving for up to 60 seconds pauses the interval; returning resumes it without another opening intervention. A longer absence ends the session, so the next opening starts fresh.
+* Leaving for up to 10 seconds pauses the interval; returning resumes it without another opening intervention. A longer absence ends the session, so the next opening starts fresh.
 * Opening and continuous-use triggers use the same intervention.
 
 ## Intervention sequence
@@ -126,6 +126,13 @@ that Speedbreaker muted the stream; when the service connects and the flag is
 still set (the process died mid-breath), it unmutes and clears the flag. Muting
 needs no new permission. Device behavior with Reels is unverified until Burooj
 tests this build.
+
+## October 16 quick-return owner correction
+
+Burooj shortened the quick-return grace from 60 to 10 seconds on October 16,
+2026: switching to another app after Continue and coming back more than ten
+seconds later is a fresh opening and starts a breath. Brief hops (copying a
+link, a quick reply) stay free.
 
 ## October 11 redirect-count owner correction
 

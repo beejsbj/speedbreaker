@@ -74,7 +74,7 @@ breath finishes. Ordinary navigation can leave after eight seconds.
 
 Each chosen app gets two fifteen-minute pauses per local day. **Active pauses**
 on the home screen and the pause notification both offer **End now**; the in-app
-control remains available if the notification is dismissed. After Continue, returning within sixty
+control remains available if the notification is dismissed. After Continue, returning within ten
 seconds resumes the session; a longer absence starts a new opening breath.
 Visible apps in split-screen and picture-in-picture count toward check-ins.
 

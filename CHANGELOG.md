@@ -4,6 +4,8 @@
 
 Version code: **6**. No APK, Play release or F-Droid build has been published.
 
+- Shorten the quick-return grace after Continue from 60 to 10 seconds: coming
+  back to a chosen app more than ten seconds later starts a fresh breath.
 - Allow zero to four redirect destinations in Defaults and per-app Custom
   settings. Default inherits; an explicitly empty Custom set disables redirects
   for that app. Existing four-destination settings remain compatible.
