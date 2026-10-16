@@ -93,7 +93,7 @@ For eight seconds, only the breathing screen is available. At eight seconds:
 The reflection, “What are you here for?”, asks for no input and stores no answer.
 After Continue, visible screen-on use counts toward the next check-in, including
 split-screen and picture-in-picture. Leaving briefly pauses that interval;
-returning within sixty seconds resumes it. A longer absence starts a fresh
+returning within ten seconds resumes it. A longer absence starts a fresh
 opening breath. Leave and redirects end the session immediately.
 
 A fifteen-minute pause appears under **Active pauses** on Speedbreaker’s home

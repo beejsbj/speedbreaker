@@ -152,9 +152,9 @@ class EngineDecisionsTest {
 
         engine.update(settings, observation(visible = emptySet(), elapsedMs = 18_000))
         engine.update(settings, observation(visible = emptySet(), elapsedMs = 18_250))
-        engine.update(settings, observation(elapsedMs = 30_000))
-        engine.update(settings, observation(elapsedMs = 30_250))
-        engine.update(settings, observation(elapsedMs = 30_500))
+        engine.update(settings, observation(elapsedMs = 24_000))
+        engine.update(settings, observation(elapsedMs = 24_250))
+        engine.update(settings, observation(elapsedMs = 24_500))
 
         assertEquals(
             listOf(
@@ -162,8 +162,8 @@ class EngineDecisionsTest {
                 EngineDecision.OpeningSkipped(
                     TARGET,
                     OpeningSkip.IN_SESSION,
-                    absenceMs = 12_000,
-                    sessionAgeMs = 18_000,
+                    absenceMs = 6_000,
+                    sessionAgeMs = 12_000,
                 ),
             ),
             engine.takeDecisions(),

@@ -59,31 +59,31 @@ class EnforcementEngineTest {
     }
 
     @Test
-    fun `absence of exactly sixty seconds resumes without counting the gap`() {
+    fun `absence of exactly ten seconds resumes without counting the gap`() {
         val settings = settings(continuousSeconds = 10)
         val engine = continuedEngine(settings, continuedAtMs = 12_000)
         engine.update(settings, observation(elapsedMs = 17_000))
         engine.update(settings, observation(visible = emptySet(), elapsedMs = 18_000))
 
-        assertNull(engine.update(settings, observation(elapsedMs = 78_000)).breaker)
-        assertNull(engine.update(settings, observation(elapsedMs = 82_999)).breaker)
+        assertNull(engine.update(settings, observation(elapsedMs = 28_000)).breaker)
+        assertNull(engine.update(settings, observation(elapsedMs = 32_999)).breaker)
         assertEquals(
             Trigger.CONTINUOUS,
-            engine.update(settings, observation(elapsedMs = 83_000)).breaker?.trigger,
+            engine.update(settings, observation(elapsedMs = 33_000)).breaker?.trigger,
         )
     }
 
     @Test
-    fun `absence longer than sixty seconds ends the session and reopens`() {
+    fun `absence longer than ten seconds ends the session and reopens`() {
         val settings = settings(continuousSeconds = 10)
         val engine = continuedEngine(settings, continuedAtMs = 12_000)
         engine.update(settings, observation(elapsedMs = 17_000))
         engine.update(settings, observation(visible = emptySet(), elapsedMs = 18_000))
 
-        val update = engine.update(settings, observation(elapsedMs = 78_001))
+        val update = engine.update(settings, observation(elapsedMs = 28_001))
 
         assertEquals(Trigger.OPENING, update.breaker?.trigger)
-        assertEquals(78_001L, update.breaker?.startedElapsedMs)
+        assertEquals(28_001L, update.breaker?.startedElapsedMs)
     }
 
     @Test

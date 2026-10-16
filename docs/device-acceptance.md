@@ -27,7 +27,7 @@ Before each independent opening/navigation case, go Home, open Speedbreaker,
 turn Calculator off in Selected apps, wait until its checkbox clears and at
 least one second passes, turn it back on, wait until it is visibly selected,
 then go Home before launching Calculator. A quick Home/return after Continue
-preserves the session for up to 60 seconds and is not a fresh opening test.
+preserves the session for up to 10 seconds and is not a fresh opening test.
 Removing the target also resets its pause state, so do not use this reset
 between the first, second, and exhausted-token checks.
 
@@ -55,7 +55,7 @@ Calculator; the absent case must wait until its next opening.
 | Continue | Overlay disappears and target is usable; time starts from the grant. |
 | Leave | Home opens, overlay is gone, reopening creates a fresh opening intervention. |
 | Redirect | Each configured destination launches and target session ends. Target apps cannot be redirects. |
-| Quick return | Absence up to 60 seconds resumes interval without opening; longer absence starts fresh. |
+| Quick return | Absence up to 10 seconds resumes interval without opening; longer absence starts fresh. |
 | Continuous use | Configured visible-use interval causes one new intervention. Background time does not count. |
 | Multiple windows | Visible target counts in native split-screen and PiP even without focus. No repeated overlay loop. |
 | Pause | One token gives 15 minutes immediately; count is per app; notification can end the pause. |
