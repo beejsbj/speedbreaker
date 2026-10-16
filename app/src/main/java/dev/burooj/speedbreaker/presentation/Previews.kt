@@ -18,6 +18,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import dev.burooj.speedbreaker.enforcement.Breaker
 import dev.burooj.speedbreaker.enforcement.Trigger
 import dev.burooj.speedbreaker.model.AppPolicy
+import dev.burooj.speedbreaker.model.BreathStats
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.model.TimeWindow
 import dev.burooj.speedbreaker.model.WeeklySchedule
@@ -70,6 +71,9 @@ internal val Gallery: List<GallerySpec> = listOf(
         }
     },
     GallerySpec("settings-01-home-on") { Screen { HomeSample(Protection.On, SampleSettings) } },
+    GallerySpec("settings-11-home-with-breaths") {
+        Screen { HomeSample(Protection.On, SampleSettings, stats = SampleStats) }
+    },
     GallerySpec("settings-02-home-needs-attention") { Screen { HomeSample(Protection.Broken, SampleSettings) } },
     GallerySpec("settings-03-defaults") {
         Screen {
@@ -113,6 +117,15 @@ internal val Gallery: List<GallerySpec> = listOf(
 
 /* ---------- Samples ---------- */
 
+/** 18 minutes over 94 breaths, 2 of them today (the gallery clock is the real one, so today is stamped now). */
+private val SampleStats: BreathStats
+    get() = BreathStats(
+        totalMs = 18 * 60_000L,
+        totalBreaths = 94,
+        todayKey = dev.burooj.speedbreaker.model.localDayKey(System.currentTimeMillis(), java.time.ZoneId.systemDefault()),
+        todayMs = 2 * 60_000L,
+    )
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimePickerSample(typing: Boolean) {
@@ -150,7 +163,12 @@ private fun OverlaySample(
 }
 
 @Composable
-private fun HomeSample(protection: Protection, settings: Settings, notifications: Boolean = true) = HomeScreen(
+private fun HomeSample(
+    protection: Protection,
+    settings: Settings,
+    notifications: Boolean = true,
+    stats: BreathStats = BreathStats(),
+) = HomeScreen(
     settings = settings,
     protection = protection,
     runtimeError = null,
@@ -161,6 +179,7 @@ private fun HomeSample(protection: Protection, settings: Settings, notifications
     onChooseApps = {},
     onDefaults = {},
     onApp = {},
+    stats = stats,
 )
 
 @Composable
