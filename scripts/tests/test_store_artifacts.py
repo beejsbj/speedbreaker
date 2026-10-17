@@ -72,7 +72,7 @@ class ArtifactBoundaryTest(unittest.TestCase):
         archives = {1: zip_contents('provenance.json', json.dumps(provenance)),
                     2: zip_contents('app.apk', payload)}
         artifacts = [{'id': key, 'expired': False,
-                      'name': 'store-inventory-community-merge' if key == 1 else 'unsigned-community-release-merge',
+                      'name': 'store-inventory-github-merge' if key == 1 else 'unsigned-github-release-merge',
                       'digest': 'sha256:' + hashlib.sha256(data).hexdigest()}
                      for key, data in archives.items()]
         run = {'status': 'completed', 'conclusion': 'success', 'head_sha': commit,
@@ -85,7 +85,7 @@ class ArtifactBoundaryTest(unittest.TestCase):
         }
         receipt = {'repository': inputs.REPOSITORY, 'source_commit': commit, 'source_tree': tree,
                    'build_checkout': built, 'run_id': 7, 'run_url': run['html_url'],
-                   'input_sha256': digest, 'channel': 'community', 'kind': 'apk',
+                   'input_sha256': digest, 'channel': 'github', 'kind': 'apk',
                    'artifactId': 2, 'name': artifacts[1]['name'], 'archiveSha256': artifacts[1]['digest'][7:]}
         def download(command, stdout, check):
             artifact_id = int(command[-1].split('/')[-2])

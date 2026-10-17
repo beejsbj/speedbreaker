@@ -14,6 +14,11 @@ internal object ServiceStatus {
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    private val _breathShowing = MutableStateFlow(false)
+
+    /** True while the breathing overlay is on screen; the GitHub build's updater waits for it. */
+    val breathShowing: StateFlow<Boolean> = _breathShowing.asStateFlow()
+
     fun isEnabled(context: Context): Boolean {
         val expected = ComponentName(context, SpeedbreakerService::class.java)
         val enabled = Settings.Secure.getString(
@@ -28,6 +33,10 @@ internal object ServiceStatus {
     internal fun setConnected(value: Boolean) {
         _connected.value = value
         if (value) _error.value = null
+    }
+
+    internal fun setBreathShowing(value: Boolean) {
+        _breathShowing.value = value
     }
 
     internal fun reportError(message: String?) {

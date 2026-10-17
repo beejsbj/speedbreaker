@@ -19,7 +19,7 @@ class ReleasePolicyTest(unittest.TestCase):
         release.enforce_release_policy(Path('a.apk'), Path('aapt'), True, runner=lambda c, **k: calls.append(c))
         self.assertEqual([c[2] for c in calls], ['collect', 'verify'])
         self.assertIn('--dependencies', calls[0])
-        self.assertEqual(calls[1][calls[1].index('--channel') + 1], 'community')
+        self.assertEqual(calls[1][calls[1].index('--channel') + 1], 'github')
 
     def test_hosted_input_only_verifies_final_manifest(self):
         calls = []

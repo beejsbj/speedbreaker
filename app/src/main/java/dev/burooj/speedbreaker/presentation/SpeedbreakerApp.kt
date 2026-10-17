@@ -43,6 +43,7 @@ internal fun SpeedbreakerApp() {
     SpeedbreakerTheme {
         val context = LocalContext.current
         val support = rememberDistributionSupport()
+        val updates = rememberUpdateSurface()
         val repository = remember(context) { SpeedbreakerRepository.get(context) }
         val settings by repository.settings.collectAsStateWithLifecycle()
         val pauses by repository.pauses.collectAsStateWithLifecycle()
@@ -179,6 +180,8 @@ internal fun SpeedbreakerApp() {
                     supportLabel = support.label,
                     supportSummary = support.summary,
                     supportAvailable = support.available,
+                    updateCard = updates?.homeCard,
+                    onCheckUpdates = updates?.onCheck,
                 )
                 currentRoute == Route.Apps -> AppPickerScreen(
                     apps = launchableApps,
@@ -202,6 +205,7 @@ internal fun SpeedbreakerApp() {
                             transformFor = { value -> { current -> current.copy(redirects = value) } },
                         )
                     },
+                    updatesSection = updates?.defaultsSection,
                 )
                 currentRoute is Route.App -> {
                     val packageName = currentRoute.packageName

@@ -1,0 +1,48 @@
+{
+  "url": "https://api.github.com/repos/beejsbj/speedbreaker/releases/415678038",
+  "html_url": "https://github.com/beejsbj/speedbreaker/releases/tag/v1.0.3",
+  "id": 415678038,
+  "tag_name": "v1.0.3",
+  "target_commitish": "main",
+  "name": "Speedbreaker 1.0.3",
+  "draft": false,
+  "prerelease": false,
+  "created_at": "2026-10-17T08:30:31Z",
+  "published_at": "2026-10-17T08:30:36Z",
+  "body": "See how much you've breathed. Install over 1.0.2 — your settings carry over.\n\n- **Your breathing total on Home.** A large, calm number — \"18 minutes\" — with \"94 breaths · 2 minutes today\" beneath. A breath counts once, for the time it was on screen (up to your breath length).\n- **A quieter, clearer Home.** A single \"● On\" status line replaces the \"On for N apps\" title and the breath-length notice. It tells you when every chosen app is resting until its next scheduled hours (\"On · resting until 9 AM\"), or when pauses need notifications. Repair states still lead with what to fix.\n- **Defaults** now reads as your breath length, with schedule and redirects beneath. The Samsung battery tip lives in the Battery row. Support, privacy and **Reset breathing total** (with confirmation) sit in a quiet footer.\n\n**Privacy:** Speedbreaker now keeps four running numbers on your phone — total time breathed, total breaths, and today's time — so it can show the total. No per-app or time-stamped history, nothing sent anywhere, resettable any time.\n\nDownload **Speedbreaker-1.0.3.apk** under Assets. Android 8.0+; version code **7**. Same release signing identity. Play Protect may warn about an unfamiliar developer; choose *More details → Install anyway*.\n\nVerification: hosted CI (unit/UI tests and release lint for both builds, Android 16 KB page check, regenerated design screenshots). Installed on a Galaxy S23+ and checked by the owner. Enforcement behavior is unchanged from 1.0.2.\n\nSource: `be9b746`.\n\nAPK SHA-256:\n```\n4eb6c527cb95cfd1bbe162bbcacf75d2fb0c9102c4b4eaa4e5b2b895b54633c4\n```\n\n[Setup](https://github.com/beejsbj/speedbreaker/blob/main/docs/getting-started.md) · [Privacy](https://github.com/beejsbj/speedbreaker/blob/main/docs/privacy.md)\n",
+  "assets": [
+    {
+      "url": "https://api.github.com/repos/beejsbj/speedbreaker/releases/assets/649974578",
+      "id": 649974578,
+      "name": "Speedbreaker-1.0.3.apk",
+      "label": "",
+      "content_type": "application/vnd.android.package-archive",
+      "state": "uploaded",
+      "size": 8009627,
+      "created_at": "2026-10-17T08:30:34Z",
+      "browser_download_url": "https://github.com/beejsbj/speedbreaker/releases/download/v1.0.3/Speedbreaker-1.0.3.apk"
+    },
+    {
+      "url": "https://api.github.com/repos/beejsbj/speedbreaker/releases/assets/649974577",
+      "id": 649974577,
+      "name": "Speedbreaker-1.0.3.apk.sha256",
+      "label": "",
+      "content_type": "application/octet-stream",
+      "state": "uploaded",
+      "size": 89,
+      "created_at": "2026-10-17T08:30:34Z",
+      "browser_download_url": "https://github.com/beejsbj/speedbreaker/releases/download/v1.0.3/Speedbreaker-1.0.3.apk.sha256"
+    },
+    {
+      "url": "https://api.github.com/repos/beejsbj/speedbreaker/releases/assets/649974579",
+      "id": 649974579,
+      "name": "Speedbreaker-1.0.3.json",
+      "label": "",
+      "content_type": "application/json",
+      "state": "uploaded",
+      "size": 1138,
+      "created_at": "2026-10-17T08:30:34Z",
+      "browser_download_url": "https://github.com/beejsbj/speedbreaker/releases/download/v1.0.3/Speedbreaker-1.0.3.json"
+    }
+  ]
+}

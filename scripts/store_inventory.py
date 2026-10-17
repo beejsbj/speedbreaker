@@ -81,6 +81,10 @@ def pom_evidence(coordinate, root, cache, depth=0):
     return result
 
 
+NETWORK_SDK_GROUPS = ("com.squareup.okhttp", "com.squareup.retrofit", "io.ktor", "com.android.volley",
+                      "io.grpc", "com.google.android.gms", "com.google.android.play")
+
+
 def collect(args):
     root = Path(args.output)
     inventory = json.loads(Path(args.dependencies).read_text())
@@ -91,6 +95,11 @@ def collect(args):
                              "com.android.billingclient", "com.google.android.datatransport", "com.google.firebase"}]
     if payment_artifacts:
         raise ValueError("Direct-tip runtime contains a payment or diagnostics transport SDK")
+    # The GitHub updater uses the platform's HttpURLConnection; no build carries a network SDK.
+    network_artifacts = [artifact for artifact in inventory["artifacts"]
+                         if str(artifact["component"].get("group", "")).startswith(NETWORK_SDK_GROUPS)]
+    if network_artifacts:
+        raise ValueError("Runtime contains a network client SDK")
     # Platform/BOM nodes have no runtime file, but are part of the resolved graph.
     coordinates.update(tuple(node["component"][key] for key in ("group", "name", "version"))
                        for node in inventory["graph"] if all(key in node["component"] for key in ("group", "name", "version")))
@@ -139,6 +148,46 @@ def expected_version_code():
     return match.group(1)
 
 
+# Every build's complete permission set. The F-Droid (community) and Play builds are
+# offline; only the GitHub Releases build adds exactly what its in-app updater needs.
+OFFLINE_PERMISSIONS = frozenset({
+    "android.permission.POST_NOTIFICATIONS",
+    "android.permission.READ_PHONE_STATE",
+    "android.permission.RECEIVE_BOOT_COMPLETED",
+    # Added by androidx.core for ContextCompat.registerReceiver(..., RECEIVER_NOT_EXPORTED).
+    "dev.burooj.speedbreaker.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+})
+UPDATER_PERMISSIONS = frozenset({"android.permission.INTERNET", "android.permission.REQUEST_INSTALL_PACKAGES"})
+CHANNEL_PERMISSIONS = {
+    "community": OFFLINE_PERMISSIONS,
+    "play": OFFLINE_PERMISSIONS,
+    "github": OFFLINE_PERMISSIONS | UPDATER_PERMISSIONS,
+}
+
+
+def permission_violations(channel, permissions):
+    """Policy violations for one channel's final permission list; empty when it is exactly allowed."""
+    allowed = CHANNEL_PERMISSIONS[channel]
+    present = set(permissions)
+    violations = []
+    if "android.permission.INTERNET" in present and channel != "github":
+        violations.append("INTERNET permission present")
+    if "android.permission.ACCESS_NETWORK_STATE" in present:
+        violations.append("Network-state permission present")
+    if "com.android.vending.BILLING" in present:
+        violations.append("Billing permission present in direct-tip build")
+    if "android.permission.REQUEST_INSTALL_PACKAGES" in present and channel != "github":
+        violations.append("Install-packages permission present in a store build")
+    reported = {"android.permission.INTERNET", "android.permission.ACCESS_NETWORK_STATE",
+                "com.android.vending.BILLING", "android.permission.REQUEST_INSTALL_PACKAGES"}
+    for name in sorted(present - allowed - reported):
+        violations.append(f"unexpected permission {name}")
+    # A GitHub build without its updater permissions means the wrong flavor was packaged.
+    for name in sorted(UPDATER_PERMISSIONS - present if channel == "github" else ()):
+        violations.append(f"expected permission missing: {name}")
+    return violations
+
+
 def verify(args):
     apk = Path(args.apk)
     aapt = args.aapt
@@ -150,19 +199,13 @@ def verify(args):
     target = re.search(r"^targetSdkVersion:'([^']+)'", badging, re.M)
     permissions = sorted(set(re.findall(r"^uses-permission(?:-sdk-23)?: name='([^']+)'", permissions_text, re.M)))
     assert package and sdk and target, "aapt badging omitted package or SDK metadata"
-    billing = "com.android.vending.BILLING"
     # Android's binary XML rendering uses android:debuggable(0x0101000f).
     debuggable = bool(re.search(r"android:debuggable(?:\([^)]*\))?=.*(?:0xffffffff|true)", xmltree, re.I))
     violations = []
     expected = ("dev.burooj.speedbreaker", expected_version_code(), "26", "36")
     if (package.group(1), package.group(2), sdk.group(1), target.group(1)) != expected:
         violations.append("package/version/SDK mismatch")
-    if "android.permission.INTERNET" in permissions:
-        violations.append("INTERNET permission present")
-    if billing in permissions:
-        violations.append("Billing permission present in direct-tip build")
-    if "android.permission.ACCESS_NETWORK_STATE" in permissions:
-        violations.append("Network-state permission present in offline build")
+    violations += permission_violations(args.channel, permissions)
     if debuggable:
         violations.append("debuggable APK")
     manifest = {"channel": args.channel, "package": package.group(1), "versionCode": int(package.group(2)),
@@ -196,6 +239,9 @@ def self_test(_args):
     plain = b"<project><licenses><license><name>Apache-2.0</name></license></licenses></project>"
     assert ET.fromstring(plain).findtext("m:licenses/m:license/m:name", namespaces={"m": ""}) == "Apache-2.0"
     assert digest(b"abc") == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    assert not permission_violations("community", OFFLINE_PERMISSIONS)
+    assert not permission_violations("github", OFFLINE_PERMISSIONS | UPDATER_PERMISSIONS)
+    assert permission_violations("play", OFFLINE_PERMISSIONS | {"android.permission.INTERNET"})
     print("self-test passed")
 
 
@@ -207,7 +253,7 @@ def main():
     p.add_argument("--output", required=True)
     p.set_defaults(action=collect)
     p = sub.add_parser("verify")
-    p.add_argument("--channel", choices=("community", "play"), required=True)
+    p.add_argument("--channel", choices=tuple(CHANNEL_PERMISSIONS), required=True)
     p.add_argument("--apk", required=True)
     p.add_argument("--aab")
     p.add_argument("--aapt", required=True)

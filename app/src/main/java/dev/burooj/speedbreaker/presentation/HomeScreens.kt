@@ -220,6 +220,8 @@ internal fun HomeScreen(
     supportAvailable: Boolean = true,
     stats: BreathStats = BreathStats(),
     onResetStats: () -> Unit = {},
+    updateCard: (@Composable () -> Unit)? = null,
+    onCheckUpdates: (() -> Unit)? = null,
 ) {
     val appCount = settings.apps.size
     val catalog = appCatalog()
@@ -280,6 +282,8 @@ internal fun HomeScreen(
                 modifier = Modifier.padding(horizontal = 4.dp),
             )
         }
+
+        updateCard?.invoke()
 
         Section(
             title = "Apps",
@@ -347,6 +351,9 @@ internal fun HomeScreen(
                 FooterLink(supportLabel, onSupport, description = "$supportLabel. $supportSummary")
             }
             FooterLink("Privacy policy", onPrivacy, description = "Privacy policy. Opens the public policy in your browser")
+            if (onCheckUpdates != null) {
+                FooterLink("Check for updates", onCheckUpdates, description = "Check for updates. Asks GitHub for the latest release")
+            }
             if (!stats.isEmpty) {
                 FooterLink("Reset breathing total", { confirmingReset = true })
             }

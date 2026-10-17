@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sign the community release APK with the legacy and release keys, verify it, and write its receipt.
+"""Sign the GitHub release APK with the legacy and release keys, verify it, and write its receipt.
 
 Shared by scripts/package_release.py (local signing host) and
 .github/workflows/release.yml (the approval-gated `release` environment) so the two

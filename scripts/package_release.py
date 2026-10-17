@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and sign the shareable APK without putting passwords in arguments."""
+"""Build and sign the shareable GitHub APK without putting passwords in arguments."""
 import argparse
 import getpass
 import hashlib
@@ -27,18 +27,18 @@ def enforce_release_policy(unsigned, aapt, built_locally, runner=run):
     only a local build produces; hosted inputs were already collected by CI, so their
     final manifest is re-verified here. Raises CalledProcessError on any violation.
     """
-    output = ROOT / "app/build/store-inventory/community"
+    output = ROOT / "app/build/store-inventory/github"
     inventory = [sys.executable, str(ROOT / "scripts/store_inventory.py")]
     if built_locally:
         runner(inventory + ["collect", "--dependencies", str(output / "dependencies.json"), "--output", str(output)])
-    runner(inventory + ["verify", "--channel", "community", "--apk", str(unsigned),
+    runner(inventory + ["verify", "--channel", "github", "--apk", str(unsigned),
                         "--aapt", str(aapt), "--output", str(output)])
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--skip-build", action="store_true", help="Sign the already built release APK")
-    parser.add_argument("--unsigned-apk", type=Path, help="Verified hosted community APK (requires --skip-build)")
+    parser.add_argument("--unsigned-apk", type=Path, help="Verified hosted GitHub APK (requires --skip-build)")
     parser.add_argument("--build-receipt", type=Path, help="Input receipt from fetch_store_artifacts.py (required with --skip-build)")
     parser.add_argument("--password-secret", help="Bitwarden secret ID, read through bjs-bws on bjslab")
     parser.add_argument("--output-dir", type=Path, default=ROOT / "dist")
@@ -64,15 +64,15 @@ def main():
     if args.skip_build and not (args.unsigned_apk and args.build_receipt):
         parser.error("--skip-build requires --unsigned-apk and --build-receipt; fetch verified CI inputs first")
     if not args.skip_build:
-        run([str(ROOT / "gradlew"), ":app:assembleCommunityRelease", ":app:inventoryCommunityRelease", "--no-daemon", "--no-configuration-cache", "--max-workers=1", "-Dorg.gradle.jvmargs=-Xmx1g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8"])
-    unsigned = args.unsigned_apk.expanduser().resolve() if args.unsigned_apk else ROOT / "app/build/outputs/apk/community/release/app-community-release-unsigned.apk"
+        run([str(ROOT / "gradlew"), ":app:assembleGithubRelease", ":app:inventoryGithubRelease", "--no-daemon", "--no-configuration-cache", "--max-workers=1", "-Dorg.gradle.jvmargs=-Xmx1g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8"])
+    unsigned = args.unsigned_apk.expanduser().resolve() if args.unsigned_apk else ROOT / "app/build/outputs/apk/github/release/app-github-release-unsigned.apk"
     if not unsigned.is_file():
-        parser.error("Community release APK missing; run assembleCommunityRelease first")
+        parser.error("GitHub release APK missing; run assembleGithubRelease first")
     build_receipt = None
     if args.skip_build:
         build_receipt = json.loads(args.build_receipt.read_text())
         expected = {"repository": "beejsbj/speedbreaker", "source_commit": commit,
-                    "source_tree": tree, "channel": "community", "kind": "apk",
+                    "source_tree": tree, "channel": "github", "kind": "apk",
                     "input_sha256": hashlib.sha256(unsigned.read_bytes()).hexdigest()}
         if any(build_receipt.get(key) != value for key, value in expected.items()):
             parser.error("Hosted input receipt does not match this committed source and APK")
