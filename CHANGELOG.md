@@ -1,6 +1,8 @@
 # Changelog
 
-## 1.0.3 — unreleased
+## 1.0.3 — October 17, 2026
+
+Version code: **7**. [GitHub release](https://github.com/beejsbj/speedbreaker/releases/tag/v1.0.3), source `be9b746`, APK SHA-256 `4eb6c527cb95cfd1bbe162bbcacf75d2fb0c9102c4b4eaa4e5b2b895b54633c4`.
 
 - Redesigned Home: when Speedbreaker is on, a calm "On" status and how long you
   have breathed lead the page, replacing the "On for N apps" title and the
