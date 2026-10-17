@@ -43,16 +43,50 @@ def launcher_svg():
     vector = ET.parse(ROOT / "app/src/main/res/drawable/ic_launcher_foreground.xml").getroot()
     width = vector.get(f"{{{ANDROID}}}viewportWidth")
     height = vector.get(f"{{{ANDROID}}}viewportHeight")
-    paths = vector.findall("path")
-    if not color or not re.fullmatch(r"#[0-9A-Fa-f]{6}", color) or not width or not height or not paths:
+    if not color or not re.fullmatch(r"#[0-9A-Fa-f]{6}", color) or not width or not height:
         raise ValueError("Unsupported launcher vector")
-    shapes = []
-    for path in paths:
-        fill = path.get(f"{{{ANDROID}}}fillColor")
+
+    def path_shape(path):
         data = path.get(f"{{{ANDROID}}}pathData")
-        if not fill or not re.fullmatch(r"#[0-9A-Fa-f]{6}", fill) or not data:
+        fill = path.get(f"{{{ANDROID}}}fillColor")
+        stroke = path.get(f"{{{ANDROID}}}strokeColor")
+        if not data or not (fill or stroke):
             raise ValueError("Unsupported launcher path")
-        shapes.append(f'<path fill="{fill}" d="{escape(data, quote=True)}"/>')
+        attrs = []
+        for value in (fill, stroke):
+            if value and not re.fullmatch(r"#[0-9A-Fa-f]{6}", value):
+                raise ValueError("Unsupported launcher path color")
+        attrs.append(f'fill="{fill}"' if fill else 'fill="none"')
+        if stroke:
+            stroke_width = path.get(f"{{{ANDROID}}}strokeWidth", "1")
+            cap = path.get(f"{{{ANDROID}}}strokeLineCap", "butt")
+            if not re.fullmatch(r"[0-9.]+", stroke_width) or cap not in ("butt", "round", "square"):
+                raise ValueError("Unsupported launcher stroke")
+            attrs.append(f'stroke="{stroke}" stroke-width="{stroke_width}" stroke-linecap="{cap}"')
+        return f'<path {" ".join(attrs)} d="{escape(data, quote=True)}"/>'
+
+    shapes = []
+    for node in vector:
+        if node.tag == "path":
+            shapes.append(path_shape(node))
+        elif node.tag == "group":
+            numbers = {}
+            for key, default in (("translateX", "0"), ("translateY", "0"), ("scaleX", "1"), ("scaleY", "1")):
+                value = node.get(f"{{{ANDROID}}}{key}", default)
+                if not re.fullmatch(r"-?[0-9.]+", value):
+                    raise ValueError("Unsupported launcher group transform")
+                numbers[key] = value
+            inner = [path_shape(child) for child in node if child.tag == "path"]
+            if len(inner) != len(list(node)):
+                raise ValueError("Unsupported launcher group content")
+            shapes.append(
+                f'<g transform="translate({numbers["translateX"]} {numbers["translateY"]}) '
+                f'scale({numbers["scaleX"]} {numbers["scaleY"]})">' + "".join(inner) + "</g>"
+            )
+        else:
+            raise ValueError("Unsupported launcher vector element")
+    if not shapes:
+        raise ValueError("Unsupported launcher vector")
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" '
             f'viewBox="0 0 {width} {height}"><title>Speedbreaker launcher icon</title>'
             f'<rect width="{width}" height="{height}" fill="{color}"/>'
