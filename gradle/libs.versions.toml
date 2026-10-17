@@ -1,14 +1,14 @@
 [versions]
-graphicsShapes = "1.0.1"
-agp = "9.3.0"
-kotlin = "2.3.20"
-coreKtx = "1.16.0"
+graphicsShapes = "1.1.0"
+agp = "9.4.1"
+kotlin = "2.4.21"
+coreKtx = "1.19.1"
 activityCompose = "1.10.1"
 lifecycle = "2.9.0"
 composeBom = "2025.10.01"
-room = "2.7.2"
-robolectric = "4.14"
-roborazzi = "1.7.0"
+room = "2.8.5"
+robolectric = "4.17"
+roborazzi = "1.76.0"
 
 [libraries]
 androidx-graphics-shapes = { group = "androidx.graphics", name = "graphics-shapes", version.ref = "graphicsShapes" }
