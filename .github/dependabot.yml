@@ -1,0 +1,18 @@
+version: 2
+updates:
+  # Gradle dependencies: one grouped weekly PR for minor and patch updates, so
+  # a major bump (which may change behavior or licensing) stays its own review.
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      gradle-minor-patch:
+        update-types: [minor, patch]
+  # Workflow actions are pinned to full SHAs; Dependabot updates the SHA and the version comment.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
