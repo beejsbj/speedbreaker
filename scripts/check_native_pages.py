@@ -18,6 +18,7 @@ import zipfile
 
 PACKAGE = 'dev.burooj.speedbreaker'
 LIBRARY = 'libandroidx.graphics.path.so'
+WELCOME_TEXT = 'Make the next tap intentional.'
 
 
 def require(condition, message):
@@ -227,20 +228,7 @@ class Audit:
                 and evidence['native_conic_iterator']['conics'] == 0
                 and evidence['native_conic_iterator']['quadratics'] > 0,
                 'Supported JNI conic conversion was not exercised')
-        self.adb('shell', 'am', 'force-stop', PACKAGE)
-        launch = self.adb('shell', 'am', 'start', '-W', '-n', PACKAGE + '/.MainActivity')
-        require('Status: ok' in launch, 'App launch failed')
-        deadline = time.monotonic() + 45
-        ui = ''
-        while time.monotonic() < deadline:
-            self.adb('shell', 'uiautomator', 'dump', '/sdcard/native-pages-ui.xml', check=False)
-            ui = self.adb('shell', 'cat', '/sdcard/native-pages-ui.xml', check=False)
-            (self.output / 'welcome.xml').write_text(ui)
-            if 'Make the next tap intentional.' in ui and PACKAGE in ui:
-                break
-            time.sleep(2)
-        (self.output / 'welcome.png').write_bytes(self.adb('exec-out', 'screencap', '-p', binary=True))
-        require('Make the next tap intentional.' in ui and PACKAGE in ui, 'Welcome screen absent')
+        self.show_welcome()
         time.sleep(3)
         pid = self.adb('shell', 'pidof', PACKAGE)
         require(bool(re.fullmatch(r'\d+', pid)), 'App did not remain alive')
@@ -249,6 +237,34 @@ class Audit:
         for key, expected in props.items():
             require(self.adb('shell', 'getprop', key) == expected, 'Compat property changed during test')
         self.check_crashes()
+
+    def show_welcome(self, attempts=2, timeout=45):
+        """Launch the app and wait for its Welcome screen, relaunching once if it never appears.
+
+        A freshly booted emulator occasionally loses the first launch ("Welcome screen
+        absent"). Only that symptom is retried, here and not by rerunning the job; a launch
+        failure, crash or bad native evidence still fails at once, and every missed attempt
+        keeps its own evidence.
+        """
+        for attempt in range(1, attempts + 1):
+            self.adb('shell', 'am', 'force-stop', PACKAGE)
+            launch = self.adb('shell', 'am', 'start', '-W', '-n', PACKAGE + '/.MainActivity')
+            require('Status: ok' in launch, 'App launch failed')
+            deadline = time.monotonic() + timeout
+            while True:
+                self.adb('shell', 'uiautomator', 'dump', '/sdcard/native-pages-ui.xml', check=False)
+                ui = self.adb('shell', 'cat', '/sdcard/native-pages-ui.xml', check=False)
+                visible = WELCOME_TEXT in ui and PACKAGE in ui
+                if visible or time.monotonic() >= deadline:
+                    break
+                time.sleep(2)
+            name = 'welcome' if visible or attempt == attempts else f'welcome-attempt-{attempt}'
+            (self.output / f'{name}.xml').write_text(ui)
+            (self.output / f'{name}.png').write_bytes(self.adb('exec-out', 'screencap', '-p', binary=True))
+            self.report['welcome_attempts'] = attempt
+            if visible:
+                return
+        require(False, 'Welcome screen absent')
 
     def check_crashes(self):
         log = self.adb('logcat', '-b', 'all', '-d')

@@ -80,6 +80,8 @@ jobs:
             sleep 2
           done
           exit 1
+      # The runtime check relaunches the app once if the Welcome screen is absent (known
+      # first-launch emulator flake); every other failure is final.
       - name: Exercise target APK native library with compatibility mode off
         run: |
           python3 scripts/check_native_pages.py --mode runtime --apk app/build/outputs/apk/play/debug/app-play-debug.apk --fixture tools/call-fixture/build/outputs/apk/debug/call-fixture-debug.apk --adb "$ANDROID_HOME/platform-tools/adb" --output build/native-pages/runtime

@@ -46,6 +46,61 @@ class NativeCollectionTest(unittest.TestCase):
                 self.assertEqual((audit.output / filename).read_bytes(), payload + b'\n')
 
 
+class WelcomeRetryTest(unittest.TestCase):
+    """The known first-launch flake is retried once, in place; nothing else is."""
+
+    def audit(self, root, screens, launch='Status: ok'):
+        """An Audit whose adb answers from `screens`: one UI dump per poll, in order."""
+        apk = root / 'app.apk'
+        apk.write_bytes(b'no device or key involved')
+        audit = native.Audit(SimpleNamespace(output=root / 'evidence', mode='runtime', apk=apk, adb='mock-adb'))
+        calls, dumps = [], iter(screens)
+
+        def adb(*args, **kwargs):
+            calls.append(args)
+            if args[:2] == ('shell', 'cat'):
+                return next(dumps)
+            if args[:3] == ('shell', 'am', 'start'):
+                return launch
+            return b'png' if kwargs.get('binary') else ''
+        audit.adb = adb
+        audit.calls = calls
+        return audit
+
+    def shown(self):
+        return 'Make the next tap intentional. ' + native.PACKAGE
+
+    def test_relaunches_once_when_the_first_launch_never_shows_welcome(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.object(native.time, 'sleep'):
+            audit = self.audit(Path(temporary), ['<empty/>', self.shown()])
+            audit.show_welcome(timeout=0)
+            self.assertEqual(audit.report['welcome_attempts'], 2)
+            self.assertEqual(audit.calls.count(('shell', 'am', 'force-stop', native.PACKAGE)), 2)
+            self.assertEqual((audit.output / 'welcome-attempt-1.xml').read_text(), '<empty/>')
+            self.assertEqual((audit.output / 'welcome.xml').read_text(), self.shown())
+
+    def test_a_successful_first_launch_is_not_retried(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.object(native.time, 'sleep'):
+            audit = self.audit(Path(temporary), [self.shown()])
+            audit.show_welcome(timeout=0)
+            self.assertEqual(audit.report['welcome_attempts'], 1)
+            self.assertFalse((audit.output / 'welcome-attempt-1.xml').exists())
+
+    def test_two_missed_launches_still_fail(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.object(native.time, 'sleep'):
+            audit = self.audit(Path(temporary), ['<empty/>', '<empty/>'])
+            with self.assertRaisesRegex(RuntimeError, 'Welcome screen absent'):
+                audit.show_welcome(timeout=0)
+            self.assertEqual(audit.report['welcome_attempts'], 2)
+
+    def test_a_failed_launch_is_not_retried(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.object(native.time, 'sleep'):
+            audit = self.audit(Path(temporary), ['<empty/>'], launch='Error: Activity not started')
+            with self.assertRaisesRegex(RuntimeError, 'App launch failed'):
+                audit.show_welcome(timeout=0)
+            self.assertNotIn('welcome_attempts', audit.report)
+
+
 def elf64(loads):
     """Minimal little-endian ELF64 with (flags, p_offset) PT_LOAD headers."""
     header = bytearray(b'\x7fELF\x02\x01\x01' + bytes(9))
