@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.5 — October 17, 2026
+
+- The app icon is now the Speedbreaker mark — two open arcs and a still center —
+  on the brand's dark ground, replacing the placeholder triangle. On Android 13+
+  it follows your themed-icon colours.
+
+Version code: **9**.
+
 ## 1.0.4 — October 17, 2026
 
 - In-app updates for the GitHub APK. **Check for updates** at the foot of Home asks
