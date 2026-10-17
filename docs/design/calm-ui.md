@@ -35,9 +35,15 @@ overlay keeps its existing `BreakerOverlay` signature.
 
 - **Welcome** is one page: what it does, what it sees, what the first eight
   seconds do, what it keeps.
-- **Home** is also the setup checklist: its title is the status ("Off for now",
-  "Needs attention", "Ready when you are", "On for 3 apps"), followed by the one
-  next action, then Apps, Defaults, and Reliability.
+- **Home** is also the setup checklist. While breaths work and apps are chosen,
+  it opens with the eyebrow, a moss dot and "On" (plus "resting until 9 AM" when
+  every app is outside its schedule, or "pauses need notifications"), and the
+  breathing total as the one large serif number ("18 minutes", then "94 breaths ·
+  2 minutes today"; "No breaths yet" before the first). Otherwise its title is the
+  status ("Off for now", "Needs attention", "Ready when you are"), followed by the
+  one next action and a one-line total. Then Apps, Defaults (breath length as the
+  row title), Reliability (with the Samsung battery tip in the row), and a quiet
+  footer for support, privacy and Reset breathing total.
 - **Defaults** — breath slider with a large readout, redirects as four visible
   slots with zero to four selected destinations, schedule as Always on / Scheduled.
 - **Schedule as hours groups.** A week reads as groups of days sharing one set
@@ -133,6 +139,8 @@ export ANDROID_SDK_ROOT=/usr/lib/android-sdk JAVA_HOME=/usr/lib/jvm/java-17-open
 | Settings | |
 |---|---|
 | ![](screenshots/settings-01-home-on.png) Home | ![](screenshots/settings-02-home-needs-attention.png) Needs attention |
+| ![](screenshots/settings-11-home-first-breath.png) Before the first breath | ![](screenshots/settings-12-home-notifications-blocked.png) Pause needs notifications |
+| ![](screenshots/settings-13-home-resting.png) Resting until the next hours | ![](screenshots/settings-14-home-full-page.png) Full page with footer |
 | ![](screenshots/settings-03-defaults.png) Defaults | ![](screenshots/settings-04-app.png) One app |
 | ![](screenshots/settings-05-redirect-picker.png) Redirect picker | ![](screenshots/settings-07-home-large-text.png) 160% text |
 | ![](screenshots/settings-08-schedule-hours.png) Hours groups | ![](screenshots/settings-09-time-picker.png) Time dial |

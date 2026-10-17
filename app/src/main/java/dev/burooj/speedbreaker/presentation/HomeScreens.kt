@@ -2,22 +2,27 @@ package dev.burooj.speedbreaker.presentation
 
 import android.text.format.DateFormat
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -33,6 +38,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -186,6 +194,8 @@ internal enum class Protection {
 /**
  * Home reads top-down as: is it working, which apps, how it behaves, what
  * keeps it reliable. Setup is the same page — undone steps simply lead.
+ * While breaths work and apps are chosen, the status and the breathing total
+ * are the header; every other state keeps its serif title and repair notice.
  */
 @Composable
 internal fun HomeScreen(
@@ -212,40 +222,65 @@ internal fun HomeScreen(
     onResetStats: () -> Unit = {},
 ) {
     val appCount = settings.apps.size
-    val title = when (protection) {
-        Protection.Off -> "Off for now"
-        Protection.Broken, Protection.CallUnavailable -> "Needs attention"
-        Protection.CallPermission -> "One more step"
-        Protection.CallActive -> "Giving your call room"
-        Protection.On -> when (appCount) {
-            0 -> "Ready when you are"
-            1 -> "On for 1 app"
-            else -> "On for $appCount apps"
+    val catalog = appCatalog()
+    val use24Hour = DateFormat.is24HourFormat(LocalContext.current)
+    val zone = ZoneId.systemDefault()
+    val today = localDayKey(nowEpochMs, zone)
+    var confirmingReset by remember { mutableStateOf(false) }
+
+    val healthy = protection == Protection.On && appCount > 0
+    val title = if (healthy) {
+        null
+    } else {
+        when (protection) {
+            Protection.Off -> "Off for now"
+            Protection.Broken, Protection.CallUnavailable -> "Needs attention"
+            Protection.CallPermission -> "One more step"
+            Protection.CallActive -> "Giving your call room"
+            Protection.On -> "Ready when you are"
         }
     }
-    Page(title = title, onBack = null, eyebrow = "Speedbreaker") {
+    val header: (@Composable ColumnScope.() -> Unit)? = if (healthy) {
+        {
+            val note = homeStatusNote(
+                restingUntil = restingUntil(settings, nowEpochMs, zone, use24Hour),
+                notificationsAllowed = notificationsAllowed,
+            )
+            StatusLine(text = homeStatusText(note), description = homeStatusDescription(note))
+            Spacer(Modifier.height(16.dp))
+            BreathTotal(
+                stats = stats,
+                today = today,
+                firstAppLabel = settings.apps.keys.singleOrNull()?.let(catalog::label),
+            )
+        }
+    } else {
+        null
+    }
+
+    Page(title = title, onBack = null, eyebrow = "Speedbreaker", header = header) {
         ActivePausesSection(pauses, nowEpochMs, onEndPause)
 
         StatusPanel(
             protection = protection,
             runtimeError = runtimeError,
             hasApps = appCount > 0,
-            breathSeconds = settings.breathSeconds,
             onEnableAccessibility = onEnableAccessibility,
             onOpenAppInfo = onOpenAppInfo,
             onChooseApps = onChooseApps,
             onCallAccess = onCallAccess,
         )
 
-        BreathStatsPanel(
-            stats = stats,
-            today = localDayKey(nowEpochMs, ZoneId.systemDefault()),
-            showPlaceholder = protection == Protection.On && appCount > 0,
-            onReset = onResetStats,
-        )
+        // Repairs lead the page, so the total shrinks to one line after them.
+        if (protection != Protection.On && !stats.isEmpty) {
+            Text(
+                text = compactBreathLine(stats),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+        }
 
-        val catalog = appCatalog()
-        val use24Hour = DateFormat.is24HourFormat(LocalContext.current)
         Section(
             title = "Apps",
             footnote = if (appCount == 0) "Nothing is chosen until you pick it." else null,
@@ -269,18 +304,15 @@ internal fun HomeScreen(
             )
         }
 
-        Section(title = "How pauses work") {
+        Section(title = "Defaults") {
             NavRow(
-                title = "Defaults",
+                title = defaultsTitle(settings),
                 summary = defaultsSummary(settings, use24Hour),
                 onClick = onDefaults,
             )
         }
 
-        Section(
-            title = "Reliability",
-            footnote = "Samsung may put apps to sleep. In app info → Battery, choose Unrestricted so pauses keep arriving.",
-        ) {
+        Section(title = "Reliability") {
             NavRow(
                 title = "Pause notifications",
                 summary = if (notificationsAllowed) {
@@ -294,7 +326,7 @@ internal fun HomeScreen(
                         if (notificationsAllowed) {
                             MaterialTheme.colorScheme.tertiary
                         } else {
-                            MaterialTheme.colorScheme.outline
+                            MaterialTheme.colorScheme.error
                         },
                     )
                 },
@@ -302,84 +334,101 @@ internal fun HomeScreen(
             RowDivider()
             NavRow(
                 title = "Battery and background",
-                summary = "Open Speedbreaker’s app info",
+                summary = "On Samsung, set Battery to Unrestricted",
                 onClick = onOpenAppInfo,
                 leading = { StatusDot(Color.Transparent) },
             )
         }
 
-        Section(
-            title = if (supportAvailable) "Support" else "About",
-            footnote = if (supportAvailable) "If Speedbreaker helps, you can support its development. Always optional; every feature stays free." else null,
-        ) {
+        Column {
+            HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(8.dp))
             if (supportAvailable) {
-                NavRow(
-                    title = supportLabel,
-                    summary = supportSummary,
-                    onClick = onSupport,
-                )
-                RowDivider()
+                FooterLink(supportLabel, onSupport, description = "$supportLabel. $supportSummary")
             }
-            NavRow(
-                title = "Privacy policy",
-                summary = "Opens the public policy in your browser",
-                onClick = onPrivacy,
-            )
+            FooterLink("Privacy policy", onPrivacy, description = "Privacy policy. Opens the public policy in your browser")
+            if (!stats.isEmpty) {
+                FooterLink("Reset breathing total", { confirmingReset = true })
+            }
         }
     }
-}
 
-/** A quiet line of what has been breathed so far, with a small way to start the count over. */
-@Composable
-private fun BreathStatsPanel(
-    stats: BreathStats,
-    today: String,
-    showPlaceholder: Boolean,
-    onReset: () -> Unit,
-) {
-    if (stats.isEmpty) {
-        if (showPlaceholder) {
-            Text(
-                text = "Your first breath will show here.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp),
-            )
-        }
-        return
-    }
-    var confirming by remember { mutableStateOf(false) }
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(totalBreathedLine(stats), style = MaterialTheme.typography.bodyLarge)
-            Text(
-                todayBreathedLine(stats, today),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        TextButton(onClick = { confirming = true }) {
-            Text("Reset count", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-    if (confirming) {
+    if (confirmingReset) {
         AlertDialog(
-            onDismissRequest = { confirming = false },
-            title = { Text("Reset your count?") },
+            onDismissRequest = { confirmingReset = false },
+            title = { Text("Reset your breathing total?") },
             text = {
                 Text(
-                    "This sets the total and today’s time back to zero. It stays on this phone " +
-                        "and can’t be undone.",
+                    "The total, the breath count and today’s time go back to zero. This stays on " +
+                        "this phone and can’t be undone.",
                 )
             },
             confirmButton = {
-                TextButton(onClick = { confirming = false; onReset() }) { Text("Reset") }
+                TextButton(onClick = { confirmingReset = false; onResetStats() }) { Text("Reset") }
             },
-            dismissButton = { TextButton(onClick = { confirming = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { confirmingReset = false }) { Text("Keep it") } },
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        )
+    }
+}
+
+/** A moss dot and a plain word: Speedbreaker is on. The dot is decoration; the words are what TalkBack reads. */
+@Composable
+private fun StatusLine(text: String, description: String) {
+    Row(
+        modifier = Modifier.clearAndSetSemantics { contentDescription = description },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        StatusDot(MaterialTheme.colorScheme.tertiary)
+        Spacer(Modifier.width(10.dp))
+        Text(text, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+/**
+ * How long you have breathed, as the page's one large number, with the breath count and today's
+ * time beneath. Before the first breath it says so and names what starts one. Text wraps freely
+ * at any size; it is never clipped or shrunk.
+ */
+@Composable
+private fun BreathTotal(stats: BreathStats, today: String, firstAppLabel: String?) {
+    val headline: String
+    val subline: String
+    val description: String
+    if (stats.isEmpty) {
+        headline = "No breaths yet"
+        subline = "Open ${firstAppLabel ?: "a chosen app"} and your first one begins."
+        description = "$headline. $subline"
+    } else {
+        headline = formatBreathTotal(stats.totalMs)
+        subline = breathSubline(stats, today)
+        description = "$headline breathed in total. ${subline.replace(" · ", ", ")}."
+    }
+    Column(
+        modifier = Modifier.clearAndSetSemantics { contentDescription = description },
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(headline, style = MaterialTheme.typography.displaySmall)
+        Text(subline, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** A quiet text-only action at the foot of Home. */
+@Composable
+private fun FooterLink(text: String, onClick: () -> Unit, description: String = text) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 4.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.semantics { contentDescription = description },
         )
     }
 }
@@ -402,7 +451,6 @@ private fun StatusPanel(
     protection: Protection,
     runtimeError: String?,
     hasApps: Boolean,
-    breathSeconds: Int,
     onEnableAccessibility: () -> Unit,
     onOpenAppInfo: () -> Unit,
     onChooseApps: () -> Unit,
@@ -450,14 +498,14 @@ private fun StatusPanel(
             text = "Breaths are suspended while Android reports a call or communication audio. " +
                 "They resume when it ends.",
         )
-        Protection.On -> if (hasApps) {
-            Notice(
-                tone = NoticeTone.Calm,
-                text = "Opening a chosen app starts a $breathSeconds-second breath.",
-            )
-        } else {
+        // With apps chosen, the header already says Speedbreaker is on.
+        Protection.On -> if (!hasApps) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Notice(tone = NoticeTone.Calm, text = "Accessibility is connected. Choose the apps that pull at you.")
+                Text(
+                    text = "Accessibility is connected. Choose the apps that pull at you.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 PrimaryAction("Choose apps", onChooseApps, Modifier.fillMaxWidth())
             }
         }

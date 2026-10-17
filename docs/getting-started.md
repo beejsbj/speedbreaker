@@ -60,8 +60,8 @@ Speedbreaker, the launcher, keyboards, and safety-related system apps are
 excluded from the picker. Nothing is selected on a fresh installation.
 
 With Accessibility connected and call-state access allowed, the home screen shows **Ready when you are**
-until you choose an app, then **On for … apps**. Open one of those apps to try
-the breath.
+until you choose an app, then **On** with how long you have breathed so far. Open
+one of those apps to try the breath.
 
 The defaults are a twelve-second breath, check-ins every ten minutes of
 continuous use, and active hours all day, every day. No redirects are configured.

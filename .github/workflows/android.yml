@@ -96,6 +96,14 @@ jobs:
           retention-days: 30
       - name: Unit and UI regression tests
         run: ./gradlew :app:test${{ matrix.variant }}DebugUnitTest --no-daemon --no-configuration-cache --max-workers=2
+      - name: Preserve regenerated design screenshots
+        if: always() && matrix.channel == 'community'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: design-screenshots-${{ github.sha }}
+          path: docs/design/screenshots/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Release lint
         run: ./gradlew :app:lint${{ matrix.variant }}Release --no-daemon --no-configuration-cache --max-workers=2
       - name: Preserve verification reports

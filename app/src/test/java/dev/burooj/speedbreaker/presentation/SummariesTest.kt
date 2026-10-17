@@ -11,8 +11,19 @@ class SummariesTest {
         val labels = listOf("no redirects", "1 redirect", "2 redirects", "3 redirects", "4 redirects")
         for (count in 0..4) {
             val settings = dev.burooj.speedbreaker.model.Settings(redirects = (1..count).map { "alt.$it" })
-            assertEquals("12-second breath · always on · ${labels[count]}", defaultsSummary(settings, use24Hour = true))
+            assertEquals("Always on · ${labels[count]}", defaultsSummary(settings, use24Hour = true))
         }
+    }
+
+    @Test
+    fun defaults_titleIsTheBreathAndSummaryTheRest() {
+        val settings = dev.burooj.speedbreaker.model.Settings(
+            breathSeconds = 20,
+            redirects = listOf("alt.1"),
+            schedule = startingSchedule(),
+        )
+        assertEquals("20-second breath", defaultsTitle(settings))
+        assertEquals("Weekdays · 09:00–17:00 · 1 redirect", defaultsSummary(settings, use24Hour = true))
     }
 
     @Test
