@@ -1,18 +1,14 @@
 version: 2
 updates:
-  # Gradle dependencies: one grouped weekly PR for minor and patch updates, so
-  # a major bump (which may change behavior or licensing) stays its own review.
-  - package-ecosystem: gradle
-    directory: /
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 3
-    groups:
-      gradle-minor-patch:
-        update-types: [minor, patch]
+  # Owner decision (Oct 17, 2026): only keep CI's own actions current, twice a year,
+  # in one grouped PR. Speedbreaker has no Internet permission, so app libraries are
+  # upgraded deliberately (yearly, or for Android's target-SDK requirement) instead.
   # Workflow actions are pinned to full SHAs; Dependabot updates the SHA and the version comment.
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 3
+      interval: semiannually
+    open-pull-requests-limit: 1
+    groups:
+      actions:
+        patterns: ["*"]
