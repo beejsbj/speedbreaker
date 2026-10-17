@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.4 — unreleased
+## 1.0.4 — October 17, 2026
 
 - In-app updates for the GitHub APK. **Check for updates** at the foot of Home asks
   GitHub for the latest release; a newer one appears as a calm card with What's new

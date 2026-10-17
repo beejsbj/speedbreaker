@@ -14,8 +14,8 @@ android {
         applicationId = "dev.burooj.speedbreaker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.0.3"
+        versionCode = 8
+        versionName = "1.0.4"
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments["room.schemaLocation"] = "$projectDir/schemas"
