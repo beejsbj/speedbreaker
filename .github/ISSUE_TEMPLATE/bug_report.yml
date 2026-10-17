@@ -13,7 +13,7 @@ body:
     attributes:
       label: Speedbreaker version and source
       description: Find the version in Android app info. Say whether this is a GitHub release or a local build; include the commit for a local build if known.
-      placeholder: "1.0.0 (code 3), GitHub release"
+      placeholder: "1.0.3 (code 7), GitHub release"
     validations:
       required: true
   - type: input

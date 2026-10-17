@@ -6,9 +6,12 @@ Speedbreaker adds a breathing pause before the Android apps you choose. Take a
 moment, then continue, leave, or open somewhere else. Optional check-ins bring
 that same pause back during continuous use.
 
-![Speedbreaker: a quiet moment before the next tap](docs/brand/hero.png)
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/brand/hero-light.png">
+  <img src="docs/brand/hero.png" alt="Speedbreaker: a moment to breathe. Room to choose.">
+</picture>
 
-[Get the APK](https://github.com/beejsbj/speedbreaker/releases) ·
+[Get the APK](https://github.com/beejsbj/speedbreaker/releases/latest) ·
 [Setup guide](docs/getting-started.md) ·
 [Privacy](docs/privacy.md) ·
 [Report a bug](https://github.com/beejsbj/speedbreaker/issues/new/choose)
@@ -16,9 +19,10 @@ that same pause back during continuous use.
 Android 8.0 or newer. Installed from an APK; not currently on Google Play,
 F-Droid, or iOS.
 
-Version **1.0.1** fixes incoming-call interruption, keeps active pause controls
-available in the app, and protects saved settings during screen changes.
-See the [release notes](https://github.com/beejsbj/speedbreaker/releases/tag/v1.0.1).
+Version **1.0.3** adds a total of the time you have breathed and a calmer,
+redesigned Home screen. See the
+[latest release](https://github.com/beejsbj/speedbreaker/releases/latest) and the
+[changelog](CHANGELOG.md).
 
 ## A little room to choose
 
@@ -38,7 +42,7 @@ works locally, without an account, ads, analytics, or cloud sync.
 
 | Take a breath | Choose what comes next | Make it yours |
 | --- | --- | --- |
-| <img src="docs/design/screenshots/overlay-01-breath.png" width="240" alt="Breathing screen before choices unlock"> | <img src="docs/design/screenshots/overlay-03-choices-ready.png" width="240" alt="Continue, Leave, and four configured redirect apps after the breath"> | <img src="docs/design/screenshots/settings-01-home-on.png" width="240" alt="Home screen with selected apps, check-in intervals, and active hours"> |
+| <img src="docs/design/screenshots/overlay-01-breath.png" width="240" alt="Breathing screen before choices unlock"> | <img src="docs/design/screenshots/overlay-03-choices-ready.png" width="240" alt="Continue, Leave, and four configured redirect apps after the breath"> | <img src="docs/design/screenshots/settings-01-home-on.png" width="240" alt="Home screen with your breathing total, selected apps, check-in intervals, and active hours"> |
 
 Screens rendered from the app's UI with example settings. App icons appear as
 monograms here; installed apps show their own icons on a phone. You choose your
@@ -46,7 +50,7 @@ own apps and redirects.
 
 ## Install and get started
 
-1. Open [GitHub Releases](https://github.com/beejsbj/speedbreaker/releases) and
+1. Open the [latest GitHub release](https://github.com/beejsbj/speedbreaker/releases/latest) and
    download the `.apk` from a release's **Assets**, rather than a source archive.
 2. Open it on your phone. If prompted, allow your browser or file manager to
    install this APK, then follow Android's installer.
@@ -64,6 +68,17 @@ to Accessibility. Menu names vary by phone. Keep Play Protect enabled.
 Allow **Pause notifications** to use the fifteen-minute Pause option. On Samsung,
 check **Reliability → Battery and background** for background-operation guidance.
 See the [setup and troubleshooting guide](docs/getting-started.md) for details.
+
+### Verify the APK
+
+Each release lists a `.apk.sha256` file beside the APK. Before installing, run
+`sha256sum -c Speedbreaker-X.Y.Z.apk.sha256` in the download folder (or compare
+`sha256sum Speedbreaker-X.Y.Z.apk` with the published value). To check the
+signer, run `apksigner verify --print-certs Speedbreaker-X.Y.Z.apk` from the
+Android SDK build-tools. The certificate SHA-256 should be
+`fe3fcd3e893fe89d97aba6e25b429e9140455846423c2b42c44bfb4fcc320272` for Android 9+,
+or `8063da543d9e65ccf8ec4267e0710439f67af51d4990720f0ae36bef236a98ca` for the
+original Android 8 signer. A checksum confirms the file matches; it is not an audit.
 
 ## Know how the pause behaves
 
