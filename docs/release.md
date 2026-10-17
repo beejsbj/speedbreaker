@@ -132,3 +132,12 @@ Settings safety escape. Record remaining device-specific checks honestly.
 On October 11, Burooj accepted OHO being unavailable during a pause and chose
 to configure his own targets. The delivery goal is a shareable release; target
 configuration and a personal full-day verdict are subsequent owner use.
+
+## Branch protection
+
+Since October 17, 2026 the `Protect main` ruleset requires every change to land
+through a pull request with all review conversations resolved and the
+`verify (community, Community)`, `verify (play, Play)` and `native-pages` checks
+passing. Those workflows run on every PR (no path filter) so docs-only PRs still
+report. No one bypasses it, including agents using the owner's credentials. Release
+tags `v*` cannot be moved or deleted (`Protect release tags`).
