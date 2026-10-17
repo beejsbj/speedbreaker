@@ -1,19 +1,25 @@
 # Distribution automation
 
-CI prepares and verifies reviewable inputs. Signing stays on the established
-private signing host. Store status still requires actual host evidence.
+CI prepares and verifies reviewable inputs. Signing happens in one of two
+places: the approval-gated `release` GitHub environment (a pushed `vX.Y.Z` tag, see
+[release.md](../release.md)) or the established private signing host. Store status
+still requires actual host evidence.
 
 | Workflow | Trigger / result |
 | --- | --- |
 | `android.yml` | App PR/main changes or manual dispatch. Community/Play unsigned APKs, Play AAB, unit/UI tests, release lint, resolved dependency/license inventory, final manifest assertions, exact-source artifact hashes. |
+| `release.yml` | Pushed `vX.Y.Z` tag, or manual run for an existing tag. Unsigned community APK plus inventory and policy checks in a job with no secrets; then, after the owner approves the `release` environment, signing with `scripts/sign_apk.py`, per-SDK signature and certificate checks, and a GitHub release (APK, `.sha256`, `.json`) verified by re-download. Manual runs with `publish` off keep the signed files only as a workflow artifact. |
 | `android-device.yml` | Current manual/isolated tooling workflow; PR/main triggers, historical task selection and fresh-install captures are being integrated by the store-demo worker. API 35/36 Telecom/SystemUI/navigation regression is separate from the unverified final consent video. |
 | `android-pages.yml` | App/build/native/fixture PR/main changes or manual dispatch. Checks all packaged native ABIs statically, then boots explicit API 36 x86_64 16 KB AVD with compatibility mode off, exercises the actual packaged JNI conversion, verifies native mappings and app launch, and retains failure/success evidence. No ARM64 hardware certification claim. |
 | `store-metadata.yml` | Listing/artwork PR/main changes. Character/image limits, deterministic committed-export freshness, generated 512px icon and 1024×500 feature graphic artifacts. |
 | `reproducible.yml` | Manual published-APK check. Immutable 1.0.1 clean source rebuild and actual signature-copy verification, with pinned historical padding/tool inputs. |
 | `pages.yml` | Public-document changes or dispatch. Render privacy/help and deploy GitHub Pages. |
 
-Actions and build/export tools are pinned. No private signing key, store account
-credential, payment information or personal-device evidence is uploaded. CI's
+Actions and build/export tools are pinned, and Dependabot proposes weekly updates
+to Gradle dependencies and Actions SHAs. No private signing key, store account
+credential, payment information or personal-device evidence is uploaded; the
+`release` environment's secrets are available only to its signing job and are
+deleted from the runner when it ends. CI's
 unsigned artifacts are not installable store releases and do not prove approval.
 
 ## Recover verified CI inputs
@@ -34,7 +40,7 @@ Use `--commit FULL_COMMIT` only to inspect another known candidate; the signing
 script still requires the current committed source. Failed, stale, missing or
 expired inputs are rejected rather than relabelled as the current build.
 
-Do not restore keys on a build worker. To sign the community APK, use its
+Do not restore keys in a build job or on a build worker; only the `release` environment's signing job may. To sign locally the community APK, use its
 `.apk.input.json` receipt with the established packaging flow:
 
 ```sh
