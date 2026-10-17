@@ -1,7 +1,7 @@
 # Signed APK releases
 
-Tagging a version publishes it: GitHub Actions builds the community release APK,
-signs it, and creates the GitHub release with the
+Tagging a version publishes it: GitHub Actions builds the `github` release APK (the
+community build plus the in-app updater), signs it, and creates the GitHub release with the
 APK, a SHA-256 sidecar and a source receipt. The signing keys never go with the APK.
 
 ## The normal flow
@@ -51,14 +51,15 @@ python3 scripts/package_release.py
 ```
 
 Before any credential is requested it applies the same dependency and final-manifest
-policy as CI (`scripts/store_inventory.py`: no INTERNET, network-state, Billing,
-payment or diagnostics SDKs, no debuggable APK).
+policy as CI (`scripts/store_inventory.py`: the GitHub build's exact permission set,
+which adds only INTERNET and REQUEST_INSTALL_PACKAGES for its updater; no
+network-state, Billing, payment, diagnostics or network-client SDKs; no debuggable APK).
 
 The script prompts for the release-keystore password unless
 `SPEEDBREAKER_RELEASE_PASSWORD` is supplied in the process environment. On
 bjslab, `--password-secret <record-id>` reads that one record through `bjs-bws`
 without logging it. For hosted builds, `--skip-build` requires an explicit unsigned
-community APK and the verified CI input receipt. See
+GitHub APK and the verified CI input receipt. See
 [distribution automation](store/automation.md) for artifact recovery and exact
 source/hash checks.
 
@@ -120,6 +121,21 @@ key and is safe to keep in Git.
 Increment `versionCode` for every distributed update and use a matching
 `versionName`. `bump_version.py` does both. Preserve the package ID and signing lineage so Android can
 update the app while retaining settings and pause state.
+
+## In-app updates
+
+From 1.0.4 the GitHub APK can update itself (see the
+[interaction contract](interaction-contract.md#october-17-in-app-updater-owner-correction)).
+It reads `releases/latest` and needs these exact asset names on the release:
+`Speedbreaker-X.Y.Z.apk` and `Speedbreaker-X.Y.Z.apk.sha256`, under this repository's
+`/releases/download/vX.Y.Z/` path. Drafts and prereleases are never offered, so a
+release is offered to installed copies the moment it is published as latest. The
+SHA-256 sidecar catches a corrupted or swapped download; authenticity comes from
+Android, which installs the update only if it carries the installed app's signing
+key or lineage. A release published from a stolen GitHub login with a different key
+would be refused by Android, not by the updater.
+
+Installs from 1.0.3 or earlier have no updater; people move to 1.0.4 by hand once.
 
 ## Validation
 

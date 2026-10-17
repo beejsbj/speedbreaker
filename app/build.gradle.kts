@@ -36,9 +36,9 @@ android {
     sourceSets {
         // The GitHub build keeps the community support link; the store builds share the
         // offline stand-in for the updater, so neither carries any network code.
-        getByName("github") { java.srcDir("src/community/java") }
-        getByName("community") { java.srcDir("src/offline/java") }
-        getByName("play") { java.srcDir("src/offline/java") }
+        getByName("github") { kotlin.srcDir("src/community/java") }
+        getByName("community") { kotlin.srcDir("src/offline/java") }
+        getByName("play") { kotlin.srcDir("src/offline/java") }
     }
 
     buildTypes {

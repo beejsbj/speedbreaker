@@ -170,3 +170,44 @@ breaths shown for under one second (such as transient safety restarts) are not
 counted. "Today" restarts at local midnight. There is no per-app figure, timestamp,
 list of breaths, or other history; the total is never sent anywhere, and a failed
 write to it never affects enforcement.
+
+## October 17 in-app-updater owner correction
+
+Burooj asked on October 17, 2026 for in-app updates, like the Nuvio Android app, so
+people need not fetch each new APK from GitHub by hand. This amends the "no cloud
+path" and offline rules for one build only.
+
+The APK published on GitHub Releases (the `github` build) can check, download and
+install its own updates. The F-Droid (community) and Google Play builds cannot:
+F-Droid forbids self-updaters and Play forbids updating outside Play. They keep no
+Internet permission and no updater code.
+
+* Home's footer gains **Check for updates**. It asks GitHub's public API for the
+  latest release of `beejsbj/speedbreaker`, with no account, token or identifier;
+  the only header set is `User-Agent: Speedbreaker/<version>`. Drafts and
+  prereleases are ignored; a `vX.Y.Z` tag newer than the installed version is
+  offered.
+* Defaults gains **Check for updates automatically**, off by default. When on, the
+  check runs at most once a local day when the app UI opens. No background job,
+  WorkManager, alarm or notification exists.
+* An offered update is a calm card on Home: "Speedbreaker 1.0.4 is ready", with
+  **What's new** (the release notes as plain text), **Update** and **Not now**.
+* **Update** asks once for Android's **Install unknown apps** permission if it is
+  missing, links straight to that setting, and continues when the person returns.
+  It downloads `Speedbreaker-X.Y.Z.apk` to the app cache with progress and
+  **Cancel**, verifies its SHA-256 against the release's `.apk.sha256` and its
+  package and version, and hands it to Android's PackageInstaller. Android asks
+  for confirmation and accepts it only if it carries the installed app's signing
+  key. The cached file is deleted after hand-off, cancel or failure.
+* Nothing checks, downloads or prompts while a breath is showing. A breath that
+  starts mid-download stops it; Android's install prompt waits until the breath
+  ends. The updater lives in the app UI only; the Accessibility service merely
+  reports whether a breath is on screen.
+* Errors are quiet and plain ("Couldn't reach GitHub. Try again later."). A failed
+  automatic check shows nothing.
+* The GitHub build stores two more local values: the automatic-check switch and the
+  date of the last automatic check. Nothing about the person or their use is sent.
+
+Settings, breath timing, safety, pauses, schedules, the breathing total and all
+local-data rules are unchanged. The installed-over update flow on a phone is
+unverified until Burooj tests a build that has a newer release to update to.

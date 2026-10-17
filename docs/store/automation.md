@@ -7,8 +7,8 @@ still requires actual host evidence.
 
 | Workflow | Trigger / result |
 | --- | --- |
-| `android.yml` | App PR/main changes or manual dispatch. Community/Play unsigned APKs, Play AAB, unit/UI tests, release lint, resolved dependency/license inventory, final manifest assertions, exact-source artifact hashes. |
-| `release.yml` | Pushed `vX.Y.Z` tag, or manual run for an existing tag. Unsigned community APK plus inventory and policy checks in a job with no secrets; then, in the tag-only `release` environment, signing with `scripts/sign_apk.py`, per-SDK signature and certificate checks, and a GitHub release (APK, `.sha256`, `.json`) verified by re-download. Manual runs with `publish` off keep the signed files only as a workflow artifact. |
+| `android.yml` | App PR/main changes or manual dispatch. GitHub/community/Play unsigned APKs, Play AAB, unit/UI tests, release lint, resolved dependency/license inventory, final manifest assertions, exact-source artifact hashes. |
+| `release.yml` | Pushed `vX.Y.Z` tag, or manual run for an existing tag. Unsigned GitHub-channel APK (community plus the in-app updater) plus inventory and policy checks in a job with no secrets; then, in the tag-only `release` environment, signing with `scripts/sign_apk.py`, per-SDK signature and certificate checks, and a GitHub release (APK, `.sha256`, `.json`) verified by re-download. Manual runs with `publish` off keep the signed files only as a workflow artifact. |
 | `android-device.yml` | Current manual/isolated tooling workflow; PR/main triggers, historical task selection and fresh-install captures are being integrated by the store-demo worker. API 35/36 Telecom/SystemUI/navigation regression is separate from the unverified final consent video. |
 | `android-pages.yml` | App/build/native/fixture PR/main changes or manual dispatch. Checks all packaged native ABIs statically, then boots explicit API 36 x86_64 16 KB AVD with compatibility mode off, exercises the actual packaged JNI conversion, verifies native mappings and app launch, and retains failure/success evidence. No ARM64 hardware certification claim. |
 | `store-metadata.yml` | Listing/artwork PR/main changes. Character/image limits, deterministic committed-export freshness, generated 512px icon and 1024×500 feature graphic artifacts. |
@@ -40,17 +40,17 @@ Use `--commit FULL_COMMIT` only to inspect another known candidate; the signing
 script still requires the current committed source. Failed, stale, missing or
 expired inputs are rejected rather than relabelled as the current build.
 
-Do not restore keys in a build job or on a build worker; only the `release` environment's signing job may. To sign locally the community APK, use its
+Do not restore keys in a build job or on a build worker; only the `release` environment's signing job may. To sign locally the GitHub APK, use its
 `.apk.input.json` receipt with the established packaging flow:
 
 ```sh
 python3 scripts/package_release.py --skip-build \
-  --unsigned-apk build/store-inputs/RUN_ID/community/apk/app-community-release-unsigned.apk \
-  --build-receipt build/store-inputs/RUN_ID/community/apk/app-community-release-unsigned.apk.input.json \
+  --unsigned-apk build/store-inputs/RUN_ID/github/apk/app-github-release-unsigned.apk \
+  --build-receipt build/store-inputs/RUN_ID/github/apk/app-github-release-unsigned.apk.input.json \
   --output-dir dist/CANDIDATE
 ```
 
-The signer independently re-downloads the canonical successful Android run's community inventory and APK, verifies GitHub archive digests and hosted provenance, and compares both the actual local APK and the entire receipt with server-derived evidence before reading the release password. Editing a local receipt to match an altered APK cannot bypass this check. It refuses receipt/source/hash mismatches, a non-community input,
+The signer independently re-downloads the canonical successful Android run's GitHub inventory and APK, verifies GitHub archive digests and hosted provenance, and compares both the actual local APK and the entire receipt with server-derived evidence before reading the release password. Editing a local receipt to match an altered APK cannot bypass this check. It refuses receipt/source/hash mismatches, a non-GitHub input,
 debuggable APKs and an existing output, then signs with the original legacy and
 release keys plus public rotation lineage. It verifies SDK 26–27 and SDK 28–36,
 and emits signed SHA-256 and source/build receipts. Its password is read through

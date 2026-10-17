@@ -34,6 +34,17 @@ explains those fields. Apple offers search keywords and recommends precise,
 relevant terms; its [search guidance](https://developer.apple.com/app-store/search/)
 also explains product-page discovery. Neither channel guarantees search ranking.
 
+## GitHub Releases and in-app updates
+
+The APK on GitHub Releases is the `github` build: the community build plus an
+in-app updater, the only build allowed to reach the network. It contacts GitHub
+only when the person taps **Check for updates** or has turned on the daily
+automatic check, then downloads, verifies and installs through Android's
+installer. F-Droid forbids self-updating apps and Google Play forbids updates from
+outside Play, so the community (F-Droid) and Play builds contain no updater and
+no Internet permission. See [the interaction contract](interaction-contract.md#october-17-in-app-updater-owner-correction)
+and [the privacy policy](privacy.md#github-build-update-checks).
+
 ## F-Droid
 
 The project uses Apache-2.0, a FLOSS license. F-Droid also requires reviewable,
@@ -93,10 +104,10 @@ distribution entitlement, TestFlight upload or submission is being pursued.
 
 ## Optional developer support
 
-The GitHub APK has a quiet **Buy me a coffee** link on Home to
+The GitHub and community builds have a quiet **Buy me a coffee** link on Home to
 [the developer's Ko-fi page](https://ko-fi.com/beejsbj). It opens externally,
 provides no digital rewards or feature unlocks, and adds no billing SDK or
-Internet permission. It is never shown in the breathing overlay.
+permission. It is never shown in the breathing overlay.
 
 Recheck each store's payment rules before submitting that store's build:
 
