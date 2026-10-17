@@ -19,7 +19,7 @@ class GalleryScreenshotTest {
     @Test
     fun renderGallery() {
         Gallery.forEach { spec ->
-            val size = if (spec.landscape) "w915dp-h412dp-land" else "w412dp-h915dp-port"
+            val size = if (spec.landscape) "w915dp-h412dp-land" else "w412dp-h${spec.heightDp}dp-port"
             val night = if (spec.dark) "night" else "notnight"
             RuntimeEnvironment.setQualifiers("$size-$night-xxhdpi")
             RuntimeEnvironment.setFontScale(spec.fontScale)

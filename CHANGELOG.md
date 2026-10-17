@@ -2,8 +2,16 @@
 
 ## 1.0.3 — unreleased
 
-- Home shows how long you have breathed ("You've breathed 18 min · 94 breaths",
-  and today's time), with a confirmed Reset count. A breath counts once, when it
+- Redesigned Home: when Speedbreaker is on, a calm "On" status and how long you
+  have breathed lead the page, replacing the "On for N apps" title and the
+  breath-length notice. The status says when every chosen app is resting until its
+  next scheduled hours, or that Pause needs notifications. Needs-attention states
+  keep their repair notice first and a one-line total after it. Defaults reads as
+  the breath length with schedule and redirects beneath; the Samsung battery tip
+  moved into the Reliability row; support, privacy and Reset breathing total sit in
+  a quiet footer.
+- Home shows how long you have breathed ("18 minutes", "94 breaths · 2 minutes
+  today"), with a confirmed Reset breathing total. A breath counts once, when it
   ends, for the time it was shown up to its configured length; breaths under one
   second are ignored. The device keeps only four running numbers, never per-app or
   time-stamped history, and sends nothing anywhere. Privacy docs updated to match.

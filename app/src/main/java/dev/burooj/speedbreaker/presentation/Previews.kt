@@ -35,6 +35,7 @@ internal data class GallerySpec(
     val name: String,
     val landscape: Boolean = false,
     val fontScale: Float = 1f,
+    val heightDp: Int = 915,
     val dark: Boolean = false,
     val content: @Composable () -> Unit,
 )
@@ -70,11 +71,10 @@ internal val Gallery: List<GallerySpec> = listOf(
             )
         }
     },
-    GallerySpec("settings-01-home-on") { Screen { HomeSample(Protection.On, SampleSettings) } },
-    GallerySpec("settings-11-home-with-breaths") {
-        Screen { HomeSample(Protection.On, SampleSettings, stats = SampleStats) }
+    GallerySpec("settings-01-home-on") { Screen { HomeSample(Protection.On, SampleSettings, withBreaths = true) } },
+    GallerySpec("settings-02-home-needs-attention") {
+        Screen { HomeSample(Protection.Broken, SampleSettings, withBreaths = true) }
     },
-    GallerySpec("settings-02-home-needs-attention") { Screen { HomeSample(Protection.Broken, SampleSettings) } },
     GallerySpec("settings-03-defaults") {
         Screen {
             DefaultsScreen(SampleSettings, onBack = {}, onBreathChange = {}, onScheduleTransform = {}, onRedirects = {})
@@ -112,19 +112,44 @@ internal val Gallery: List<GallerySpec> = listOf(
     },
     GallerySpec("settings-09-time-picker") { Screen { TimePickerSample(typing = false) } },
     GallerySpec("settings-10-time-typed") { Screen { TimePickerSample(typing = true) } },
-    GallerySpec("settings-07-home-large-text", fontScale = 1.6f) { Screen { HomeSample(Protection.On, SampleSettings) } },
+    GallerySpec("settings-07-home-large-text", fontScale = 1.6f) {
+        Screen { HomeSample(Protection.On, SampleSettings, withBreaths = true) }
+    },
+    GallerySpec("settings-11-home-first-breath") {
+        Screen { HomeSample(Protection.On, OnlyInstagram) }
+    },
+    GallerySpec("settings-12-home-notifications-blocked") {
+        Screen { HomeSample(Protection.On, SampleSettings, notifications = false, withBreaths = true) }
+    },
+    GallerySpec("settings-14-home-full-page", heightDp = 1500) {
+        Screen { HomeSample(Protection.On, SampleSettings, withBreaths = true) }
+    },
+    GallerySpec("settings-13-home-resting") {
+        Screen { HomeSample(Protection.On, OnlyInstagram, withBreaths = true, now = RestingNow) }
+    },
 )
 
 /* ---------- Samples ---------- */
 
-/** 18 minutes over 94 breaths, 2 of them today (the gallery clock is the real one, so today is stamped now). */
-private val SampleStats: BreathStats
-    get() = BreathStats(
-        totalMs = 18 * 60_000L,
-        totalBreaths = 94,
-        todayKey = dev.burooj.speedbreaker.model.localDayKey(System.currentTimeMillis(), java.time.ZoneId.systemDefault()),
-        todayMs = 2 * 60_000L,
-    )
+/**
+ * The gallery's fixed clocks. Home reads the schedule at "now", so a real clock would make the
+ * screenshots depend on when CI ran. Wednesday 10:30 is inside the sample weekday hours;
+ * Monday 06:30 is before them.
+ */
+private val ActiveNow: Long = localEpochMs(2026, 10, 14, 10, 30)
+private val RestingNow: Long = localEpochMs(2026, 10, 19, 6, 30)
+
+private fun localEpochMs(year: Int, month: Int, day: Int, hour: Int, minute: Int): Long =
+    java.time.ZonedDateTime.of(year, month, day, hour, minute, 0, 0, java.time.ZoneId.systemDefault())
+        .toInstant().toEpochMilli()
+
+/** 18 minutes over 94 breaths, 2 of them on the day [now] falls in. */
+private fun sampleStats(now: Long) = BreathStats(
+    totalMs = 18 * 60_000L,
+    totalBreaths = 94,
+    todayKey = dev.burooj.speedbreaker.model.localDayKey(now, java.time.ZoneId.systemDefault()),
+    todayMs = 2 * 60_000L,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -167,7 +192,8 @@ private fun HomeSample(
     protection: Protection,
     settings: Settings,
     notifications: Boolean = true,
-    stats: BreathStats = BreathStats(),
+    withBreaths: Boolean = false,
+    now: Long = ActiveNow,
 ) = HomeScreen(
     settings = settings,
     protection = protection,
@@ -179,7 +205,8 @@ private fun HomeSample(
     onChooseApps = {},
     onDefaults = {},
     onApp = {},
-    stats = stats,
+    nowEpochMs = now,
+    stats = if (withBreaths) sampleStats(now) else BreathStats(),
 )
 
 @Composable
@@ -239,6 +266,13 @@ private val SplitWeek = WeeklySchedule(
 )
 
 private val Weekdays9to5 = WeeklySchedule((1..5).associateWith { TimeWindow(9 * 60, 17 * 60) })
+
+private val OnlyInstagram = Settings(
+    consentAccepted = true,
+    apps = mapOf(INSTAGRAM to AppPolicy()),
+    redirects = listOf(KINDLE, NOTES, DUOLINGO, MAPS),
+    schedule = Weekdays9to5,
+)
 
 private val SampleSettings = Settings(
     consentAccepted = true,

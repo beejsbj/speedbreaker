@@ -127,13 +127,17 @@ internal fun AppGlyph(
 
 /* ---------- Page structure ---------- */
 
-/** A settings page: quiet top bar, serif title, and a single scrolling column. */
+/**
+ * A settings page: quiet top bar, serif title, and a single scrolling column. A page may pass a
+ * null [title] and its own [header] instead; the eyebrow then carries the heading semantics.
+ */
 @Composable
 internal fun Page(
-    title: String,
+    title: String?,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
     eyebrow: String? = null,
+    header: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     if (onBack != null) BackHandler(onBack = onBack)
@@ -159,15 +163,25 @@ internal fun Page(
                 }
             }
             if (eyebrow != null) {
-                Eyebrow(eyebrow, Modifier.padding(top = 8.dp, bottom = 6.dp))
+                Eyebrow(
+                    eyebrow,
+                    Modifier
+                        .padding(top = 8.dp, bottom = if (title == null) 14.dp else 6.dp)
+                        .then(if (title == null) Modifier.semantics { heading() } else Modifier),
+                )
             }
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineLarge,
-                modifier = Modifier
-                    .padding(top = if (eyebrow == null) 8.dp else 0.dp, bottom = 24.dp)
-                    .semantics { heading() },
-            )
+            if (title != null) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineLarge,
+                    modifier = Modifier
+                        .padding(top = if (eyebrow == null) 8.dp else 0.dp, bottom = 24.dp)
+                        .semantics { heading() },
+                )
+            }
+            if (header != null) {
+                Column(Modifier.padding(bottom = 28.dp), content = header)
+            }
             Column(verticalArrangement = Arrangement.spacedBy(28.dp), content = content)
         }
     }

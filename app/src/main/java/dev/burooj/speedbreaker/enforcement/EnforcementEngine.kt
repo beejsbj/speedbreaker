@@ -2,9 +2,9 @@ package dev.burooj.speedbreaker.enforcement
 
 import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.model.Settings
-import dev.burooj.speedbreaker.model.TimeWindow
 import dev.burooj.speedbreaker.model.WeeklySchedule
 import dev.burooj.speedbreaker.model.effectiveRedirects
+import dev.burooj.speedbreaker.model.isActiveAt
 import java.time.Instant
 import java.time.ZoneId
 
@@ -587,33 +587,8 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
     private fun effectiveSchedule(packageName: String, settings: Settings): WeeklySchedule? =
         settings.apps[packageName]?.schedule ?: settings.schedule
 
-    private fun isScheduleActive(schedule: WeeklySchedule?, observation: Observation): Boolean {
-        if (schedule == null) return true
-        val local = Instant.ofEpochMilli(observation.epochMs).atZone(observation.zoneId)
-        val minute = local.hour * MINUTES_PER_HOUR + local.minute
-        val today = local.dayOfWeek.value
-        val yesterday = if (today == 1) 7 else today - 1
-
-        val todayWindow = schedule.days[today]
-        if (todayWindow != null && todayWindow.isValid()) {
-            if (todayWindow.startMinute < todayWindow.endMinute) {
-                if (minute >= todayWindow.startMinute && minute < todayWindow.endMinute) return true
-            } else if (minute >= todayWindow.startMinute) {
-                return true
-            }
-        }
-
-        val yesterdayWindow = schedule.days[yesterday]
-        return yesterdayWindow != null &&
-            yesterdayWindow.isValid() &&
-            yesterdayWindow.startMinute > yesterdayWindow.endMinute &&
-            minute < yesterdayWindow.endMinute
-    }
-
-    private fun TimeWindow.isValid(): Boolean =
-        startMinute in 0 until MINUTES_PER_DAY &&
-            endMinute in 0..MINUTES_PER_DAY &&
-            startMinute != endMinute
+    private fun isScheduleActive(schedule: WeeklySchedule?, observation: Observation): Boolean =
+        schedule.isActiveAt(Instant.ofEpochMilli(observation.epochMs).atZone(observation.zoneId))
 
     private fun localDay(observation: Observation): String =
         Instant.ofEpochMilli(observation.epochMs)
@@ -642,8 +617,6 @@ internal class EnforcementEngine(initialPauses: Map<String, PauseState> = emptyM
         const val PAUSES_PER_DAY = 2
         const val MIN_BREATH_SECONDS = 8
         const val MAX_BREATH_SECONDS = 60
-        const val MINUTES_PER_HOUR = 60
-        const val MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR
         const val MAX_UNREAD_DECISIONS = 64
     }
 }

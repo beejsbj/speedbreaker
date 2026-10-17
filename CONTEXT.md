@@ -37,8 +37,9 @@ which supersedes the earlier exactly-four requirement for the next candidate.
 minutes immediately. The active pause and today's token count persist locally;
 End now on Home or the notification resumes enforcement.
 
-**Breathing total**: the only usage figure kept, shown on Home and resettable
-there: total and today's time a breath was on screen (capped at its configured
+**Breathing total**: the only usage figure kept, shown on Home as its headline
+("18 minutes", with the breath count and today's time beneath) and resettable
+there through "Reset breathing total": total and today's time a breath was on screen (capped at its configured
 length, counted once when it ends, ignored under one second) and the breath count.
 Four numbers, no per-app or time-stamped history, never sent anywhere.
 

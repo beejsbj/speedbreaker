@@ -66,7 +66,7 @@ Speedbreaker stores these records in its private local app database:
 - Breath length, selected app package names, check-in settings, active schedules,
   and redirect package names.
 - A running total of the seconds you have breathed and the number of breaths, overall
-  and for the current local day. Home shows it, and **Reset count** there sets it back
+  and for the current local day. Home shows it, and **Reset breathing total** there sets it back
   to zero. It is never sent anywhere.
 - A rolling pause-state record for each relevant app: the allowance day, how many
   pauses were used, and the active pause's expiry time.

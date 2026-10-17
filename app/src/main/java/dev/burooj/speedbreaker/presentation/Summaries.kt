@@ -72,6 +72,10 @@ internal fun appSummary(policy: AppPolicy, settings: Settings, use24Hour: Boolea
     return "${intervalSummary(policy)} · ${scheduleSummary(schedule, use24Hour).inSentence()}"
 }
 
+/** The Defaults row's title: the breath length, which is what the row mostly sets. */
+internal fun defaultsTitle(settings: Settings): String = "${settings.breathSeconds}-second breath"
+
+/** The rest of the defaults, as a line that stands on its own under [defaultsTitle]. */
 internal fun defaultsSummary(settings: Settings, use24Hour: Boolean): String {
     val count = settings.redirects.size
     val redirects = when (count) {
@@ -79,8 +83,7 @@ internal fun defaultsSummary(settings: Settings, use24Hour: Boolean): String {
         1 -> "1 redirect"
         else -> "$count redirects"
     }
-    val schedule = scheduleSummary(settings.schedule, use24Hour).inSentence()
-    return "${settings.breathSeconds}-second breath · $schedule · $redirects"
+    return "${scheduleSummary(settings.schedule, use24Hour)} · $redirects"
 }
 
 internal fun allDaySchedule(): WeeklySchedule = WeeklySchedule((1..7).associateWith { ALL_DAY })

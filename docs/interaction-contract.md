@@ -153,7 +153,15 @@ pauses, local privacy, and all-free behavior retain their existing contracts.
 Burooj asked on October 16, 2026 for a simple way to see how many seconds he has
 breathed. This amends the earlier "no usage history" rule narrowly. Home now shows
 the total breath time and breath count, plus today's time, with a confirmed
-**Reset count** action.
+**Reset breathing total** action.
+
+The Home redesign of October 17 settles where it sits. While breaths are working and
+apps are chosen, the page opens with a quiet "On" status (adding "resting until 9 AM"
+when every chosen app is outside its schedule, or "pauses need notifications" when
+Pause cannot start) and the total as the headline: "18 minutes", then "94 breaths ·
+2 minutes today". Before the first breath it reads "No breaths yet". When a repair
+notice leads the page, the total is one line after it ("18 minutes breathed so far.").
+The reset action lives in the footer and appears only once there is something to reset.
 
 Only four aggregates are stored on the device: total milliseconds, total breaths,
 today's local date, and today's milliseconds. A breath counts once, when it ends by
