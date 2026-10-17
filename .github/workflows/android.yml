@@ -12,16 +12,9 @@ on:
       - 'gradle.properties'
       - 'gradlew*'
       - '.github/workflows/android.yml'
+  # Every PR runs this so it can be a required check on main (issue #39);
+  # a path filter would leave docs-only PRs waiting on a check that never reports.
   pull_request:
-    paths:
-      - 'app/**'
-      - 'scripts/store_inventory.py'
-      - 'docs/store/licenses.md'
-      - 'gradle/**'
-      - '*.gradle.kts'
-      - 'gradle.properties'
-      - 'gradlew*'
-      - '.github/workflows/android.yml'
   workflow_dispatch:
 
 permissions:
