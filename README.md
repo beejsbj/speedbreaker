@@ -38,6 +38,10 @@ redesigned Home screen. See the
 There are no streaks, usage scores, or daily screen-time budgets. Speedbreaker
 works locally, without an account, ads, analytics, or cloud sync.
 
+From 1.0.4 the GitHub APK updates itself when you ask: **Check for updates** at
+the foot of Home downloads the new release, checks it, and hands it to Android's
+installer. An optional daily check is off until you turn it on in Defaults.
+
 ## A look inside
 
 | Take a breath | Choose what comes next | Make it yours |
@@ -107,8 +111,11 @@ history, or audio. The app does not read message text or take screenshots. It ke
 only a running total of the seconds you have breathed and the breaths you have taken
 (overall and today), shown on Home and resettable there. It never sends them anywhere,
 and keeps no per-app or time-stamped history.
-Settings, pause state, and that total stay on the phone. It requests no Internet, Usage
-Access, or separate “display over other apps” permission. Android backup and
+Settings, pause state, and that total stay on the phone. It requests no Usage
+Access or separate “display over other apps” permission. The GitHub APK (1.0.4 and
+later) has Internet and install permissions for its updater only: it contacts GitHub
+when you check for updates, or once a day if you turn that on, and sends nothing
+about you or your use. F-Droid and Google Play builds will have no Internet permission. Android backup and
 device transfer of app data are disabled in its configuration.
 [Read the full privacy details](docs/privacy.md).
 

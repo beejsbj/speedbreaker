@@ -47,7 +47,11 @@ def archive(artifact, destination):
 
 
 def verify_signing_input(receipt, unsigned, commit, tree):
-    """Re-establish trust from GitHub, never from editable local receipt hashes."""
+    """Re-establish trust from GitHub, never from editable local receipt hashes.
+
+    Only the GitHub-channel APK is signed for sharing; the community and Play inputs are
+    fetched for store work but never signed here.
+    """
     run_id = int(receipt['run_id'])
     run = gh(f'repos/{REPOSITORY}/actions/runs/{run_id}')
     require(run.get('status') == 'completed' and run.get('conclusion') == 'success', 'CI must finish successfully')
@@ -55,8 +59,8 @@ def verify_signing_input(receipt, unsigned, commit, tree):
     workflow = gh(f'repos/{REPOSITORY}/actions/workflows/{run["workflow_id"]}')
     require(workflow['path'] == '.github/workflows/android.yml', 'Unexpected build workflow')
     artifacts = gh(f'repos/{REPOSITORY}/actions/runs/{run_id}/artifacts?per_page=100')['artifacts']
-    inventory = [a for a in artifacts if a['name'].startswith('store-inventory-community-')]
-    require(len(inventory) == 1, 'Missing/ambiguous community inventory')
+    inventory = [a for a in artifacts if a['name'].startswith('store-inventory-github-')]
+    require(len(inventory) == 1, 'Missing/ambiguous GitHub inventory')
     with tempfile.TemporaryDirectory() as temporary:
         location = Path(temporary)
         archive(inventory[0], location / 'inventory')
@@ -66,8 +70,8 @@ def verify_signing_input(receipt, unsigned, commit, tree):
         require(provenance['sourceTree'] == tree and str(provenance['githubRunId']) == str(run_id), 'Hosted provenance mismatch')
         built_head = provenance['sourceHead']
         require(gh(f'repos/{REPOSITORY}/git/commits/{built_head}')['tree']['sha'] == tree, 'Host/source tree mismatch')
-        found = [a for a in artifacts if a['name'] == 'unsigned-community-release-' + built_head]
-        require(len(found) == 1, 'Missing/ambiguous community APK')
+        found = [a for a in artifacts if a['name'] == 'unsigned-github-release-' + built_head]
+        require(len(found) == 1, 'Missing/ambiguous GitHub APK')
         host_receipt = archive(found[0], location / 'apk')
         apks = list((location / 'apk').rglob('*.apk'))
         require(len(apks) == 1, 'Missing/ambiguous APK payload')
@@ -76,7 +80,7 @@ def verify_signing_input(receipt, unsigned, commit, tree):
         require(sha(unsigned) == digest, 'Local APK differs from the verified hosted artifact')
         trusted = {'repository': REPOSITORY, 'source_commit': commit, 'source_tree': tree,
                    'build_checkout': built_head, 'run_id': run_id, 'run_url': run['html_url'],
-                   'input_sha256': digest, 'channel': 'community', 'kind': 'apk', **host_receipt}
+                   'input_sha256': digest, 'channel': 'github', 'kind': 'apk', **host_receipt}
         require(receipt == trusted, 'Local input receipt differs from hosted evidence')
         return trusted
 
@@ -99,7 +103,7 @@ def main():
     require(not out.exists(), 'Output exists; use a fresh directory')
     out.mkdir(parents=True)
     evidence = []
-    for channel in ('community', 'play'):
+    for channel in ('github', 'community', 'play'):
         inventory = [a for a in artifacts if a['name'].startswith('store-inventory-' + channel + '-')]
         require(len(inventory) == 1, 'Missing/ambiguous release inventory; rerun current CI')
         inventory_dir = out / channel / 'inventory'

@@ -1,12 +1,15 @@
 # Privacy policy
 
-Applies to Android Speedbreaker **1.0.1** and the **1.0.2 candidate**, including
-its community and Google Play builds. The candidate is not a store release.
-Last reviewed: **October 11, 2026**. Publisher: **Burooj (beejsbj)**.
+Applies to Android Speedbreaker through **1.0.4**, including its GitHub,
+community (F-Droid) and Google Play builds. Neither store build has been released.
+Last reviewed: **October 17, 2026**. Publisher: **Burooj (beejsbj)**.
 
 Speedbreaker runs on your Android phone. It has no account, analytics, ads,
-cloud sync, Internet permission, billing SDK or developer backend. The app does
-not send your settings or app activity to the developer. Optional support opens
+cloud sync, billing SDK or developer backend. The community (F-Droid) and Google
+Play builds have no Internet permission. From 1.0.4 the APK on GitHub Releases can
+contact GitHub, only to check for and download its own updates; see
+[GitHub build: update checks](#github-build-update-checks). No build sends your
+settings or app activity to the developer or anyone else. Optional support opens
 an external website; it does not unlock any feature.
 
 ## What Accessibility observes
@@ -70,6 +73,8 @@ Speedbreaker stores these records in its private local app database:
   to zero. It is never sent anywhere.
 - A rolling pause-state record for each relevant app: the allowance day, how many
   pauses were used, and the active pause's expiry time.
+- GitHub build only, in a private preferences file beside the database: whether
+  **Check for updates automatically** is on, and the date of the last automatic check.
 
 The breathing total holds four numbers: total time, total breaths, today's date, and
 today's time. It is not per app and has no timestamps, list of breaths, or history, so
@@ -78,6 +83,30 @@ app usage, daily usage total, or archive of pause events.
 Pause-state dates and allowances are reconciled as the service runs; an active
 pause can outlast midnight without receiving a new fifteen-minute duration.
 The reflection asks for no input, so no answer is collected or stored.
+
+## GitHub build: update checks
+
+This section applies only to the APK downloaded from GitHub Releases (1.0.4 and
+later). The F-Droid (community) and Google Play builds never check for updates and
+cannot reach the network.
+
+Speedbreaker contacts GitHub only when you tap **Check for updates** on Home, or,
+if you turn on **Check for updates automatically** in Defaults (off by default),
+at most once a day when you open the app. It asks
+`api.github.com/repos/beejsbj/speedbreaker/releases/latest` for the latest release.
+The request carries no account, token, cookie, device or install identifier; the
+only header Speedbreaker sets is `User-Agent: Speedbreaker/<version>`. It sends
+nothing about your settings, chosen apps, breaths or use. As with any web request,
+GitHub sees your IP address and the request itself, under
+[GitHub's privacy statement](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement).
+
+If you tap **Update**, Speedbreaker downloads that release's APK and its SHA-256
+file from `github.com` (which serves them from GitHub's download host) into its
+private cache, checks the file against that digest, and hands it to Android's
+installer. Android asks you to confirm and installs it only if it is signed by the
+same developer key. The cached copy is deleted after hand-off, cancellation or a
+failed check. Nothing runs in the background and nothing happens while a breath is
+showing.
 
 ## Diagnostic log
 
@@ -96,6 +125,8 @@ or send them anywhere. See [Device diagnostics](build-and-test.md#device-diagnos
 | Phone state | Check whether Android reports a ringing, active, dialing, or held call. Breaths stay off if this permission is denied or revoked. |
 | Notifications | Show each active fifteen-minute pause and its **End now** action. Pause requires notifications to be available. |
 | Receive boot completed | Support recovery of locally stored pause state after the phone restarts. |
+| Internet (GitHub build only) | Check GitHub for a newer release and download it, only when you ask or have turned on the daily check. |
+| Install unknown apps (GitHub build only) | Hand a downloaded update to Android's installer. Android asks you to allow this once, and to confirm each install. |
 
 While a breath is showing, Speedbreaker asks Android for audio focus so other
 apps can pause their media. This needs no permission, plays no sound, and reads
@@ -151,7 +182,8 @@ refund. Use the actual provider's controls for those records and requests.
 ## Downloads, reports and contact
 
 GitHub hosts this repository, releases, and issue reports. Visiting GitHub or
-posting there is separate from using the offline app. Anything you include in
+posting there is separate from using the app; the GitHub build's own update checks
+are described above. Anything you include in
 a public issue is public; redact notifications, account details, personal app
 choices, and other private information from screenshots and logs.
 
@@ -171,5 +203,8 @@ These source files define the behavior described above:
 - [Stored settings and pause state](../app/src/main/java/dev/burooj/speedbreaker/model/Settings.kt)
   and [local database access](../app/src/main/java/dev/burooj/speedbreaker/persistence/SpeedbreakerRepository.kt).
 - [Call-state checks](../app/src/main/java/dev/burooj/speedbreaker/observation/CallSafety.kt).
+- GitHub build updater: [its manifest](../app/src/github/AndroidManifest.xml),
+  [network requests](../app/src/github/java/dev/burooj/speedbreaker/updates/GitHubClient.kt)
+  and [update flow](../app/src/github/java/dev/burooj/speedbreaker/updates/UpdateController.kt).
 - [Notification content](../app/src/main/java/dev/burooj/speedbreaker/observation/PauseNotifications.kt)
   and [backup exclusions](../app/src/main/res/xml/data_extraction_rules.xml).

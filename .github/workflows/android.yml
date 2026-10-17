@@ -34,6 +34,10 @@ jobs:
             variant: Community
           - channel: play
             variant: Play
+          # The GitHub Releases APK: community plus the in-app updater (INTERNET and
+          # REQUEST_INSTALL_PACKAGES, nothing else). release.yml signs this one.
+          - channel: github
+            variant: Github
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

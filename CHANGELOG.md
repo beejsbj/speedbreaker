@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.4 — unreleased
+
+- In-app updates for the GitHub APK. **Check for updates** at the foot of Home asks
+  GitHub for the latest release; a newer one appears as a calm card with What's new
+  and Update. Update downloads the APK with progress and Cancel, checks it against
+  the release's SHA-256 file, and hands it to Android's installer, which asks you to
+  confirm and accepts only the same developer's signature. If Android needs the
+  **Install unknown apps** permission first, the card explains and links there, and
+  the update continues when you come back. An optional **Check for updates
+  automatically** switch in Defaults, off by default, checks at most once a day when
+  you open the app. Nothing checks, downloads or prompts during a breath.
+- The GitHub APK is now its own build: the community build plus the updater, the
+  only build with Internet and install permissions. Requests carry no account or
+  identifier, only a `Speedbreaker/<version>` user agent. F-Droid (community) and
+  Google Play builds have no updater and no Internet permission.
+- Installs of 1.0.3 or earlier have no updater: install 1.0.4 over them by hand once.
+
 ## 1.0.3 — October 17, 2026
 
 Version code: **7**. [GitHub release](https://github.com/beejsbj/speedbreaker/releases/tag/v1.0.3), source `be9b746`, APK SHA-256 `4eb6c527cb95cfd1bbe162bbcacf75d2fb0c9102c4b4eaa4e5b2b895b54633c4`.

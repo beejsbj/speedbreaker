@@ -120,7 +120,7 @@ For release validation, run `assembleCommunityRelease` and `lintCommunityRelease
 using the same process and worker flags above, and run `testCommunityDebugUnitTest` in
 its own invocation. The release variant excludes Compose debug tooling.
 
-The repository does not contain private release keys. An `assembleCommunityRelease`
+The repository does not contain private release keys. An `assembleGithubRelease`
 output alone is not the signed APK distributed to users. Maintainer packaging
 and signing are documented in [release.md](release.md); contributors do not need
 those credentials to build and test the debug app. Generated APKs, local SDK
@@ -128,10 +128,20 @@ configuration, dependency caches, and signing credentials should stay untracked.
 
 ## Distribution variants
 
-`community` is the GitHub/F-Droid build with an external optional support link.
+`community` is the F-Droid build with an external optional support link.
 `play` is the Google Play build with a configurable external direct-tip route,
 hidden until its destination and fee/policy eligibility are verified. Neither
-flavor includes a payment SDK or Internet permission. They use the same package
-and version; APK update identity must remain compatible. Run
-`testPlayDebugUnitTest` and `lintPlayRelease` for Play. The CI matrix builds and
-verifies both variants separately.
+includes a payment SDK, network code or Internet permission; both compile the
+offline stand-in in `app/src/offline/`.
+
+`github` is the APK published on GitHub Releases: the community build plus the
+in-app updater in `app/src/github/`. It is the only variant with `INTERNET` and
+`REQUEST_INSTALL_PACKAGES`, and it uses the platform's `HttpURLConnection` rather
+than a network library. Its own tests live in `app/src/testGithub/` and run with
+`testGithubDebugUnitTest`.
+
+All three use the same package and version; APK update identity must remain
+compatible. Run `testPlayDebugUnitTest` and `lintPlayRelease` for Play, and the
+`Github` equivalents for the GitHub build. The CI matrix builds and verifies each
+variant separately; `scripts/store_inventory.py` holds each variant's exact
+permission set.

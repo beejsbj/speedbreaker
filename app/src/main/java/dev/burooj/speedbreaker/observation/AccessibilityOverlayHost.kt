@@ -85,6 +85,7 @@ internal class AccessibilityOverlayHost(
         state.value = null
         choicesHapticSent = false
         breakerIdentity = null
+        ServiceStatus.setBreathShowing(false)
 
         unregisterBackCallback()
         lifecycleOwner?.destroy()
@@ -144,6 +145,7 @@ internal class AccessibilityOverlayHost(
             windowManager.addView(view, params)
             composeView = view
             owner = lifecycleOwner
+            ServiceStatus.setBreathShowing(true)
             lifecycleOwner.start()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 backRegistration = BackRegistration.create(view, onBack)

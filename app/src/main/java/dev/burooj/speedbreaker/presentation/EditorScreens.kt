@@ -58,6 +58,7 @@ internal fun DefaultsScreen(
     onBreathChange: (Int) -> Unit,
     onScheduleTransform: (ScheduleTransform) -> Unit,
     onRedirects: () -> Unit,
+    updatesSection: (@Composable () -> Unit)? = null,
 ) = Page(title = "Defaults", onBack = onBack, eyebrow = "Every app") {
     Section(
         title = "Breath",
@@ -101,6 +102,8 @@ internal fun DefaultsScreen(
         )
         settings.schedule?.let { WeekEditor(it, onScheduleTransform) }
     }
+
+    updatesSection?.invoke()
 }
 
 /* ---------- One app ---------- */

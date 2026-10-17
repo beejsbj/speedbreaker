@@ -1,7 +1,8 @@
 name: Release
 
-# Pushing a vX.Y.Z tag builds the community APK without secrets, then waits for the
-# owner's approval of the `release` environment before signing and publishing it.
+# Pushing a vX.Y.Z tag builds the GitHub-channel APK (community plus the in-app updater)
+# without secrets, then waits for the owner's approval of the `release` environment
+# before signing and publishing it.
 # A manual run with publish off signs and keeps the result as a workflow artifact only.
 on:
   push:
@@ -77,13 +78,13 @@ jobs:
       - name: Validate inventory script
         run: python3 scripts/store_inventory.py self-test
       - name: Build unsigned release and resolve runtime inventory
-        run: ./gradlew :app:assembleCommunityRelease :app:inventoryCommunityRelease --no-daemon --no-configuration-cache --max-workers=2
+        run: ./gradlew :app:assembleGithubRelease :app:inventoryGithubRelease --no-daemon --no-configuration-cache --max-workers=2
       - name: Collect POM licenses and verify final APK manifest
         run: |
-          apk=app/build/outputs/apk/community/release/app-community-release-unsigned.apk
-          inventory=app/build/store-inventory/community
+          apk=app/build/outputs/apk/github/release/app-github-release-unsigned.apk
+          inventory=app/build/store-inventory/github
           python3 scripts/store_inventory.py collect --dependencies "$inventory/dependencies.json" --output "$inventory"
-          python3 scripts/store_inventory.py verify --channel community --apk "$apk" --aapt "$ANDROID_HOME/build-tools/36.0.0/aapt" --output "$inventory"
+          python3 scripts/store_inventory.py verify --channel github --apk "$apk" --aapt "$ANDROID_HOME/build-tools/36.0.0/aapt" --output "$inventory"
       - name: Record the signing input
         id: input
         env:
@@ -92,15 +93,15 @@ jobs:
           TREE: ${{ steps.identity.outputs.tree }}
         run: |
           mkdir -p release-input
-          cp app/build/outputs/apk/community/release/app-community-release-unsigned.apk release-input/
-          cp -r app/build/store-inventory/community release-input/inventory
-          digest=$(sha256sum release-input/app-community-release-unsigned.apk | cut -d ' ' -f 1)
+          cp app/build/outputs/apk/github/release/app-github-release-unsigned.apk release-input/
+          cp -r app/build/store-inventory/github release-input/inventory
+          digest=$(sha256sum release-input/app-github-release-unsigned.apk | cut -d ' ' -f 1)
           jq -n --arg repository "$GITHUB_REPOSITORY" --arg commit "$COMMIT" --arg tree "$TREE" \
             --arg tag "$TAG" --arg digest "$digest" --arg run_id "$GITHUB_RUN_ID" \
             --arg attempt "$GITHUB_RUN_ATTEMPT" --arg url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
             '{repository: $repository, source_commit: $commit, source_tree: $tree, tag: $tag,
               workflow: "release.yml", run_id: ($run_id | tonumber), run_attempt: ($attempt | tonumber),
-              run_url: $url, input_sha256: $digest, channel: "community", kind: "apk"}' > release-input/release-input.json
+              run_url: $url, input_sha256: $digest, channel: "github", kind: "apk"}' > release-input/release-input.json
           echo "apk_sha256=$digest" >> "$GITHUB_OUTPUT"
       - name: Preserve the unsigned input and its evidence
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -157,13 +158,13 @@ jobs:
       - name: Require the downloaded APK to be the one that was built
         run: |
           input="$RUNNER_TEMP/release-input"
-          digest=$(sha256sum "$input/app-community-release-unsigned.apk" | cut -d ' ' -f 1)
+          digest=$(sha256sum "$input/app-github-release-unsigned.apk" | cut -d ' ' -f 1)
           [ "$digest" = "$APK_SHA256" ] || { echo "::error::Unsigned APK differs from the build job's output"; exit 1; }
           [ "$(jq -r .input_sha256 "$input/release-input.json")" = "$digest" ]
       - name: Install build tools
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0" "build-tools;36.0.0"'
       - name: Re-apply the final APK policy before any credential is restored
-        run: python3 scripts/store_inventory.py verify --channel community --apk "$RUNNER_TEMP/release-input/app-community-release-unsigned.apk" --aapt "$ANDROID_HOME/build-tools/36.0.0/aapt" --output "$RUNNER_TEMP/policy"
+        run: python3 scripts/store_inventory.py verify --channel github --apk "$RUNNER_TEMP/release-input/app-github-release-unsigned.apk" --aapt "$ANDROID_HOME/build-tools/36.0.0/aapt" --output "$RUNNER_TEMP/policy"
       - name: Restore the signing keystores
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.SPEEDBREAKER_RELEASE_KEYSTORE_BASE64 }}
@@ -178,7 +179,7 @@ jobs:
           SPEEDBREAKER_RELEASE_PASSWORD: ${{ secrets.SPEEDBREAKER_RELEASE_PASSWORD }}
         run: |
           python3 .release-tools/scripts/sign_apk.py \
-            --unsigned-apk "$RUNNER_TEMP/release-input/app-community-release-unsigned.apk" \
+            --unsigned-apk "$RUNNER_TEMP/release-input/app-github-release-unsigned.apk" \
             --output-dir dist \
             --build-tools "$ANDROID_HOME/build-tools/35.0.0" \
             --legacy-keystore "$RUNNER_TEMP/keys/legacy.jks" \

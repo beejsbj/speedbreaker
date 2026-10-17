@@ -63,6 +63,22 @@ when signing. External provenance records the source commit and tree. A future
 1.0.2 recipe must use its actual immutable published source and signed APK,
 with code greater than 5; a working branch is not a release reference.
 
+## The GitHub APK is no longer the community build
+
+From 1.0.4, `Speedbreaker-X.Y.Z.apk` on GitHub Releases is the `github` flavor: the
+community build plus an in-app updater, with `INTERNET` and
+`REQUEST_INSTALL_PACKAGES`. F-Droid must keep building `community`, which has
+neither permission and no updater code; the `community` and `play` final manifests
+are checked in CI to be exactly the offline permission set.
+
+This affects the developer-signed reproducible path. F-Droid compares its
+`community` rebuild with the `binary:` URL, and the GitHub APK will no longer match
+it. A future recipe needs a signed *community* APK to compare against, which
+`release.yml` does not publish today. Publishing one (for example
+`Speedbreaker-X.Y.Z-community.apk` alongside the GitHub APK) is an owner decision,
+to make before the first post-1.0.3 F-Droid recipe. The 1.0.1 recipe and its
+historical reproduction are unaffected.
+
 ## Remaining work after rotation support
 
 1. Confirm upstream server/client support using this exact public APK as a
