@@ -42,7 +42,7 @@ jobs:
       - name: Require a vX.Y.Z tag
         run: |
           [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::$TAG is not a vX.Y.Z release tag"; exit 1; }
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: refs/tags/${{ env.TAG }}
           fetch-depth: 0
@@ -68,7 +68,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
         with:
           # A release build starts from verified inputs, not from a restored cache.
           cache-disabled: true
@@ -132,12 +132,12 @@ jobs:
       - name: Require a vX.Y.Z tag
         run: |
           [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::$TAG is not a vX.Y.Z release tag"; exit 1; }
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The exact commit that was built, not whatever the tag names after the approval wait.
           ref: ${{ needs.build.outputs.commit }}
           persist-credentials: false
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Signing code and the public lineage come from the commit this workflow runs from.
           ref: ${{ github.sha }}
@@ -150,7 +150,7 @@ jobs:
           current=$(printf '%s\n' "$refs" | awk -v peeled="refs/tags/$TAG^{}" -v plain="refs/tags/$TAG" \
             '$2 == peeled {p = $1} $2 == plain {t = $1} END {print (p != "" ? p : t)}')
           [ "$current" = "$COMMIT" ] || { echo "::error::$TAG now points at '$current', not the built $COMMIT"; exit 1; }
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-input-${{ env.TAG }}
           path: ${{ runner.temp }}/release-input
