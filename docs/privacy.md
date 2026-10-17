@@ -73,8 +73,8 @@ Speedbreaker stores these records in its private local app database:
   to zero. It is never sent anywhere.
 - A rolling pause-state record for each relevant app: the allowance day, how many
   pauses were used, and the active pause's expiry time.
-- GitHub build only: whether **Check for updates automatically** is on, and the date
-  of the last automatic check.
+- GitHub build only, in a private preferences file beside the database: whether
+  **Check for updates automatically** is on, and the date of the last automatic check.
 
 The breathing total holds four numbers: total time, total breaths, today's date, and
 today's time. It is not per app and has no timestamps, list of breaths, or history, so
