@@ -1,7 +1,7 @@
 # Signed APK releases
 
 Tagging a version publishes it: GitHub Actions builds the community release APK,
-waits for the owner's approval, signs it, and creates the GitHub release with the
+signs it, and creates the GitHub release with the
 APK, a SHA-256 sidecar and a source receipt. The signing keys never go with the APK.
 
 ## The normal flow
@@ -14,17 +14,15 @@ APK, a SHA-256 sidecar and a source receipt. The signing keys never go with the 
 3. Open a PR, let the hosted checks pass, and merge to `main`.
 4. Tag the merge commit and push the tag: `git tag -a vX.Y.Z <commit> -m "Speedbreaker X.Y.Z"`
    then `git push origin vX.Y.Z`.
-5. Open the run in Actions and approve the `release` deployment. Until then the
-   workflow has built and checked the APK but holds no secret.
-6. The release appears with `Speedbreaker-X.Y.Z.apk`, `.apk.sha256` and `.json`. Then
+5. The release appears with `Speedbreaker-X.Y.Z.apk`, `.apk.sha256` and `.json`. Then
    add the `Version code: ... source ... APK SHA-256 ...` line to the CHANGELOG
    section in a follow-up docs PR, as for earlier releases.
 
-`.github/workflows/release.yml` fails, before any approval or secret, unless the tag
+`.github/workflows/release.yml` fails, before any secret is exposed, unless the tag
 is `vX.Y.Z`, equals `v` plus `versionName`, and names a commit that is on `main`. The
 unsigned APK passes the same dependency and final-manifest policy as `android.yml`.
-Tests are not rerun: a tag is cut from a `main` commit that already passed CI. After
-approval the signing job re-checks that the tag still names the built commit and the
+Tests are not rerun: a tag is cut from a `main` commit that already passed CI. The
+signing job re-checks that the tag still names the built commit and the
 artifact is the APK the build produced, re-applies the manifest policy, restores
 the keystores to mode-600 files that are shredded in an always-run step, and signs
 with `scripts/sign_apk.py`, the same code `package_release.py` uses. It verifies SDK
@@ -87,8 +85,11 @@ Since October 17 the same keystores and password are also held as secrets of the
 GitHub `release` environment (`SPEEDBREAKER_RELEASE_KEYSTORE_BASE64`,
 `SPEEDBREAKER_RELEASE_PASSWORD`, `SPEEDBREAKER_LEGACY_KEYSTORE_BASE64`) so a tag can
 be signed without the signing host. The owner chose that; Bitwarden stays the backup
-of record and the local flow above keeps working. The environment requires the
-owner's approval and allows only `v*` tags.
+of record and the local flow above keeps working. The environment allows only `v*` tags. On October 17 the owner removed the
+required-reviewer gate (his GitHub login is the control he accepts), so a pushed
+tag signs and publishes without a click. A ruleset blocks moving or deleting `v*`
+tags once pushed. To restore the gate: Settings → Environments → release →
+Required reviewers.
 
 Restore those exact encrypted keystores from Bitwarden to private, mode-600
 files. Keep their password in the credential store or process memory. A new
@@ -98,19 +99,19 @@ key and is safe to keep in Git.
 
 ## Threat notes
 
-- **Account compromise.** Anyone who can push a `v*` tag and approve the
-  `release` environment can publish a release signed with the real key. The
+- **Account compromise or a stray tag.** Anyone or anything that can push a `v*`
+  tag (the owner, a leaked token, an agent using the owner's credentials) can publish a release signed with the real key. The
   second factor and recovery methods on the owner's GitHub account now protect the
   signing key as well as the code.
-- **Workflow and script changes run with approval.** Approving a deployment
-  releases the secrets to whatever code that run executes: `release.yml`, the
-  `scripts/` it calls, and the Gradle build of the tagged commit. Before approving,
-  confirm the run is for the tag you pushed and that changes to `.github/workflows/`,
+- **Workflow and script changes run with the key.** A tagged run releases the
+  secrets to whatever code it executes: `release.yml`, the
+  `scripts/` it calls, and the Gradle build of the tagged commit. Before tagging,
+  confirm that changes to `.github/workflows/`,
   `scripts/sign_apk.py`, `scripts/store_inventory.py` and the build files were
-  reviewed. An approval you did not expect is a reason to reject and investigate.
-- **The approval is a pause, not a second person.** With one maintainer the reviewer
-  is the owner. Protecting `v*` tags and `main` with rulesets (not configured by this
-  change) would keep a stray push from starting the pipeline at all.
+  reviewed. A release run you did not start is a reason to investigate.
+- **No human pause.** With the reviewer gate removed, nothing stops a pushed tag
+  between commit and signed release; the tag ruleset only prevents re-pointing
+  an existing release tag.
 - **A leaked key is not simply replaced.** Updates must keep the signing lineage, so
   suspected exposure needs a deliberate rotation plan rather than a new key. The
   keystores exist on the runner only between the restore step and the always-run
