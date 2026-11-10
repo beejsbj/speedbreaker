@@ -98,6 +98,15 @@ class Walk:
                 self.scroll()
         return None
 
+    def wait_for(self, pattern, seconds=20):
+        """Wait for a slow emulator to draw something matching [pattern]."""
+        deadline = time.monotonic() + seconds
+        while time.monotonic() < deadline:
+            if self.find(pattern) is not None:
+                return True
+            time.sleep(1)
+        return False
+
     def tap(self, pattern, scrolls=0, wait=1.5):
         centre = self.find(pattern, scrolls)
         if centre is None:
@@ -214,9 +223,9 @@ class Walk:
             self.shell("settings", "put", "secure", "enabled_accessibility_services", "null", check=False)
 
     def first_open(self):
-        self.open_app(wait=6)
-        first = self.shot("first-open", "The first thing a new person sees.")
-        self.expect(any("Speedbreaker" in text for text in first["text"]), "First open does not name the app.")
+        self.open_app(wait=3)
+        self.expect(self.wait_for(r"Speedbreaker", 40), f"First open does not name the app: {self.texts()}")
+        self.shot("first-open", "The first thing a new person sees.")
         self.scroll()
         self.shot("first-open-scrolled", "The same screen, scrolled.")
         self.tap(r"^Not now", scrolls=3)
