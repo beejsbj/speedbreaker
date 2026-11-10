@@ -355,7 +355,8 @@ internal fun HomeScreen(
 
         updateCard?.invoke()
 
-        Section(
+        // While choosing apps is the open setup step, its button is the way in; a second row would repeat it.
+        if (setup?.current != 3) Section(
             title = "Apps",
             footnote = if (appCount == 0) "Nothing is chosen until you pick it." else null,
         ) {

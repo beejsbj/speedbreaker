@@ -60,17 +60,15 @@ internal val Gallery: List<GallerySpec> = listOf(
     GallerySpec("setup-05-disclosure", heightDp = 1100) {
         Screen { WelcomeScreen(startOnDisclosure = true, onAccept = {}) }
     },
-    GallerySpec("setup-02-home-off") { Screen { HomeSample(Protection.Off, SampleSettings.copy(apps = emptyMap())) } },
+    GallerySpec("setup-02-home-off") { Screen { HomeSample(Protection.Off, FreshInstall, notifications = false) } },
     GallerySpec("setup-06-home-phone") {
-        Screen { HomeSample(Protection.CallPermission, SampleSettings.copy(apps = emptyMap())) }
+        Screen { HomeSample(Protection.CallPermission, FreshInstall, notifications = false) }
     },
     GallerySpec("setup-07-home-phone-app-info") {
-        Screen {
-            HomeSample(Protection.CallPermission, SampleSettings.copy(apps = emptyMap()), phoneNeedsSettings = true)
-        }
+        Screen { HomeSample(Protection.CallPermission, FreshInstall, notifications = false, phoneNeedsSettings = true) }
     },
     GallerySpec("setup-03-home-ready-no-apps") {
-        Screen { HomeSample(Protection.On, SampleSettings.copy(apps = emptyMap()), notifications = false) }
+        Screen { HomeSample(Protection.On, FreshInstall, notifications = false) }
     },
     GallerySpec("setup-04-app-picker") {
         Screen {
@@ -282,6 +280,9 @@ private val SplitWeek = WeeklySchedule(
 )
 
 private val Weekdays9to5 = WeeklySchedule((1..5).associateWith { TimeWindow(9 * 60, 17 * 60) })
+
+/** What Home has to work with straight after consent: nothing chosen, nothing changed. */
+private val FreshInstall = Settings(consentAccepted = true)
 
 private val OnlyInstagram = Settings(
     consentAccepted = true,
