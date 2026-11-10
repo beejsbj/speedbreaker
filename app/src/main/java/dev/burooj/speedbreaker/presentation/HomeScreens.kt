@@ -1,6 +1,7 @@
 package dev.burooj.speedbreaker.presentation
 
 import android.text.format.DateFormat
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,12 +32,15 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -45,6 +49,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
+import dev.burooj.speedbreaker.R
 import dev.burooj.speedbreaker.model.BreathStats
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.model.localDayKey
@@ -65,62 +70,111 @@ import dev.burooj.speedbreaker.presentation.components.appCatalog
 
 /* ---------- First run ---------- */
 
-/** One calm page that says what Speedbreaker does, what it cannot do, and what it keeps. */
+/**
+ * Two short pages before anything is switched on. The first says what Speedbreaker does; the
+ * second is the Accessibility disclosure, which has to be read and accepted and so cannot be
+ * skipped. Neither shows again once it is accepted.
+ */
 @Composable
-internal fun WelcomeScreen(onDecline: () -> Unit = {}, onPrivacy: () -> Unit = {}, onAccept: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .safeDrawingPadding()
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+internal fun WelcomeScreen(
+    onDecline: () -> Unit = {},
+    onPrivacy: () -> Unit = {},
+    startOnDisclosure: Boolean = false,
+    onAccept: () -> Unit,
+) {
+    var onDisclosure by rememberSaveable { mutableStateOf(startOnDisclosure) }
+    // A fresh scroll position per page, so the disclosure always opens at its top.
+    key(onDisclosure) {
         Column(
             modifier = Modifier
-                .widthIn(max = ContentMaxWidth)
-                .fillMaxWidth()
-                .padding(horizontal = 28.dp, vertical = 24.dp),
+                .fillMaxSize()
+                .safeDrawingPadding()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(24.dp))
-            BreathMark(Modifier.size(72.dp))
-            Spacer(Modifier.height(32.dp))
-            Text(
-                text = "Make the next tap intentional.",
-                style = MaterialTheme.typography.displaySmall,
-                modifier = Modifier.semantics { heading() },
-            )
-            Spacer(Modifier.height(16.dp))
-            Text(
-                text = "Speedbreaker puts a short breath between you and the apps you choose. " +
-                    "Then you decide: continue, leave, or go somewhere else.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(36.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                Promise(
-                    heading = "What it sees",
-                    body = "Accessibility reads visible app identities, including system screens, to recognize " +
-                        "your chosen apps and show the breath. No screen text or typed input is read. " +
-                        "These identities stay on this phone and are not shared.",
-                )
-                Promise(
-                    heading = "The first eight seconds",
-                    body = "Back, Home, and Recents can’t dismiss the breath. The dialer, lock screen, " +
-                        "and Accessibility settings get through. Android-reported calls suspend breaths.",
-                )
-                Promise(
-                    heading = "What it keeps",
-                    body = "Your settings, today’s pauses, and a running total of breaths and seconds you can reset. " +
-                        "No per-app history, no answers, no analytics, no cloud. No Usage Access or overlay permission.",
-                )
+            Column(
+                modifier = Modifier
+                    .widthIn(max = ContentMaxWidth)
+                    .fillMaxWidth()
+                    .padding(horizontal = 28.dp, vertical = 24.dp),
+            ) {
+                if (onDisclosure) {
+                    BackHandler { onDisclosure = false }
+                    DisclosurePage(onAccept, onDecline, onPrivacy)
+                } else {
+                    IntroPage(onContinue = { onDisclosure = true })
+                }
             }
-            Spacer(Modifier.height(40.dp))
-            PrimaryAction("I understand — continue", onAccept, Modifier.fillMaxWidth())
-            QuietAction("Not now — close", onDecline, Modifier.fillMaxWidth())
-            QuietAction("Privacy policy", onPrivacy, Modifier.fillMaxWidth())
         }
     }
+}
+
+@Composable
+private fun ColumnScope.IntroPage(onContinue: () -> Unit) {
+    Spacer(Modifier.height(24.dp))
+    BreathMark(Modifier.size(72.dp))
+    Spacer(Modifier.height(32.dp))
+    Text(
+        text = "Make the next tap intentional.",
+        style = MaterialTheme.typography.displaySmall,
+        modifier = Modifier.semantics { heading() },
+    )
+    Spacer(Modifier.height(16.dp))
+    Text(
+        text = "Speedbreaker puts a short breath between you and the apps you choose.",
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Spacer(Modifier.height(36.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        Promise(heading = "You choose the apps", body = "Pick the ones that pull at you. Nothing is chosen for you.")
+        Promise(
+            heading = "Opening one starts a breath",
+            body = "Twelve seconds, unless you change it. For the first eight, there is only the breath.",
+        )
+        Promise(heading = "Then you decide", body = "Continue, leave, or go somewhere else.")
+    }
+    Spacer(Modifier.height(40.dp))
+    PrimaryAction("Continue", onContinue, Modifier.fillMaxWidth())
+}
+
+@Composable
+private fun ColumnScope.DisclosurePage(onAccept: () -> Unit, onDecline: () -> Unit, onPrivacy: () -> Unit) {
+    Spacer(Modifier.height(24.dp))
+    Text(
+        text = "Before you turn it on",
+        style = MaterialTheme.typography.displaySmall,
+        modifier = Modifier.semantics { heading() },
+    )
+    Spacer(Modifier.height(16.dp))
+    Text(
+        text = "Speedbreaker works through Android’s Accessibility service. This is what it does with it.",
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Spacer(Modifier.height(36.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        Promise(
+            heading = "What it sees",
+            body = "Which app is on screen, including system screens, so it can show the breath before " +
+                "the apps you chose. It doesn’t read what is on the screen or what you type. " +
+                "This stays on your phone and is not shared.",
+        )
+        Promise(
+            heading = "The first eight seconds",
+            body = "Back, Home, Recents, and the notification shade don’t close a breath. Calls that " +
+                "Android reports, the dialer, the lock screen, and Android Settings still get through.",
+        )
+        Promise(
+            heading = "What it keeps",
+            body = "Your settings, today’s pauses, and a running total of breaths that you can reset. " +
+                "No record of which apps you open or when, no answers, no analytics, no cloud.",
+        )
+    }
+    Spacer(Modifier.height(40.dp))
+    PrimaryAction("I understand — continue", onAccept, Modifier.fillMaxWidth())
+    QuietAction("Not now — close", onDecline, Modifier.fillMaxWidth())
+    QuietAction("Privacy policy", onPrivacy, Modifier.fillMaxWidth())
 }
 
 @Composable
@@ -210,6 +264,7 @@ internal fun HomeScreen(
     onDefaults: () -> Unit,
     onApp: (String) -> Unit,
     onCallAccess: () -> Unit = {},
+    phoneNeedsSettings: Boolean = false,
     pauses: Map<String, PauseState> = emptyMap(),
     nowEpochMs: Long = System.currentTimeMillis(),
     onEndPause: (String) -> Unit = {},
@@ -231,8 +286,11 @@ internal fun HomeScreen(
     var confirmingReset by remember { mutableStateOf(false) }
 
     val healthy = protection == Protection.On && appCount > 0
+    val setup = setupProgress(protection, hasApps = appCount > 0, hasBreathed = !stats.isEmpty)
     val title = if (healthy) {
         null
+    } else if (setup != null) {
+        setupTitle(setup)
     } else {
         when (protection) {
             Protection.Off -> "Off for now"
@@ -263,15 +321,27 @@ internal fun HomeScreen(
     Page(title = title, onBack = null, eyebrow = "Speedbreaker", header = header) {
         ActivePausesSection(pauses, nowEpochMs, onEndPause)
 
-        StatusPanel(
-            protection = protection,
-            runtimeError = runtimeError,
-            hasApps = appCount > 0,
-            onEnableAccessibility = onEnableAccessibility,
-            onOpenAppInfo = onOpenAppInfo,
-            onChooseApps = onChooseApps,
-            onCallAccess = onCallAccess,
-        )
+        if (setup != null) {
+            SetupSteps(
+                progress = setup,
+                phoneNeedsSettings = phoneNeedsSettings,
+                onEnableAccessibility = onEnableAccessibility,
+                onOpenAppInfo = onOpenAppInfo,
+                onCallAccess = onCallAccess,
+                onChooseApps = onChooseApps,
+            )
+        } else {
+            StatusPanel(
+                protection = protection,
+                runtimeError = runtimeError,
+                hasApps = appCount > 0,
+                phoneNeedsSettings = phoneNeedsSettings,
+                onEnableAccessibility = onEnableAccessibility,
+                onOpenAppInfo = onOpenAppInfo,
+                onChooseApps = onChooseApps,
+                onCallAccess = onCallAccess,
+            )
+        }
 
         // Repairs lead the page, so the total shrinks to one line after them.
         if (protection != Protection.On && !stats.isEmpty) {
@@ -458,6 +528,7 @@ private fun StatusPanel(
     protection: Protection,
     runtimeError: String?,
     hasApps: Boolean,
+    phoneNeedsSettings: Boolean,
     onEnableAccessibility: () -> Unit,
     onOpenAppInfo: () -> Unit,
     onChooseApps: () -> Unit,
@@ -469,14 +540,7 @@ private fun StatusPanel(
                 tone = NoticeTone.Repair,
                 text = "Speedbreaker’s Accessibility switch is off, so nothing is paused. Your settings are kept.",
             )
-            PrimaryAction("Turn on in Accessibility", onEnableAccessibility, Modifier.fillMaxWidth())
-            Text(
-                text = "If Android says the setting is restricted: open app info, tap ⋮ → Allow restricted settings, " +
-                    "confirm it’s you, then come back and turn it on.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            QuietAction("Open app info", onOpenAppInfo)
+            AccessibilityActions(onEnableAccessibility, onOpenAppInfo)
         }
         Protection.Broken -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Notice(
@@ -487,13 +551,8 @@ private fun StatusPanel(
             PrimaryAction("Open Accessibility", onEnableAccessibility, Modifier.fillMaxWidth())
         }
         Protection.CallPermission -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Notice(
-                tone = NoticeTone.Repair,
-                text = "Breaths are off until call safety is ready. Phone permission lets Speedbreaker " +
-                    "check whether a call is ringing or active, including silent calls. " +
-                    "It doesn’t read phone numbers, call history, or audio.",
-            )
-            PrimaryAction("Allow call-state access", onCallAccess, Modifier.fillMaxWidth())
+            Notice(tone = NoticeTone.Repair, text = "Breaths are off until Phone permission is allowed. $PHONE_REASON")
+            PhoneActions(phoneNeedsSettings, onCallAccess)
         }
         Protection.CallUnavailable -> Notice(
             tone = NoticeTone.Repair,
@@ -518,6 +577,139 @@ private fun StatusPanel(
         }
     }
 }
+
+/* ---------- First-time setup ---------- */
+
+/**
+ * The three things a new person does before the first breath, in order. The step to do next is
+ * open, with its reason and its one button; finished steps keep a moss tick. It gives way to the
+ * ordinary status as soon as a breath has been taken, so a later repair never reads as setup.
+ */
+@Composable
+private fun SetupSteps(
+    progress: SetupProgress,
+    phoneNeedsSettings: Boolean,
+    onEnableAccessibility: () -> Unit,
+    onOpenAppInfo: () -> Unit,
+    onCallAccess: () -> Unit,
+    onChooseApps: () -> Unit,
+) {
+    val serviceName = stringResource(R.string.accessibility_service_label)
+    Section(title = null) {
+        SetupStep(1, "Turn on Speedbreaker in Accessibility", progress.accessibility, progress.current == 1) {
+            StepText(
+                "This is how Speedbreaker sees which app is on screen and shows the breath. On the next " +
+                    "screen, find “$serviceName” (often under Installed apps or Downloaded apps) and " +
+                    "switch it on. Android shows the same warning for every app of this kind.",
+            )
+            AccessibilityActions(onEnableAccessibility, onOpenAppInfo)
+        }
+        RowDivider()
+        SetupStep(2, "Allow Phone permission", progress.phone, progress.current == 2) {
+            StepText("$PHONE_REASON Breaths stay off until it’s allowed.")
+            PhoneActions(phoneNeedsSettings, onCallAccess)
+        }
+        RowDivider()
+        SetupStep(3, "Choose your apps", progress.apps, progress.current == 3) {
+            StepText("Pick the apps that pull at you. Opening one starts a breath.")
+            PrimaryAction("Choose apps", onChooseApps, Modifier.fillMaxWidth())
+        }
+    }
+}
+
+@Composable
+private fun SetupStep(
+    number: Int,
+    title: String,
+    done: Boolean,
+    current: Boolean,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    val state = when {
+        done -> "done"
+        current -> "next"
+        else -> "later"
+    }
+    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp)) {
+        Row(
+            modifier = Modifier.clearAndSetSemantics { contentDescription = "Step $number of 3, $state. $title" },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = when {
+                    done -> colors.tertiaryContainer
+                    current -> colors.primary
+                    else -> colors.surfaceContainerHighest
+                },
+                contentColor = when {
+                    done -> colors.onTertiaryContainer
+                    current -> colors.onPrimary
+                    else -> colors.onSurfaceVariant
+                },
+                modifier = Modifier.size(28.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (done) {
+                        Icon(Glyphs.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                    } else {
+                        Text("$number", style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+            }
+            Spacer(Modifier.width(14.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = if (done || current) colors.onSurface else colors.onSurfaceVariant,
+            )
+        }
+        if (current) {
+            Column(Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(16.dp), content = content)
+        }
+    }
+}
+
+@Composable
+private fun StepText(text: String) {
+    Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+/** The Accessibility button with the way round Android's restricted-setting block. */
+@Composable
+private fun ColumnScope.AccessibilityActions(onEnableAccessibility: () -> Unit, onOpenAppInfo: () -> Unit) {
+    PrimaryAction("Turn on in Accessibility", onEnableAccessibility, Modifier.fillMaxWidth())
+    Text(
+        text = "If Android says the setting is restricted: open app info, tap ⋮ → Allow restricted settings, " +
+            "confirm it’s you, then come back and turn it on.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    QuietAction("Open app info", onOpenAppInfo)
+}
+
+/**
+ * Asks for Phone permission while Android will still show its prompt. Once Android has stopped
+ * asking, the same place says so and leads to the permission in app info instead.
+ */
+@Composable
+private fun ColumnScope.PhoneActions(needsSettings: Boolean, onCallAccess: () -> Unit) {
+    if (needsSettings) {
+        Text(
+            text = "Android won’t ask again here. Open app info, then Permissions → Phone → Allow.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        PrimaryAction("Open app info", onCallAccess, Modifier.fillMaxWidth())
+    } else {
+        PrimaryAction("Allow Phone permission", onCallAccess, Modifier.fillMaxWidth())
+    }
+}
+
+private const val PHONE_REASON = "So a breath never covers an incoming call, Speedbreaker checks whether your " +
+    "phone is ringing or in a call. Android words this as “make and manage phone calls”; Speedbreaker " +
+    "can’t make calls and doesn’t read numbers, call history, or audio."
 
 internal enum class NoticeTone { Calm, Repair }
 

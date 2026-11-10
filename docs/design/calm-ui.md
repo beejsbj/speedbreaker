@@ -33,8 +33,14 @@ overlay keeps its existing `BreakerOverlay` signature.
 
 ## Settings and setup
 
-- **Welcome** is one page: what it does, what it sees, what the first eight
-  seconds do, what it keeps.
+- **Welcome** is two short pages. The first says what it does in three lines;
+  the second is the Accessibility disclosure (what it sees, what the first eight
+  seconds do, what it keeps) with accept and decline. Back returns to the first.
+- **First-time setup** is three numbered steps on Home: Accessibility, Phone
+  permission, apps. The title counts them down ("Three steps to start", "Two
+  steps left", "One step left"); the next step is open with its reason and its
+  one button, finished steps keep a moss tick. After a first breath the same
+  states are repairs and read as the statuses below.
 - **Home** is also the setup checklist. While breaths work and apps are chosen,
   it opens with the eyebrow, a moss dot and "On" (plus "resting until 9 AM" when
   every app is outside its schedule, or "pauses need notifications"), and the
@@ -133,12 +139,15 @@ export ANDROID_SDK_ROOT=/usr/lib/android-sdk JAVA_HOME=/usr/lib/jvm/java-17-open
 | Setup | |
 |---|---|
 | ![](screenshots/setup-00-loading.png) Loading, mid-morph | |
-| ![](screenshots/setup-01-welcome.png) Welcome | ![](screenshots/setup-02-home-off.png) Accessibility off |
-| ![](screenshots/setup-03-home-ready-no-apps.png) Connected, no apps | ![](screenshots/setup-04-app-picker.png) Choose apps |
+| ![](screenshots/setup-01-welcome.png) Welcome: what it does | ![](screenshots/setup-05-disclosure.png) Welcome: the disclosure |
+| ![](screenshots/setup-02-home-off.png) Step 1: Accessibility | ![](screenshots/setup-06-home-phone.png) Step 2: Phone permission |
+| ![](screenshots/setup-07-home-phone-app-info.png) Step 2 once Android stops asking | ![](screenshots/setup-03-home-ready-no-apps.png) Step 3: apps |
+| ![](screenshots/setup-04-app-picker.png) Choose apps | |
 
 | Settings | |
 |---|---|
 | ![](screenshots/settings-01-home-on.png) Home | ![](screenshots/settings-02-home-needs-attention.png) Needs attention |
+| ![](screenshots/settings-15-home-off-after-use.png) Switched off after use | |
 | ![](screenshots/settings-11-home-first-breath.png) Before the first breath | ![](screenshots/settings-12-home-notifications-blocked.png) Pause needs notifications |
 | ![](screenshots/settings-13-home-resting.png) Resting until the next hours | ![](screenshots/settings-14-home-full-page.png) Full page with footer |
 | ![](screenshots/settings-03-defaults.png) Defaults | ![](screenshots/settings-04-app.png) One app |
