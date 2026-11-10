@@ -86,12 +86,6 @@ class Walk:
                     if box:
                         left, top, right, bottom = map(int, box.groups())
                         found.append((label, ((left + right) // 2, (top + bottom) // 2), node.get("class", "")))
-                # A slow hosted emulator sometimes reports the launcher as not responding.
-                wait = next((centre for label, centre, _ in found if label == "Wait"), None)
-                if wait and any("isn't responding" in label for label, _, _ in found):
-                    self.shell("input", "tap", str(wait[0]), str(wait[1]))
-                    time.sleep(3)
-                    continue
                 return found
             time.sleep(1)
         raise RuntimeError("Could not read the screen.")
@@ -133,6 +127,7 @@ class Walk:
             self.tap(pattern, scrolls=scrolls, wait=2)
             if self.wait_for(then, 10):
                 return
+            self.shell("am", "broadcast", "-a", "android.intent.action.CLOSE_SYSTEM_DIALOGS", check=False)
         raise RuntimeError(message)
 
     def scroll(self):
@@ -237,6 +232,9 @@ class Walk:
 
     def run(self):
         self.validate_emulator()
+        # A slow hosted emulator reports its launcher as "not responding" in a dialog that sits
+        # over every screen and swallows taps. It is not part of what a new person sees.
+        self.shell("settings", "put", "global", "hide_error_dialogs", "1")
         self.shell("settings", "put", "secure", "enabled_accessibility_services", "null")
         self.command("uninstall", PACKAGE, check=False)
         self.command("install", str(self.apk), timeout=180)
