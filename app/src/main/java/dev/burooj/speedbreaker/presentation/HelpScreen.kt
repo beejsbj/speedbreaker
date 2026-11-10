@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import dev.burooj.speedbreaker.R
 import dev.burooj.speedbreaker.presentation.components.Eyebrow
 import dev.burooj.speedbreaker.presentation.components.NavRow
+import dev.burooj.speedbreaker.presentation.components.Page
 import dev.burooj.speedbreaker.presentation.components.RowDivider
 import dev.burooj.speedbreaker.presentation.components.Section
 
