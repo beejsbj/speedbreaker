@@ -141,7 +141,7 @@ internal fun WeekEditor(
             Text(
                 text = when {
                     offDays.isEmpty() -> "Every day has hours."
-                    offDays.size == 7 -> "No days yet — nothing is paused."
+                    offDays.size == 7 -> "No days yet, so no breaths."
                     else -> "Off ${daysSummary(offDays).inSentence()}: apps open freely."
                 },
                 style = MaterialTheme.typography.bodyMedium,

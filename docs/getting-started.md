@@ -81,7 +81,7 @@ continuous use, and active hours all day, every day. No redirects are configured
 | Active hours | **Defaults → Schedule → Scheduled** | One active window per day, including overnight windows. Review the initial weekday 9 AM–5 PM schedule. |
 | One app's hours | An app → **Schedule** | Follow the default, stay always on, or set custom hours that replace the default. |
 | One app's redirects | An app → **Redirects → Custom** | Replace the default set with one to four apps, or leave the custom set empty to show none for that app. Choose Default to inherit again. |
-| Stop pausing one app | An app → **Stop pausing…** | Remove it from the chosen apps. |
+| Stop breaths for one app | An app → **Stop breaths for…** | Remove it from the chosen apps. |
 
 Schedules use the phone's local time. Days without a scheduled window are off.
 Outside the effective schedule, the app opens freely; entering an active window
@@ -106,7 +106,7 @@ opening breath. Leave and redirects end the session immediately.
 A fifteen-minute pause appears under **Active pauses** on Speedbreaker’s home
 screen, with **End now** for each app. Its notification provides the same action
 and opens Speedbreaker when tapped. If you dismiss the notification, the in-app
-control remains available; ending a pause does not restore its daily token. Ending or
+control remains available; ending a pause early does not give it back. Ending or
 expiring it resumes enforcement immediately if the target is visible, or on its
 next opening otherwise. Allowances reset each local day. An active pause keeps
 its original expiry even if it crosses midnight.
@@ -146,7 +146,7 @@ varies by phone; extended idle reliability has not been verified on release
 
 ### Pause is unavailable
 
-Open **Reliability → Pause notifications** and allow Speedbreaker's
+Open **Reliability → Notifications** and allow Speedbreaker's
 notifications, including the active-pauses channel. Pause is unavailable when
 notifications are blocked, or when that app has used both daily allowances.
 Turning notifications off also ends active pauses when the service observes

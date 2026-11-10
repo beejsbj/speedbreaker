@@ -89,7 +89,7 @@ class HomeStatusTest {
     @Test
     fun statusNote_putsRestingAheadOfNotifications() {
         assertNull(homeStatusNote(null, notificationsAllowed = true))
-        assertEquals("pauses need notifications", homeStatusNote(null, notificationsAllowed = false))
+        assertEquals("Pause 15 min needs notifications", homeStatusNote(null, notificationsAllowed = false))
         assertEquals("resting until 9 AM", homeStatusNote("9 AM", notificationsAllowed = false))
     }
 
@@ -98,7 +98,7 @@ class HomeStatusTest {
         assertEquals("On", homeStatusText(null))
         assertEquals("On · resting until 9 AM", homeStatusText("resting until 9 AM"))
         assertEquals("Speedbreaker is on", homeStatusDescription(null))
-        assertEquals("Speedbreaker is on, pauses need notifications", homeStatusDescription("pauses need notifications"))
+        assertEquals("Speedbreaker is on, Pause 15 min needs notifications", homeStatusDescription("Pause 15 min needs notifications"))
     }
 
     @Test
