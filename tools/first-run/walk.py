@@ -369,7 +369,7 @@ class Walk:
         self.expect(target is not None, f"No known harmless app in the picker: {picker['text']}")
         self.tap(f"^{target[0]}$", scrolls=6)
         self.shot("app-chosen", f"{target[0]} chosen.")
-        self.shell("input", "keyevent", "KEYCODE_BACK")
+        self.tap(r"^Done$")
         # Reading the picker switched the service off for a moment; give it time to return.
         time.sleep(6)
         self.shot("home-on", "Home with setup finished.", read=False)

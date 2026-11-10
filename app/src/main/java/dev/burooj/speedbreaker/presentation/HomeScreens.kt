@@ -402,10 +402,11 @@ internal fun HomeScreen(
                 onClick = onNotifications,
                 leading = {
                     StatusDot(
+                        // Off is a choice here, not a fault: only the optional Pause needs them.
                         if (notificationsAllowed) {
                             MaterialTheme.colorScheme.tertiary
                         } else {
-                            MaterialTheme.colorScheme.error
+                            MaterialTheme.colorScheme.outline
                         },
                     )
                 },
