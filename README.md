@@ -58,11 +58,11 @@ own apps and redirects.
    download the `.apk` from a release's **Assets**, rather than a source archive.
 2. Open it on your phone. If prompted, allow your browser or file manager to
    install this APK, then follow Android's installer.
-3. Open Speedbreaker, read the Accessibility disclosure, and tap
-   **I understand — continue**.
+3. Open Speedbreaker, tap **Continue**, read the Accessibility disclosure, and tap
+   **I understand — continue**. Home then lists three steps.
 4. Tap **Turn on in Accessibility** and enable **Speedbreaker attention pauses**.
-5. Return to Speedbreaker, tap **Allow call-state access**, and allow Phone
-   permission. Breaths stay off without it so silent calls are not hidden.
+5. Return to Speedbreaker, tap **Allow Phone permission**, and allow it. Breaths
+   stay off without it so silent calls are not hidden.
 6. Tap **Choose apps**. Open a chosen app to try it.
 
 If Android says the Accessibility setting is restricted, open Speedbreaker's

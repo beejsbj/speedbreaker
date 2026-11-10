@@ -36,3 +36,42 @@ internal fun homeStatusText(note: String?): String = if (note == null) "On" else
 /** What TalkBack hears: the dot is decoration, so the words carry the meaning. */
 internal fun homeStatusDescription(note: String?): String =
     if (note == null) "Speedbreaker is on" else "Speedbreaker is on, $note"
+
+/** Which of the three first-time steps are done; [current] is the one to do next. */
+internal data class SetupProgress(val accessibility: Boolean, val phone: Boolean, val apps: Boolean) {
+    val remaining: Int get() = listOf(accessibility, phone, apps).count { !it }
+    val current: Int get() = when {
+        !accessibility -> 1
+        !phone -> 2
+        else -> 3
+    }
+}
+
+/**
+ * Setup progress while someone has never taken a breath and a step is still open; null otherwise.
+ * After a first breath the same states are repairs and keep their own words. Phone permission
+ * cannot be told apart from "not yet" while Accessibility is off, so it reads as still to do.
+ */
+internal fun setupProgress(protection: Protection, hasApps: Boolean, hasBreathed: Boolean): SetupProgress? = when {
+    hasBreathed -> null
+    protection == Protection.Off -> SetupProgress(accessibility = false, phone = false, apps = hasApps)
+    protection == Protection.CallPermission -> SetupProgress(accessibility = true, phone = false, apps = hasApps)
+    protection == Protection.On && !hasApps -> SetupProgress(accessibility = true, phone = true, apps = false)
+    else -> null
+}
+
+internal fun setupTitle(progress: SetupProgress): String = when (progress.remaining) {
+    1 -> "One step left"
+    2 -> "Two steps left"
+    else -> "Three steps to start"
+}
+
+/**
+ * Whether Android refused a permission without showing its prompt, so only app info can change
+ * it. After two denials Android answers at once; a prompt someone read and dismissed takes
+ * longer and may still be asked again, so it does not count.
+ */
+internal fun promptWasWithheld(granted: Boolean, mayAskAgain: Boolean, answeredAfterMs: Long): Boolean =
+    !granted && !mayAskAgain && answeredAfterMs in 0 until PROMPT_SHOWN_AFTER_MS
+
+private const val PROMPT_SHOWN_AFTER_MS = 500L
