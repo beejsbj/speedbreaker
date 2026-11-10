@@ -179,8 +179,16 @@ class Walk:
         return self.shell("dumpsys", "activity", "activities", check=False)
 
     def open_app(self, wait=3.0):
+        """Open Speedbreaker as its launcher icon would, then step back out of anything it opened on top."""
         self.shell("am", "start", "-n", ACTIVITY)
         time.sleep(wait)
+        # Android Settings opened from the app sits on top of it in the same task.
+        for _ in range(4):
+            if f"{PACKAGE}/" in self.resumed():
+                return
+            self.shell("input", "keyevent", "KEYCODE_BACK")
+            time.sleep(1.5)
+        raise RuntimeError(f"Speedbreaker is not in front: {self.resumed()}")
 
     def expect(self, condition, message):
         if not condition:
@@ -213,7 +221,7 @@ class Walk:
         self.shot("first-open-scrolled", "The same screen, scrolled.")
         self.tap(r"^Not now", scrolls=3)
         time.sleep(1)
-        self.expect(PACKAGE not in self.resumed(), "Declining did not close the app.")
+        self.expect(f"{PACKAGE}/" not in self.resumed(), "Declining did not close the app.")
         self.open_app(wait=4)
         self.expect(self.find(r"I understand", scrolls=3) is not None, "After declining, reopening skipped the disclosure.")
         self.shot("reopened-after-decline", "Declined, then reopened: the disclosure is back.")
@@ -247,6 +255,7 @@ class Walk:
         self.expect(self.wait_for_log("service connected", 30), "The service never connected.")
 
     def phone_permission(self):
+        self.shot("android-service-on", "Android settings with the service on; Back returns to Speedbreaker.")
         self.open_app()
         self.shot("phone-step", "Back in the app with the service on: the Phone permission step.", read=False)
         self.tap_filled()
