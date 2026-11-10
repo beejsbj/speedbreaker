@@ -60,9 +60,10 @@ class HelpScreenTest {
         compose.onNodeWithText("SWITCH IT OFF").assertExists()
         compose.onNodeWithText("Speedbreaker attention pauses", substring = true).assertExists()
         compose.onNodeWithText("Speedbreaker 9.9.9").assertExists()
+        // Back first: it sits at the top and scrolls out of reach once the rows below are shown.
+        compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithText("Full guide and reporting a problem").performScrollTo().performClick()
         compose.onNodeWithText("Privacy policy").performScrollTo().performClick()
-        compose.onNodeWithContentDescription("Back").performClick()
         assertEquals(listOf(1, 1, 1), listOf(guide, privacy, back))
     }
 }
