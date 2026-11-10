@@ -53,7 +53,8 @@ silently add a payment/diagnostics SDK or change the payment route.
 The owner supplied the Ko-fi page (https://ko-fi.com/beejsbj) as the destination,
 but the Play action stays hidden until the owner verifies the payment profile,
 currency and legal/payment facts in the provider's UI. No password or private key belongs in
-chat, source, CI or artifacts. The dedicated public support email is also pending.
+chat, source, CI or artifacts. The public support email is decided and recorded in
+[status.md](status.md).
 The Google Play account is enrolled and paid. Identity verification is pending;
 app creation is currently disabled. Actual support-case access and submission
 still need the authenticated account's available controls.

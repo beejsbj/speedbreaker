@@ -19,8 +19,8 @@ that same pause back during continuous use.
 Android 8.0 or newer. Installed from an APK; not currently on Google Play,
 F-Droid, or iOS.
 
-Version **1.0.3** adds a total of the time you have breathed and a calmer,
-redesigned Home screen. See the
+The current version is **1.0.5**. Recent versions added a total of the time you
+have breathed, a calmer Home screen, and in-app updates for the GitHub APK. See the
 [latest release](https://github.com/beejsbj/speedbreaker/releases/latest) and the
 [changelog](CHANGELOG.md).
 

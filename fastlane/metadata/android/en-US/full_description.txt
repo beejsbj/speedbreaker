@@ -9,7 +9,7 @@ A LITTLE ROOM TO CHOOSE
 Set a breath from 8 to 60 seconds (12 seconds by default). The first eight seconds intentionally hold ordinary Back, Home and Recents navigation. After eight seconds, Leave, configured redirects and Pause become available. Continue waits for the full breath. Android Settings, lock screen, screen-off and Android-reported calls interrupt the pause. You can disable the service in Android Accessibility settings.
 
 CHECK IN ON YOUR TERMS
-Check in again after ten minutes of continuous visible use by default, change the interval, or turn check-ins off for each app. Returning within sixty seconds resumes the current session. Choose active hours, with per-app schedules when needed. Each app gets two optional fifteen-minute pauses per local day, with End now controls in the app and its notification.
+Check in again after ten minutes of continuous visible use by default, change the interval, or turn check-ins off for each app. Returning within ten seconds resumes the current session. Choose active hours, with per-app schedules when needed. Each app gets two optional fifteen-minute pauses per local day, with End now controls in the app and its notification.
 
 LOCAL BY DESIGN
 No account, ads, analytics, cloud sync, per-app or time-stamped history, streaks or screen-time scores. Home shows a running total of the time you have breathed, which you can reset. Settings, pause allowances and that total stay on your phone. The reflection asks “What are you here for?” and stores no answer. All features are free. Optional support does not unlock anything.

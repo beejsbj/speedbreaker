@@ -19,8 +19,8 @@ prepared but inactive until destination and policy eligibility are verified. Pub
 - Source and issue tracker: https://github.com/beejsbj/speedbreaker
 
 The policy/help URLs are deployed and HTTP 200 was verified. Home links to the
-privacy policy. A public developer/support email is required before submission;
-Burooj is choosing a dedicated mailbox. No unverified address is committed.
+privacy policy. The public developer/support email is decided; it is recorded
+under owner decisions in [status.md](status.md) (October 12).
 Store graphics are generated from original assets; screenshots and the
 Accessibility video must show this build running, never personal device content.
 
@@ -57,9 +57,10 @@ alternative. Settings, lock-screen and detected calls yield immediately.
 **Data accessed:** visible-window package names and Accessibility event/window
 metadata, including relevant non-target and system app identities. No screen
 text traversal, typed-input reading, message reading, screenshots or usage log.
-The candidate also checks native SystemUI window type, display and touchable
-geometry so the overlay can yield its presentation to a full-display native
-panel without restarting the breath. Native reachability remains a device gate.
+Window ids and types (application, system, keyboard) are read to tell apps from
+system surfaces; window positions and sizes are not. The overlay is a full-screen
+surface, and the notification shade is not reachable over it during the
+eight-second hold.
 Package names and timers are processed locally. Selected targets, schedules and
 pause state remain in a local database and are never uploaded.
 
@@ -77,8 +78,10 @@ is not a substitute for the visible disclosure in the new-install video.
 
 **Video:** show first launch, all disclosure text (scroll visibly), decline and
 reopen, accept, native service grant, target selection, actual breathing/choices,
-and Settings escape/disablement. Hosted emulator automation captures this;
-attach the resulting accessible video URL only after reviewing it. No video URL
+and Settings escape/disablement. **This video is a manual deliverable** (#62):
+nothing in this repository records it. Record it on a phone or emulator, review
+it, and attach its URL. The hosted `First-run walk` keeps still screenshots of
+the same steps, which help rehearse it but are not the video. No video URL
 is currently claimed as submitted. The navigation hold remains a substantive
 policy review risk even when device tests pass.
 

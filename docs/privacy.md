@@ -1,8 +1,8 @@
 # Privacy policy
 
-Applies to Android Speedbreaker through **1.0.4**, including its GitHub,
+Applies to Android Speedbreaker through **1.0.5**, including its GitHub,
 community (F-Droid) and Google Play builds. Neither store build has been released.
-Last reviewed: **October 17, 2026**. Publisher: **Burooj (beejsbj)**.
+Last reviewed: **October 17, 2026**; corrected **November 10, 2026**. Publisher: **Burooj (beejsbj)**.
 
 Speedbreaker runs on your Android phone. It has no account, analytics, ads,
 cloud sync, billing SDK or developer backend. The community (F-Droid) and Google
@@ -26,9 +26,11 @@ window content. Speedbreaker's implementation reads window-root package names
 and event metadata. It does not traverse screen text, read messages or typed
 input, capture screenshots, or record the contents of other apps.
 
-The 1.0.2 candidate also reads native SystemUI window type, display and touchable
-geometry to expose a full-display system panel above the breathing surface.
-These are transient window metadata, not notification or screen contents.
+It also reads each window's numeric id and its type (for example application,
+system, or keyboard) to tell an app from system surfaces such as Recents or the volume
+panel. These are held briefly in memory and are not screen contents. It does not
+read window positions or sizes. For the first eight seconds of a breath, the
+notification shade and Quick Settings cannot be opened over it.
 
 Current visibility and continuous-use timers are held in memory. They are not
 saved as a usage log. Screen-off time does not count toward check-ins.
