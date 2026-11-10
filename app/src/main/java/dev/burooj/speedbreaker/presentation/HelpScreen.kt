@@ -50,9 +50,9 @@ internal fun HelpScreen(
     HelpTopic(
         heading = "If a breath doesn’t appear",
         body = "Check that Home says On, that the app is listed under Apps, and that its schedule covers " +
-            "this hour. There is no breath during a 15-minute pause, during a call, or when you come " +
-            "back within 10 seconds of leaving. If breaths stop after the phone has sat idle, see " +
-            "Battery and background on Home.",
+            "this hour. There is no breath during a 15-minute pause, during a call, or when you step " +
+            "out for up to 10 seconds after Continue. If breaths stop after the phone has sat idle, " +
+            "see Battery and background on Home.",
     )
     HelpTopic(
         heading = "Switch it off",
