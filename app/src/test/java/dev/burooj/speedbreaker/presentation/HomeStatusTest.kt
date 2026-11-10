@@ -101,50 +101,81 @@ class HomeStatusTest {
         assertEquals("Speedbreaker is on, pauses need notifications", homeStatusDescription("pauses need notifications"))
     }
 
+    private fun setup(protection: Protection, phoneAllowed: Boolean = false, hasApps: Boolean = false, hasBreathed: Boolean = false) =
+        setupProgress(protection, phoneAllowed, hasApps, hasBreathed)
+
     @Test
     fun `setup counts down the steps a new person has left`() {
-        val fresh = setupProgress(Protection.Off, hasApps = false, hasBreathed = false)!!
+        val fresh = setup(Protection.Off)!!
         assertEquals(1, fresh.current)
         assertEquals("Three steps to start", setupTitle(fresh))
 
-        val serviceOn = setupProgress(Protection.CallPermission, hasApps = false, hasBreathed = false)!!
+        val serviceOn = setup(Protection.CallPermission)!!
         assertEquals(2, serviceOn.current)
         assertEquals("Two steps left", setupTitle(serviceOn))
 
-        val phoneAllowed = setupProgress(Protection.On, hasApps = false, hasBreathed = false)!!
+        val phoneAllowed = setup(Protection.On, phoneAllowed = true)!!
         assertEquals(3, phoneAllowed.current)
         assertEquals("One step left", setupTitle(phoneAllowed))
     }
 
     @Test
-    fun `apps chosen early are already ticked`() {
-        val progress = setupProgress(Protection.Off, hasApps = true, hasBreathed = false)!!
-        assertEquals(1, progress.current)
-        assertEquals("Two steps left", setupTitle(progress))
-        assertEquals(2, setupProgress(Protection.CallPermission, hasApps = true, hasBreathed = false)!!.current)
+    fun `steps done out of order are already ticked`() {
+        val appsFirst = setup(Protection.Off, hasApps = true)!!
+        assertEquals(1, appsFirst.current)
+        assertEquals("Two steps left", setupTitle(appsFirst))
+        assertEquals(2, setup(Protection.CallPermission, hasApps = true)!!.current)
+
+        // Phone allowed, then the service switched off again before a first breath.
+        val phoneKept = setup(Protection.Off, phoneAllowed = true, hasApps = true)!!
+        assertEquals(1, phoneKept.current)
+        assertEquals("One step left", setupTitle(phoneKept))
     }
 
     @Test
-    fun `setup ends when everything is done and never returns after a first breath`() {
-        assertNull(setupProgress(Protection.On, hasApps = true, hasBreathed = false))
-        assertNull(setupProgress(Protection.Off, hasApps = true, hasBreathed = true))
-        assertNull(setupProgress(Protection.CallPermission, hasApps = false, hasBreathed = true))
-        assertNull(setupProgress(Protection.On, hasApps = false, hasBreathed = true))
+    fun `setup ends when everything is done and gives way to repairs once a breath is counted`() {
+        assertNull(setup(Protection.On, phoneAllowed = true, hasApps = true))
+        assertNull(setup(Protection.Off, hasApps = true, hasBreathed = true))
+        assertNull(setup(Protection.CallPermission, hasBreathed = true))
+        assertNull(setup(Protection.On, phoneAllowed = true, hasBreathed = true))
     }
 
     @Test
     fun `problems that are not setup steps keep their own words`() {
-        assertNull(setupProgress(Protection.Broken, hasApps = false, hasBreathed = false))
-        assertNull(setupProgress(Protection.CallUnavailable, hasApps = false, hasBreathed = false))
-        assertNull(setupProgress(Protection.CallActive, hasApps = false, hasBreathed = false))
+        assertNull(setup(Protection.Broken))
+        assertNull(setup(Protection.CallUnavailable))
+        assertNull(setup(Protection.CallActive, phoneAllowed = true))
+    }
+
+    private fun withheld(
+        granted: Boolean = false,
+        couldAskBefore: Boolean = false,
+        mayAskAgain: Boolean = false,
+        answeredAfterMs: Long = 3_000,
+        earlierSilentRefusals: Int = 0,
+    ) = promptWasWithheld(granted, couldAskBefore, mayAskAgain, answeredAfterMs, earlierSilentRefusals)
+
+    @Test
+    fun `the final refusal sends someone to app info at once`() {
+        // Android could ask before this request and cannot now: that was the second "Don't allow".
+        assertEquals(true, withheld(couldAskBefore = true))
     }
 
     @Test
-    fun `only an instant refusal sends someone to app info`() {
-        assertEquals(true, promptWasWithheld(granted = false, mayAskAgain = false, answeredAfterMs = 40))
-        // Read and dismissed, or denied for the first time: Android will show the prompt again.
-        assertEquals(false, promptWasWithheld(granted = false, mayAskAgain = false, answeredAfterMs = 3_000))
-        assertEquals(false, promptWasWithheld(granted = false, mayAskAgain = true, answeredAfterMs = 40))
-        assertEquals(false, promptWasWithheld(granted = true, mayAskAgain = false, answeredAfterMs = 40))
+    fun `a refusal Android made without asking sends someone to app info`() {
+        assertEquals(true, withheld(answeredAfterMs = 40))
+        assertEquals(true, withheld(answeredAfterMs = 499))
+        // A slow phone can take longer than the threshold; the second such answer settles it.
+        assertEquals(false, withheld(answeredAfterMs = 500))
+        assertEquals(true, withheld(answeredAfterMs = 900, earlierSilentRefusals = 1))
+    }
+
+    @Test
+    fun `a prompt that can still be shown is asked again`() {
+        // Read and dismissed for the first time.
+        assertEquals(false, withheld(answeredAfterMs = 3_000))
+        // Refused once: Android will show it again.
+        assertEquals(false, withheld(mayAskAgain = true, answeredAfterMs = 40))
+        assertEquals(false, withheld(granted = true, couldAskBefore = true, answeredAfterMs = 40))
     }
 }

@@ -62,7 +62,22 @@ class FirstRunTest {
     }
 
     @Test
-    fun thePhoneStepAsksUntilAndroidStopsAskingThenLeadsToAppInfo() {
+    fun choosingAppsIsOfferedOnceWhileItIsTheOpenStep() {
+        show(Protection.On)
+        compose.onNodeWithText("One step left").assertIsDisplayed()
+        compose.onNodeWithText("Choose apps").assertIsDisplayed() // exactly one: the step's button
+        compose.onNodeWithText("APPS").assertDoesNotExist()
+    }
+
+    @Test
+    fun appsCanBeChosenEarlyFromTheirOwnRow() {
+        show(Protection.CallPermission)
+        compose.onNodeWithText("APPS").assertExists()
+        compose.onNodeWithText("Choose apps").assertExists()
+    }
+
+    @Test
+    fun thePhoneStepGivesItsReasonAndAsks() {
         var presses = 0
         show(Protection.CallPermission, onCallAccess = { presses++ })
         compose.onNodeWithText("Two steps left").assertIsDisplayed()

@@ -48,13 +48,19 @@ internal data class SetupProgress(val accessibility: Boolean, val phone: Boolean
 }
 
 /**
- * Setup progress while someone has never taken a breath and a step is still open; null otherwise.
- * After a first breath the same states are repairs and keep their own words. Phone permission
- * cannot be told apart from "not yet" while Accessibility is off, so it reads as still to do.
+ * Setup progress while the breathing total is empty and a step is still open; null otherwise.
+ * Once a breath has been counted the same states are repairs and keep their own words. Resetting
+ * the total empties it again, so a repair soon after a reset reads as setup; the steps are the
+ * same either way.
  */
-internal fun setupProgress(protection: Protection, hasApps: Boolean, hasBreathed: Boolean): SetupProgress? = when {
+internal fun setupProgress(
+    protection: Protection,
+    phoneAllowed: Boolean,
+    hasApps: Boolean,
+    hasBreathed: Boolean,
+): SetupProgress? = when {
     hasBreathed -> null
-    protection == Protection.Off -> SetupProgress(accessibility = false, phone = false, apps = hasApps)
+    protection == Protection.Off -> SetupProgress(accessibility = false, phone = phoneAllowed, apps = hasApps)
     protection == Protection.CallPermission -> SetupProgress(accessibility = true, phone = false, apps = hasApps)
     protection == Protection.On && !hasApps -> SetupProgress(accessibility = true, phone = true, apps = false)
     else -> null
@@ -67,11 +73,22 @@ internal fun setupTitle(progress: SetupProgress): String = when (progress.remain
 }
 
 /**
- * Whether Android refused a permission without showing its prompt, so only app info can change
- * it. After two denials Android answers at once; a prompt someone read and dismissed takes
- * longer and may still be asked again, so it does not count.
+ * Whether Android will no longer show a permission's prompt, so only app info can change it.
+ * Android stops after two refusals. Three signs, any of which is enough once a request comes back
+ * refused with no further ask allowed:
+ * - it could ask before this request and cannot now, so this was the final refusal;
+ * - the answer came back at once, so no prompt was shown;
+ * - the same thing happened on the request before ([earlierSilentRefusals]), which covers a slow
+ *   phone where "at once" takes longer than the threshold.
+ * A prompt someone read and dismissed shows none of them the first time, and is asked again.
  */
-internal fun promptWasWithheld(granted: Boolean, mayAskAgain: Boolean, answeredAfterMs: Long): Boolean =
-    !granted && !mayAskAgain && answeredAfterMs in 0 until PROMPT_SHOWN_AFTER_MS
+internal fun promptWasWithheld(
+    granted: Boolean,
+    couldAskBefore: Boolean,
+    mayAskAgain: Boolean,
+    answeredAfterMs: Long,
+    earlierSilentRefusals: Int,
+): Boolean = !granted && !mayAskAgain &&
+    (couldAskBefore || answeredAfterMs in 0 until PROMPT_SHOWN_AFTER_MS || earlierSilentRefusals >= 1)
 
 private const val PROMPT_SHOWN_AFTER_MS = 500L

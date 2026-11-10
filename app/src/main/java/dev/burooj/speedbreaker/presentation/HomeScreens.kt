@@ -42,10 +42,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
@@ -162,12 +164,13 @@ private fun ColumnScope.DisclosurePage(onAccept: () -> Unit, onDecline: () -> Un
         )
         Promise(
             heading = "The first eight seconds",
-            body = "Back, Home, Recents, and the notification shade don’t close a breath. Calls that " +
-                "Android reports, the dialer, the lock screen, and Android Settings still get through.",
+            body = "Back, Home, Recents, and the notification shade don’t close a breath. A call that " +
+                "Android reports, the dialer, the lock screen, or Android Settings ends it at once.",
         )
         Promise(
             heading = "What it keeps",
-            body = "Your settings, today’s pauses, and a running total of breaths that you can reset. " +
+            body = "Your settings, today’s pauses, and a running total of breaths and time breathed, " +
+                "overall and today, that you can reset. " +
                 "No record of which apps you open or when, no answers, no analytics, no cloud.",
         )
     }
@@ -180,7 +183,7 @@ private fun ColumnScope.DisclosurePage(onAccept: () -> Unit, onDecline: () -> Un
 @Composable
 private fun Promise(heading: String, body: String) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Eyebrow(heading)
+        Eyebrow(heading, Modifier.semantics { heading() })
         Text(body, style = MaterialTheme.typography.bodyLarge)
     }
 }
@@ -265,6 +268,7 @@ internal fun HomeScreen(
     onApp: (String) -> Unit,
     onCallAccess: () -> Unit = {},
     phoneNeedsSettings: Boolean = false,
+    phoneAllowed: Boolean = protection == Protection.On,
     pauses: Map<String, PauseState> = emptyMap(),
     nowEpochMs: Long = System.currentTimeMillis(),
     onEndPause: (String) -> Unit = {},
@@ -286,7 +290,7 @@ internal fun HomeScreen(
     var confirmingReset by remember { mutableStateOf(false) }
 
     val healthy = protection == Protection.On && appCount > 0
-    val setup = setupProgress(protection, hasApps = appCount > 0, hasBreathed = !stats.isEmpty)
+    val setup = setupProgress(protection, phoneAllowed, hasApps = appCount > 0, hasBreathed = !stats.isEmpty)
     val title = if (healthy) {
         null
     } else if (setup != null) {
@@ -698,10 +702,11 @@ private fun ColumnScope.AccessibilityActions(onEnableAccessibility: () -> Unit, 
 @Composable
 private fun ColumnScope.PhoneActions(needsSettings: Boolean, onCallAccess: () -> Unit) {
     if (needsSettings) {
+        // Appears in place after a press, so a screen reader has to be told.
         Text(
             text = "Android won’t ask again here. Open app info, then Permissions → Phone → Allow.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
         )
         PrimaryAction("Open app info", onCallAccess, Modifier.fillMaxWidth())
     } else {
@@ -709,7 +714,7 @@ private fun ColumnScope.PhoneActions(needsSettings: Boolean, onCallAccess: () ->
     }
 }
 
-private const val PHONE_REASON = "So a breath never covers an incoming call, Speedbreaker checks whether your " +
+private const val PHONE_REASON = "So a breath doesn’t cover an incoming call, Speedbreaker checks whether your " +
     "phone is ringing or in a call. Android words this as “make and manage phone calls”; Speedbreaker " +
     "can’t make calls and doesn’t read numbers, call history, or audio."
 

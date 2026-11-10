@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -62,16 +63,23 @@ internal fun SpeedbreakerApp() {
         var notificationRequestAttempted by rememberSaveable { mutableStateOf(false) }
         // True once Android has refused without showing its prompt, which it does after two denials.
         var phoneNeedsSettings by rememberSaveable { mutableStateOf(false) }
+        var phoneCouldAsk by rememberSaveable { mutableStateOf(false) }
+        var phoneSilentRefusals by rememberSaveable { mutableIntStateOf(0) }
         var phoneAskedAtMs by remember { mutableLongStateOf(0L) }
+        fun mayAskForPhone(): Boolean = (context as? Activity)
+            ?.shouldShowRequestPermissionRationale(Manifest.permission.READ_PHONE_STATE) == true
         val phonePermission = rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission(),
         ) { granted ->
+            val mayAskAgain = mayAskForPhone()
             phoneNeedsSettings = promptWasWithheld(
                 granted = granted,
-                mayAskAgain = (context as? Activity)
-                    ?.shouldShowRequestPermissionRationale(Manifest.permission.READ_PHONE_STATE) == true,
+                couldAskBefore = phoneCouldAsk,
+                mayAskAgain = mayAskAgain,
                 answeredAfterMs = SystemClock.elapsedRealtime() - phoneAskedAtMs,
+                earlierSilentRefusals = phoneSilentRefusals,
             )
+            phoneSilentRefusals = if (!granted && !mayAskAgain) phoneSilentRefusals + 1 else 0
             resumeTick++
         }
         val callSafety = remember(context) { CallSafety(context.applicationContext) }
@@ -98,8 +106,14 @@ internal fun SpeedbreakerApp() {
             }
         }
         val callStatus = remember(resumeTick, nowEpochMs) { callSafety.status() }
+        val phoneAllowed = callStatus != CallSafety.Status.PermissionRequired
         // Allowed from app info, or revoked later: either way Android's prompt is the way in again.
-        if (callStatus != CallSafety.Status.PermissionRequired && phoneNeedsSettings) phoneNeedsSettings = false
+        SideEffect {
+            if (phoneAllowed && (phoneNeedsSettings || phoneSilentRefusals > 0)) {
+                phoneNeedsSettings = false
+                phoneSilentRefusals = 0
+            }
+        }
         DisposableEffect(lifecycle) {
             val observer = LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) resumeTick++
@@ -168,11 +182,13 @@ internal fun SpeedbreakerApp() {
                         if (phoneNeedsSettings) {
                             openAppDetails(context)
                         } else {
+                            phoneCouldAsk = mayAskForPhone()
                             phoneAskedAtMs = SystemClock.elapsedRealtime()
                             phonePermission.launch(Manifest.permission.READ_PHONE_STATE)
                         }
                     },
-                    phoneNeedsSettings = phoneNeedsSettings,
+                    phoneNeedsSettings = phoneNeedsSettings && !phoneAllowed,
+                    phoneAllowed = phoneAllowed,
                     onNotifications = {
                         val canAsk = android.os.Build.VERSION.SDK_INT >= 33 &&
                             !notificationRequestAttempted &&
