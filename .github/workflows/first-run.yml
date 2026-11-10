@@ -1,0 +1,72 @@
+name: First-run walk
+
+# Installs the Play release variant with no data on an emulator and walks through
+# first open, setup and a first breath. Screenshots are kept as an artifact.
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - 'tools/first-run/**'
+      - '.github/workflows/first-run.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: first-run-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  walk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+      - name: Install build SDK
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"'
+      - name: Build the Play release variant
+        run: ./gradlew :app:assemblePlayRelease --no-daemon --no-configuration-cache --max-workers=2
+      - name: Sign with a throwaway key
+        run: |
+          mkdir -p build/first-run
+          keytool -genkeypair -keystore build/first-run/throwaway.p12 -storetype PKCS12 -storepass throwaway \
+            -alias walk -keyalg RSA -keysize 2048 -validity 2 -dname 'CN=First-run walk, O=Throwaway'
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" sign --ks build/first-run/throwaway.p12 \
+            --ks-pass pass:throwaway --out build/first-run/walk.apk \
+            app/build/outputs/apk/play/release/app-play-release-unsigned.apk
+      - name: Install the screenshot reader
+        run: python3 -m pip install pillow==11.3.0
+      - name: Enable KVM for the runner
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Walk the first run
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          script: python3 tools/first-run/walk.py --serial emulator-5554 --apk build/first-run/walk.apk --output build/first-run/evidence
+      - name: Preserve the walk
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: first-run-${{ github.sha }}
+          path: build/first-run/evidence/
+          if-no-files-found: warn
+          retention-days: 14
