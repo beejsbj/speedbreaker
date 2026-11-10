@@ -40,7 +40,10 @@ overlay keeps its existing `BreakerOverlay` signature.
   permission, apps. The title counts them down ("Three steps to start", "Two
   steps left", "One step left"); the next step is open with its reason and its
   one button, finished steps keep a moss tick. After a first breath the same
-  states are repairs and read as the statuses below.
+  states are repairs and read as the statuses below. The Accessibility button
+  asks Android to scroll to and highlight Speedbreaker's entry, and the service
+  reopens the app the moment it is switched on (or Phone is allowed in app
+  info), so nobody has to find their way back.
 - **Home** is also the setup checklist. While breaths work and apps are chosen,
   it opens with the eyebrow, a moss dot and "On" (plus "resting until 9 AM" when
   every app is outside its schedule, or "Pause 15 min needs notifications"), and the

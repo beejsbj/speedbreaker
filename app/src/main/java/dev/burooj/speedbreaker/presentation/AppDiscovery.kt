@@ -1,12 +1,15 @@
 package dev.burooj.speedbreaker.presentation
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Bundle
 import android.provider.Settings as AndroidSettings
 import android.telecom.TelecomManager
 import android.view.inputmethod.InputMethodManager
+import dev.burooj.speedbreaker.observation.SpeedbreakerService
 import java.util.Locale
 
 internal data class LaunchableApp(
@@ -44,6 +47,26 @@ internal fun discoverApps(context: Context): List<LaunchableApp> {
         .distinctBy { it.packageName }
         .sortedBy { it.label.lowercase(Locale.getDefault()) }
 }
+
+/**
+ * Opens Android's Accessibility list, asking it to scroll to Speedbreaker's entry and highlight
+ * it. The two extras are what Android's own Settings search uses; they are not a public contract,
+ * so a phone whose Settings ignores them simply shows the list as before.
+ */
+internal fun openAccessibilitySettings(context: Context) {
+    val entry = ComponentName(context, SpeedbreakerService::class.java).flattenToString()
+    val intent = Intent(AndroidSettings.ACTION_ACCESSIBILITY_SETTINGS)
+        .putExtra(SETTINGS_HIGHLIGHT_KEY, entry)
+        .putExtra(SETTINGS_HIGHLIGHT_ARGS, Bundle().apply { putString(SETTINGS_HIGHLIGHT_KEY, entry) })
+    try {
+        context.startActivity(intent)
+    } catch (_: RuntimeException) {
+        context.startActivity(Intent(AndroidSettings.ACTION_ACCESSIBILITY_SETTINGS))
+    }
+}
+
+private const val SETTINGS_HIGHLIGHT_KEY = ":settings:fragment_args_key"
+private const val SETTINGS_HIGHLIGHT_ARGS = ":settings:show_fragment_args"
 
 internal fun openAppDetails(context: Context) {
     context.startActivity(

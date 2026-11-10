@@ -5,7 +5,6 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.SystemClock
-import android.provider.Settings as AndroidSettings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,6 +34,7 @@ import dev.burooj.speedbreaker.observation.PauseEndReceiver
 import dev.burooj.speedbreaker.observation.CallSafety
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.observation.ServiceStatus
+import dev.burooj.speedbreaker.observation.SetupReturn
 import dev.burooj.speedbreaker.persistence.SpeedbreakerRepository
 import dev.burooj.speedbreaker.presentation.theme.SpeedbreakerTheme
 import kotlinx.coroutines.launch
@@ -116,7 +116,11 @@ internal fun SpeedbreakerApp() {
         }
         DisposableEffect(lifecycle) {
             val observer = LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME) resumeTick++
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    // Back in the app, by whatever route: nothing is left to be brought back from.
+                    SetupReturn.cancel()
+                    resumeTick++
+                }
             }
             lifecycle.addObserver(observer)
             onDispose { lifecycle.removeObserver(observer) }
@@ -175,11 +179,13 @@ internal fun SpeedbreakerApp() {
                         )
                     },
                     onEnableAccessibility = {
-                        context.startActivity(Intent(AndroidSettings.ACTION_ACCESSIBILITY_SETTINGS))
+                        SetupReturn.expect(SetupReturn.Waiting.ServiceOn, SystemClock.elapsedRealtime())
+                        openAccessibilitySettings(context)
                     },
                     onOpenAppInfo = { openAppDetails(context) },
                     onCallAccess = {
                         if (phoneNeedsSettings) {
+                            SetupReturn.expect(SetupReturn.Waiting.PhoneAllowed, SystemClock.elapsedRealtime())
                             openAppDetails(context)
                         } else {
                             phoneCouldAsk = mayAskForPhone()

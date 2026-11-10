@@ -607,9 +607,9 @@ private fun SetupSteps(
         SetupStep(1, "Turn on Speedbreaker in Accessibility", progress.accessibility, progress.current == 1) {
             StepText(
                 "This is how Speedbreaker sees which app is on screen and shows the breath. On the next " +
-                    "screen, find “$serviceName” (often under Installed apps or Downloaded apps), " +
-                    "switch it on, and come back. Android shows its full-control warning for every app " +
-                    "of this kind.",
+                    "screen, find “$serviceName” (often under Installed apps or Downloaded apps) and " +
+                    "switch it on. Android shows its full-control warning for every app of this kind. " +
+                    "Speedbreaker then opens again by itself.",
             )
             AccessibilityActions(onEnableAccessibility, onOpenAppInfo)
         }
@@ -707,7 +707,8 @@ private fun ColumnScope.PhoneActions(needsSettings: Boolean, onCallAccess: () ->
     if (needsSettings) {
         // Appears in place after a press, so a screen reader has to be told.
         Text(
-            text = "Android won’t ask again here. Open app info, then Permissions → Phone → Allow.",
+            text = "Android won’t ask again here. Open app info, then Permissions → Phone → Allow. " +
+                "Speedbreaker opens again once it’s allowed.",
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
         )
