@@ -69,7 +69,7 @@ If Android says the Accessibility setting is restricted, open Speedbreaker's
 **App info → ⋮ → Allow restricted settings**, confirm your identity, and return
 to Accessibility. Menu names vary by phone. Keep Play Protect enabled.
 
-Allow **Pause notifications** to use the fifteen-minute Pause option. On Samsung,
+Allow notifications (**Reliability → Notifications**) to use the fifteen-minute Pause option. On Samsung,
 check **Reliability → Battery and background** for background-operation guidance.
 See the [setup and troubleshooting guide](docs/getting-started.md) for details.
 
