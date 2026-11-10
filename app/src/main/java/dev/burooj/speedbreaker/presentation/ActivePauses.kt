@@ -31,7 +31,7 @@ internal fun ActivePausesSection(
     if (active.isEmpty()) return
     val catalog = appCatalog()
     val timeFormat = DateFormat.getTimeFormat(LocalContext.current)
-    Section(title = "Active pauses", footnote = "Ending a pause doesn’t return its daily token.") {
+    Section(title = "Active pauses", footnote = "No breaths for these apps until the time shown. Ending one early still uses it up.") {
         active.entries.sortedBy { catalog.label(it.key).lowercase() }
             .forEachIndexed { index, (packageName, pause) ->
                 key(packageName) {

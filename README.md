@@ -69,7 +69,7 @@ If Android says the Accessibility setting is restricted, open Speedbreaker's
 **App info → ⋮ → Allow restricted settings**, confirm your identity, and return
 to Accessibility. Menu names vary by phone. Keep Play Protect enabled.
 
-Allow **Pause notifications** to use the fifteen-minute Pause option. On Samsung,
+Allow notifications (**Reliability → Notifications**) to use the fifteen-minute Pause option. On Samsung,
 check **Reliability → Battery and background** for background-operation guidance.
 See the [setup and troubleshooting guide](docs/getting-started.md) for details.
 
@@ -84,7 +84,7 @@ Android SDK build-tools. The certificate SHA-256 should be
 or `8063da543d9e65ccf8ec4267e0710439f67af51d4990720f0ae36bef236a98ca` for the
 original Android 8 signer. A checksum confirms the file matches; it is not an audit.
 
-## Know how the pause behaves
+## Know how a breath behaves
 
 **The first eight seconds intentionally hold the breathing screen.** Home, Back,
 and Recents cannot dismiss it during that time. At eight seconds, Leave,

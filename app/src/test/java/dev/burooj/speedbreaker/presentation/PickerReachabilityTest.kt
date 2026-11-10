@@ -67,6 +67,7 @@ class PickerReachabilityTest {
         list.performScrollToNode(hasText(apps.last().label) and isToggleable())
         compose.onNode(hasText(apps.last().label) and isToggleable())
             .assertIsDisplayed().assertIsOff().performClick().assertIsOn()
+        compose.onNodeWithText("Done").assertIsDisplayed()
         compose.onNodeWithContentDescription("Back").assertIsDisplayed().performClick()
         compose.runOnIdle { assertTrue(wentBack) }
     }

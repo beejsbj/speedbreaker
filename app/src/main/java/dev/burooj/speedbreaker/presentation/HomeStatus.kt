@@ -27,7 +27,7 @@ internal fun restingUntil(settings: Settings, nowEpochMs: Long, zone: ZoneId, us
  */
 internal fun homeStatusNote(restingUntil: String?, notificationsAllowed: Boolean): String? = when {
     restingUntil != null -> "resting until $restingUntil"
-    !notificationsAllowed -> "pauses need notifications"
+    !notificationsAllowed -> "Pause 15 min needs notifications"
     else -> null
 }
 

@@ -82,7 +82,7 @@ internal fun DefaultsScreen(
     Section(
         title = "Schedule",
         footnote = if (settings.schedule == null) {
-            "Pauses apply at all hours."
+            "Breaths happen at all hours."
         } else {
             "Outside these hours, chosen apps open freely."
         },
@@ -124,7 +124,7 @@ internal fun AppSettingsScreen(
         Section(title = "While you use it") {
             ToggleRow(
                 title = "Check in again",
-                summary = "Another pause after continuous use",
+                summary = "Another breath after a while in the app",
                 checked = policy.continuousSeconds != null,
                 onCheckedChange = { enabled ->
                     onPolicyTransform { current ->
@@ -156,7 +156,7 @@ internal fun AppSettingsScreen(
             title = "Schedule",
             footnote = when (scheduleMode) {
                 0 -> "Following the default: ${scheduleSummary(settings.schedule, use24Hour).inSentence()}."
-                1 -> "Pauses apply at all hours, whatever the default says."
+                1 -> "Breaths happen at all hours, whatever the default says."
                 else -> "Replaces the default schedule for this app."
             },
         ) {
@@ -214,12 +214,13 @@ internal fun AppSettingsScreen(
         }
 
         Text(
-            text = "Breath length, the 60-second return window, and two daily pauses are shared by every app.",
+            text = "Breath length is set in Defaults. Each app gets two 15-minute pauses a day. " +
+                "After you continue, stepping out for up to 10 seconds doesn’t start a new breath.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 4.dp),
         )
-        QuietAction("Stop pausing $label", onRemove)
+        QuietAction("Stop breaths for $label", onRemove)
     }
 }
 

@@ -61,11 +61,13 @@ internal fun AppPickerScreen(
     val pinned = remember { selected }
     PickerFrame(
         title = "Choose apps",
-        subtitle = "Pick the apps that pull at you. Your launcher, keyboards, and safety-critical apps " +
-            "can’t be chosen. Choosing one of your redirects removes it from your alternatives.",
+        subtitle = "Pick the apps that pull at you. Each choice is saved as you tap. Your home screen, " +
+            "keyboards, the phone app, and Android Settings aren’t listed. An app chosen here stops " +
+            "being a redirect.",
         query = query,
         onQuery = { query = it },
         onBack = onBack,
+        footer = { PrimaryAction("Done", onBack, Modifier.fillMaxWidth()) },
     ) {
         val matches = apps.filter { it.matches(query) }
         val (chosen, others) = matches.partition { it.packageName in pinned }

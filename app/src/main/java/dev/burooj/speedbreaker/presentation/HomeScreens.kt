@@ -221,7 +221,7 @@ internal fun StorageFailureScreen(error: String?) {
     Page(title = "Speedbreaker is off", onBack = null, eyebrow = "Speedbreaker") {
         Notice(
             tone = NoticeTone.Repair,
-            text = error ?: "Local settings aren’t available, so protection can’t start.",
+            text = error ?: "Local settings aren’t available, so Speedbreaker can’t start.",
         )
         Text(
             "Restart the app after resolving the storage problem.",
@@ -393,19 +393,20 @@ internal fun HomeScreen(
 
         Section(title = "Reliability") {
             NavRow(
-                title = "Pause notifications",
+                title = "Notifications",
                 summary = if (notificationsAllowed) {
-                    "Allowed"
+                    "Allowed. Only used while a 15-minute pause is running."
                 } else {
-                    "Needed to start a pause; End now is also here"
+                    "Not allowed. The Pause 15 min button needs them."
                 },
                 onClick = onNotifications,
                 leading = {
                     StatusDot(
+                        // Off is a choice here, not a fault: only the optional Pause needs them.
                         if (notificationsAllowed) {
                             MaterialTheme.colorScheme.tertiary
                         } else {
-                            MaterialTheme.colorScheme.error
+                            MaterialTheme.colorScheme.outline
                         },
                     )
                 },
@@ -413,7 +414,8 @@ internal fun HomeScreen(
             RowDivider()
             NavRow(
                 title = "Battery and background",
-                summary = "On Samsung, set Battery to Unrestricted",
+                summary = "If breaths stop appearing after a while, allow background use. " +
+                    "On Samsung, set Battery to Unrestricted.",
                 onClick = onOpenAppInfo,
                 leading = { StatusDot(Color.Transparent) },
             )
@@ -543,7 +545,7 @@ private fun StatusPanel(
         Protection.Off -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Notice(
                 tone = NoticeTone.Repair,
-                text = "Speedbreaker’s Accessibility switch is off, so nothing is paused. Your settings are kept.",
+                text = "Speedbreaker is switched off in Accessibility, so no breaths appear. Your settings are kept.",
             )
             AccessibilityActions(onEnableAccessibility, onOpenAppInfo)
         }
@@ -566,8 +568,7 @@ private fun StatusPanel(
         )
         Protection.CallActive -> Notice(
             tone = NoticeTone.Calm,
-            text = "Breaths are suspended while Android reports a call or communication audio. " +
-                "They resume when it ends.",
+            text = "No breaths while Android reports a call or call audio. They come back when it ends.",
         )
         // With apps chosen, the header already says Speedbreaker is on.
         Protection.On -> if (!hasApps) {

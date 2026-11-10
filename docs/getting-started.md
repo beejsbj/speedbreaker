@@ -61,7 +61,7 @@ calling apps do not report incoming calls to Android and may not be detected.
 
 ## Choose and configure apps
 
-Tap **Choose apps** and select the apps you want to pause. Search is available;
+Tap **Choose apps** and select the apps you want a breath before. Search is available;
 changes to the target selection take effect as you select or deselect apps.
 Speedbreaker, the launcher, keyboards, and safety-related system apps are
 excluded from the picker. Nothing is selected on a fresh installation.
@@ -76,16 +76,16 @@ continuous use, and active hours all day, every day. No redirects are configured
 | To change… | Open… | What to expect |
 | --- | --- | --- |
 | Breath length | **Defaults → Breath** | 8–60 seconds, shared by all chosen apps. The first eight seconds always hold the overlay. |
-| Repeat check-ins | An app → **Check in again** | Turn off, or choose an interval from 1 to 120 minutes. Opening pauses still apply. |
+| Repeat check-ins | An app → **Check in again** | Turn off, or choose an interval from 1 to 120 minutes. A breath on opening still applies. |
 | Redirect destinations | **Defaults → Redirects** | Choose one to four eligible apps and save, or leave redirects empty. Chosen target apps cannot be redirects. |
 | Active hours | **Defaults → Schedule → Scheduled** | One active window per day, including overnight windows. Review the initial weekday 9 AM–5 PM schedule. |
 | One app's hours | An app → **Schedule** | Follow the default, stay always on, or set custom hours that replace the default. |
 | One app's redirects | An app → **Redirects → Custom** | Replace the default set with one to four apps, or leave the custom set empty to show none for that app. Choose Default to inherit again. |
-| Stop pausing one app | An app → **Stop pausing…** | Remove it from the chosen apps. |
+| Stop breaths for one app | An app → **Stop breaths for…** | Remove it from the chosen apps. |
 
 Schedules use the phone's local time. Days without a scheduled window are off.
 Outside the effective schedule, the app opens freely; entering an active window
-while it is visible starts a pause.
+while it is visible starts a breath.
 
 ## During a breath
 
@@ -106,7 +106,7 @@ opening breath. Leave and redirects end the session immediately.
 A fifteen-minute pause appears under **Active pauses** on Speedbreaker’s home
 screen, with **End now** for each app. Its notification provides the same action
 and opens Speedbreaker when tapped. If you dismiss the notification, the in-app
-control remains available; ending a pause does not restore its daily token. Ending or
+control remains available; ending one early still uses it up. Ending or
 expiring it resumes enforcement immediately if the target is visible, or on its
 next opening otherwise. Allowances reset each local day. An active pause keeps
 its original expiry even if it crosses midnight.
@@ -142,11 +142,11 @@ a quick return after Continue can also resume a session without another breath.
 On Samsung, use **Reliability → Battery and background** to open Speedbreaker's
 app info, then set **Battery → Unrestricted** if available. Background behavior
 varies by phone; extended idle reliability has not been verified on release
-1.0.1. If it keeps missing pauses, report the phone model and exact conditions.
+1.0.1. If breaths keep going missing, report the phone model and exact conditions.
 
 ### Pause is unavailable
 
-Open **Reliability → Pause notifications** and allow Speedbreaker's
+Open **Reliability → Notifications** and allow Speedbreaker's
 notifications, including the active-pauses channel. Pause is unavailable when
 notifications are blocked, or when that app has used both daily allowances.
 Turning notifications off also ends active pauses when the service observes

@@ -43,7 +43,7 @@ overlay keeps its existing `BreakerOverlay` signature.
   states are repairs and read as the statuses below.
 - **Home** is also the setup checklist. While breaths work and apps are chosen,
   it opens with the eyebrow, a moss dot and "On" (plus "resting until 9 AM" when
-  every app is outside its schedule, or "pauses need notifications"), and the
+  every app is outside its schedule, or "Pause 15 min needs notifications"), and the
   breathing total as the one large serif number ("18 minutes", then "94 breaths ·
   2 minutes today"; "No breaths yet" before the first). Otherwise its title is the
   status ("Off for now", "Needs attention", "Ready when you are"), followed by the
@@ -61,7 +61,7 @@ overlay keeps its existing `BreakerOverlay` signature.
   toggle to type the time instead. An end of 12 AM means end of day.
 - **App** — check-in toggle and interval, schedule Default / Always on /
   Custom, redirects Default / Custom, a note on what stays global, and
-  "Stop pausing <app>".
+  "Stop breaths for <app>".
 - **Pickers** are full screens with search; the redirect picker shows the four
   slots filling as you choose, with Save available for zero to four destinations
   (owner correction [#9](https://github.com/beejsbj/speedbreaker/issues/9)).
@@ -77,8 +77,8 @@ These are presentation-level, but they change what a tap does:
    which covers the same minutes.
 3. Per-app Custom schedule starts from the global schedule when one exists.
 4. The redirect picker is a full-screen page instead of a dialog; Clear remains.
-5. "Pause notifications" asks for permission once, then opens system settings.
-6. App settings gained "Stop pausing <app>" (same effect as unchecking it in
+5. "Notifications" asks for permission once, then opens system settings.
+6. App settings gained "Stop breaths for <app>" (same effect as unchecking it in
    the picker).
 7. The app and overlay are always dark.
 8. The per-day Copy action is gone; shared hours are one group instead.
