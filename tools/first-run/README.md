@@ -2,6 +2,7 @@
 
 `walk.py` installs Speedbreaker with no data on a **disposable emulator** and goes
 through it the way a new person would: first open, declining and reopening, consent,
+opening Help,
 turning the service on in Android's own Accessibility screens, the Phone permission
 (refused for as long as the app keeps asking, then allowed through app info), choosing
 one app, and a first breath ended with Leave.
