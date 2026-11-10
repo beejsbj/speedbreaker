@@ -192,10 +192,12 @@ class Walk:
         self.shell("am", "start", "-n", ACTIVITY)
         time.sleep(wait)
         # Android Settings opened from the app sits on top of it in the same task.
-        for _ in range(4):
-            if f"{PACKAGE}/" in self.resumed():
+        for _ in range(8):
+            resumed = self.resumed()
+            if f"{PACKAGE}/" in resumed:
                 return
-            self.shell("input", "keyevent", "KEYCODE_BACK")
+            if "com.android.settings" in resumed:
+                self.shell("input", "keyevent", "KEYCODE_BACK")
             time.sleep(1.5)
         raise RuntimeError(f"Speedbreaker is not in front: {self.resumed()}")
 
