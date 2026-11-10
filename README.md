@@ -84,7 +84,7 @@ Android SDK build-tools. The certificate SHA-256 should be
 or `8063da543d9e65ccf8ec4267e0710439f67af51d4990720f0ae36bef236a98ca` for the
 original Android 8 signer. A checksum confirms the file matches; it is not an audit.
 
-## Know how the pause behaves
+## Know how a breath behaves
 
 **The first eight seconds intentionally hold the breathing screen.** Home, Back,
 and Recents cannot dismiss it during that time. At eight seconds, Leave,

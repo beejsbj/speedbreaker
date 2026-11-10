@@ -124,7 +124,7 @@ internal fun AppSettingsScreen(
         Section(title = "While you use it") {
             ToggleRow(
                 title = "Check in again",
-                summary = "Another breath after you’ve been in the app a while",
+                summary = "Another breath after a while in the app",
                 checked = policy.continuousSeconds != null,
                 onCheckedChange = { enabled ->
                     onPolicyTransform { current ->
@@ -215,7 +215,7 @@ internal fun AppSettingsScreen(
 
         Text(
             text = "Breath length is set in Defaults. Each app gets two 15-minute pauses a day. " +
-                "Coming back within 10 seconds of leaving doesn’t start a new breath.",
+                "After you continue, stepping out for up to 10 seconds doesn’t start a new breath.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 4.dp),

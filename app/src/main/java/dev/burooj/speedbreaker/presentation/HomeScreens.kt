@@ -395,9 +395,9 @@ internal fun HomeScreen(
             NavRow(
                 title = "Notifications",
                 summary = if (notificationsAllowed) {
-                    "Allowed. Only used to show a 15-minute pause."
+                    "Allowed. Only used while a 15-minute pause is running."
                 } else {
-                    "Off. The Pause 15 min button needs them."
+                    "Not allowed. The Pause 15 min button needs them."
                 },
                 onClick = onNotifications,
                 leading = {

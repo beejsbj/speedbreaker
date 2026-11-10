@@ -13,7 +13,9 @@ removed during product shaping and are not part of V1.
 Nothing is selected on a fresh install. The launcher, Settings, keyboards,
 dialer and safety-critical system apps cannot be targets.
 
-**Speedbreaker**: the breathing pause shown on opening or at a check-in.
+**Speedbreaker**: the breathing pause shown on opening or at a check-in. The
+app's own text calls it a **breath**, never a pause, so that "Pause" means only
+the fifteen-minute token below.
 The first eight seconds lock ordinary navigation; safety UI always yields.
 
 **Opening**: the pause caused by newly entering a target outside its active

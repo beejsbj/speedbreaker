@@ -86,6 +86,12 @@ class Walk:
                     if box:
                         left, top, right, bottom = map(int, box.groups())
                         found.append((label, ((left + right) // 2, (top + bottom) // 2), node.get("class", "")))
+                # The emulator's "isn't responding" dialog can already be up when the walk starts.
+                wait = next((centre for label, centre, _ in found if label == "Wait"), None)
+                if wait and any("isn't responding" in label for label, _, _ in found):
+                    self.shell("input", "tap", str(wait[0]), str(wait[1]))
+                    time.sleep(3)
+                    continue
                 return found
             time.sleep(1)
         raise RuntimeError("Could not read the screen.")
