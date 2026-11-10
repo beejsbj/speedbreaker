@@ -267,22 +267,29 @@ class Walk:
     def first_open(self):
         self.open_app(wait=3)
         self.expect(self.wait_for(r"Speedbreaker", 40), f"First open does not name the app: {self.texts()}")
-        self.shot("first-open", "The first thing a new person sees.")
+        first = self.shot("first-open", "The first thing a new person sees.")
+        self.expect(not any("I understand" in text for text in first["text"]),
+                    "Consent was offered before the disclosure page.")
+        self.tap(r"^Continue$", scrolls=2, wait=2)
+        self.expect(self.wait_for(r"^Before you turn it on$", 15), "Continue did not lead to the disclosure.")
+        self.shot("disclosure", "The second page: the Accessibility disclosure.")
         self.scroll()
-        self.shot("first-open-scrolled", "The same screen, scrolled.")
+        self.shot("disclosure-scrolled", "The disclosure, scrolled to its buttons.")
         self.tap(r"^Not now", scrolls=3)
         time.sleep(1)
         resumed = self.resumed()
         self.expect(resumed and f"{PACKAGE}/" not in resumed, f"Declining did not close the app: {resumed!r}")
         self.open_app(wait=4)
-        self.expect(self.find(r"I understand", scrolls=3) is not None, "After declining, reopening skipped the disclosure.")
-        self.shot("reopened-after-decline", "Declined, then reopened: the disclosure is back.")
+        self.expect(self.wait_for(r"^Continue$", 20), f"After declining, reopening did not start again: {self.texts()}")
+        self.shot("reopened-after-decline", "Declined, then reopened: the two pages start again.")
+        self.tap(r"^Continue$", scrolls=2, wait=2)
         self.tap(r"I understand", scrolls=3, wait=3)
-        self.shot("home-before-setup", "Home straight after accepting.")
+        self.expect(self.wait_for(r"^Three steps to start$", 15), f"Home did not open on setup: {self.texts()}")
+        self.shot("home-before-setup", "Home straight after accepting: three steps.")
         self.shell("am", "force-stop", PACKAGE)
         self.open_app(wait=4)
         self.expect(self.wait_for(r"Turn on in Accessibility", 30), f"Home did not return: {self.texts()}")
-        self.expect(self.find(r"I understand") is None, "The disclosure showed again after it was accepted.")
+        self.expect(self.find(r"I understand|^Continue$") is None, "The welcome pages showed again after consent.")
 
     def resumed(self):
         return "\n".join(line for line in self.foreground().splitlines() if "ResumedActivity" in line)
@@ -338,6 +345,8 @@ class Walk:
                 self.shot(f"phone-press-{press}-no-prompt", "A press that Android answered without asking.", read=False)
         self.steps.append({"step": "phone-allowed", "note": f"Refused {refusals} time(s); allowed through: {through}"})
         self.expect(through is not None, "The app never offered a way to allow Phone after it was refused.")
+        # Android shows its prompt twice. The app must keep asking for as long as Android will.
+        self.expect(refusals == 2, f"The app sent a person to app info after {refusals} refusal(s), not 2.")
         self.expect("granted=true" in self.permission_line("READ_PHONE_STATE"), "Phone permission was not granted.")
 
     def permission_line(self, name):

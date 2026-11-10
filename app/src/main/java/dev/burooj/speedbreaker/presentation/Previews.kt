@@ -57,9 +57,18 @@ internal val Gallery: List<GallerySpec> = listOf(
     GallerySpec("overlay-08-reduced-motion-breath") { OverlaySample(elapsedMs = 3_000, motionEnabled = false) },
     GallerySpec("setup-00-loading") { Screen { LoadingScreen() } },
     GallerySpec("setup-01-welcome") { Screen { WelcomeScreen(onAccept = {}) } },
-    GallerySpec("setup-02-home-off") { Screen { HomeSample(Protection.Off, SampleSettings.copy(apps = emptyMap())) } },
+    GallerySpec("setup-05-disclosure", heightDp = 1100) {
+        Screen { WelcomeScreen(startOnDisclosure = true, onAccept = {}) }
+    },
+    GallerySpec("setup-02-home-off") { Screen { HomeSample(Protection.Off, FreshInstall, notifications = false) } },
+    GallerySpec("setup-06-home-phone") {
+        Screen { HomeSample(Protection.CallPermission, FreshInstall, notifications = false) }
+    },
+    GallerySpec("setup-07-home-phone-app-info") {
+        Screen { HomeSample(Protection.CallPermission, FreshInstall, notifications = false, phoneNeedsSettings = true) }
+    },
     GallerySpec("setup-03-home-ready-no-apps") {
-        Screen { HomeSample(Protection.On, SampleSettings.copy(apps = emptyMap()), notifications = false) }
+        Screen { HomeSample(Protection.On, FreshInstall, notifications = false) }
     },
     GallerySpec("setup-04-app-picker") {
         Screen {
@@ -74,6 +83,9 @@ internal val Gallery: List<GallerySpec> = listOf(
     GallerySpec("settings-01-home-on") { Screen { HomeSample(Protection.On, SampleSettings, withBreaths = true) } },
     GallerySpec("settings-02-home-needs-attention") {
         Screen { HomeSample(Protection.Broken, SampleSettings, withBreaths = true) }
+    },
+    GallerySpec("settings-15-home-off-after-use") {
+        Screen { HomeSample(Protection.Off, SampleSettings, withBreaths = true) }
     },
     GallerySpec("settings-03-defaults") {
         Screen {
@@ -194,6 +206,7 @@ private fun HomeSample(
     notifications: Boolean = true,
     withBreaths: Boolean = false,
     now: Long = ActiveNow,
+    phoneNeedsSettings: Boolean = false,
 ) = HomeScreen(
     settings = settings,
     protection = protection,
@@ -205,6 +218,7 @@ private fun HomeSample(
     onChooseApps = {},
     onDefaults = {},
     onApp = {},
+    phoneNeedsSettings = phoneNeedsSettings,
     nowEpochMs = now,
     stats = if (withBreaths) sampleStats(now) else BreathStats(),
 )
@@ -266,6 +280,9 @@ private val SplitWeek = WeeklySchedule(
 )
 
 private val Weekdays9to5 = WeeklySchedule((1..5).associateWith { TimeWindow(9 * 60, 17 * 60) })
+
+/** What Home has to work with straight after consent: nothing chosen, nothing changed. */
+private val FreshInstall = Settings(consentAccepted = true)
 
 private val OnlyInstagram = Settings(
     consentAccepted = true,
