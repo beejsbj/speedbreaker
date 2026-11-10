@@ -599,8 +599,9 @@ private fun SetupSteps(
         SetupStep(1, "Turn on Speedbreaker in Accessibility", progress.accessibility, progress.current == 1) {
             StepText(
                 "This is how Speedbreaker sees which app is on screen and shows the breath. On the next " +
-                    "screen, find “$serviceName” (often under Installed apps or Downloaded apps) and " +
-                    "switch it on. Android shows the same warning for every app of this kind.",
+                    "screen, find “$serviceName” (often under Installed apps or Downloaded apps), " +
+                    "switch it on, and come back. Android shows its full-control warning for every app " +
+                    "of this kind.",
             )
             AccessibilityActions(onEnableAccessibility, onOpenAppInfo)
         }
