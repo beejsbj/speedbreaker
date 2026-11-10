@@ -75,7 +75,7 @@ class Walk:
 
     def nodes(self):
         """Every on-screen node with text or a description, as (label, centre, class)."""
-        for _ in range(4):
+        for _ in range(6):
             raw = self.command("exec-out", "uiautomator", "dump", "/dev/tty", check=False)
             start, end = raw.find("<?xml"), raw.rfind("</hierarchy>")
             if start >= 0 and end > start:
@@ -86,6 +86,12 @@ class Walk:
                     if box:
                         left, top, right, bottom = map(int, box.groups())
                         found.append((label, ((left + right) // 2, (top + bottom) // 2), node.get("class", "")))
+                # A slow hosted emulator sometimes reports the launcher as not responding.
+                wait = next((centre for label, centre, _ in found if label == "Wait"), None)
+                if wait and any("isn't responding" in label for label, _, _ in found):
+                    self.shell("input", "tap", str(wait[0]), str(wait[1]))
+                    time.sleep(3)
+                    continue
                 return found
             time.sleep(1)
         raise RuntimeError("Could not read the screen.")
