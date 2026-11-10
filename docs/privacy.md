@@ -2,7 +2,7 @@
 
 Applies to Android Speedbreaker through **1.0.5**, including its GitHub,
 community (F-Droid) and Google Play builds. Neither store build has been released.
-Last reviewed: **October 17, 2026**; corrected **November 10, 2026**. Publisher: **Burooj (beejsbj)**.
+Last reviewed: **October 17, 2026**; corrected **November 10, 2026** (window data and notification-shade wording). Publisher: **Burooj (beejsbj)**.
 
 Speedbreaker runs on your Android phone. It has no account, analytics, ads,
 cloud sync, billing SDK or developer backend. The community (F-Droid) and Google
@@ -26,11 +26,14 @@ window content. Speedbreaker's implementation reads window-root package names
 and event metadata. It does not traverse screen text, read messages or typed
 input, capture screenshots, or record the contents of other apps.
 
-It also reads each window's numeric id and its type (for example application,
-system, or keyboard) to tell an app from system surfaces such as Recents or the volume
-panel. These are held briefly in memory and are not screen contents. It does not
-read window positions or sizes. For the first eight seconds of a breath, the
-notification shade and Quick Settings cannot be opened over it.
+It also reads each window's id number and its kind (for example app, system, or
+keyboard), so it can tell an app screen or Recents from a system popup such as
+the volume panel. These are kept only in memory and never saved; they are not
+screen contents. It does not read window positions or sizes.
+
+A breath covers the whole screen. For its first eight seconds Back, Home and
+Recents do not close it, and the notification shade and Quick Settings cannot be
+pulled down over it.
 
 Current visibility and continuous-use timers are held in memory. They are not
 saved as a usage log. Screen-off time does not count toward check-ins.

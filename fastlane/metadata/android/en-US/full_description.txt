@@ -6,7 +6,7 @@ CHOOSE YOUR OWN APPS
 Nothing is selected for you. Choose the apps that pull at you, and optionally choose up to four alternatives to open instead. System Settings, launchers, keyboards and dialers cannot be targets.
 
 A LITTLE ROOM TO CHOOSE
-Set a breath from 8 to 60 seconds (12 seconds by default). The first eight seconds intentionally hold ordinary Back, Home and Recents navigation. After eight seconds, Leave, configured redirects and Pause become available. Continue waits for the full breath. Android Settings, lock screen, screen-off and Android-reported calls interrupt the pause. You can disable the service in Android Accessibility settings.
+Set a breath from 8 to 60 seconds (12 seconds by default). The first eight seconds intentionally hold ordinary Back, Home and Recents navigation, and the notification shade cannot be opened over the breath. After eight seconds, Leave, configured redirects and Pause become available. Continue waits for the full breath. Android Settings, lock screen, screen-off and Android-reported calls interrupt the pause. You can disable the service in Android Accessibility settings.
 
 CHECK IN ON YOUR TERMS
 Check in again after ten minutes of continuous visible use by default, change the interval, or turn check-ins off for each app. Returning within ten seconds resumes the current session. Choose active hours, with per-app schedules when needed. Each app gets two optional fifteen-minute pauses per local day, with End now controls in the app and its notification.

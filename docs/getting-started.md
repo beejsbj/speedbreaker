@@ -168,9 +168,11 @@ through Android's installer. Releases with the same package and compatible
 signing identity can update the existing app while retaining settings. Check
 the version and Accessibility connection after updating.
 
-From 1.0.4 the GitHub APK can also update itself: **Check for updates** at the foot
-of Home downloads the new release, checks it, and hands it to Android's installer.
-An optional daily check is off until you turn it on in Defaults. Versions 1.0.3
+From 1.0.4 the GitHub APK can also update itself. **Check for updates** at the foot
+of Home asks GitHub whether a newer release exists. If one does, tap **Update**:
+Speedbreaker downloads it, checks it against the release's checksum, and hands it
+to Android's installer, which asks you to confirm. An optional daily check is off
+until you turn it on in Defaults. Versions 1.0.3
 and earlier have no updater; install a newer APK over them by hand once.
 
 ## Stop or remove Speedbreaker

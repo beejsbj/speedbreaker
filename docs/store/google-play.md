@@ -1,6 +1,7 @@
 # Google Play submission packet
 
-**Prepared source and drafts; not submitted.** Candidate: 1.0.2 / version code 6,
+**Prepared source and drafts; not submitted.** Prepared for candidate 1.0.2 /
+version code 6; the current build is 1.0.5 / version code 9. Package
 `dev.burooj.speedbreaker`, minimum API 26, target API 36. Recheck the
 [target policy](https://support.google.com/googleplay/android-developer/answer/11926878?hl=en)
 at submission. Hosted CI produces an unsigned Play Android App Bundle and APK.
@@ -19,8 +20,9 @@ prepared but inactive until destination and policy eligibility are verified. Pub
 - Source and issue tracker: https://github.com/beejsbj/speedbreaker
 
 The policy/help URLs are deployed and HTTP 200 was verified. Home links to the
-privacy policy. The public developer/support email is decided; it is recorded
-under owner decisions in [status.md](status.md) (October 12).
+privacy policy. The public developer/support email is
+`burooj.bj+playsupport@gmail.com` (owner decision, October 12, recorded in
+[status.md](status.md)).
 Store graphics are generated from original assets; screenshots and the
 Accessibility video must show this build running, never personal device content.
 
