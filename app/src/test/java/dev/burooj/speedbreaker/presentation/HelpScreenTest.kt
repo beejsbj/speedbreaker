@@ -23,7 +23,7 @@ class HelpScreenTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
-    fun homeOffersHelpInEveryState() {
+    fun homeOffersHelp() {
         var opened = 0
         compose.setContent {
             SpeedbreakerTheme {
@@ -62,7 +62,7 @@ class HelpScreenTest {
         compose.onNodeWithText("Speedbreaker 9.9.9").assertExists()
         // Back first: it sits at the top and scrolls out of reach once the rows below are shown.
         compose.onNodeWithContentDescription("Back").performClick()
-        compose.onNodeWithText("Full guide and reporting a problem").performScrollTo().performClick()
+        compose.onNodeWithText("Setup guide and reporting a problem").performScrollTo().performClick()
         compose.onNodeWithText("Privacy policy").performScrollTo().performClick()
         assertEquals(listOf(1, 1, 1), listOf(guide, privacy, back))
     }

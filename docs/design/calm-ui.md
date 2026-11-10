@@ -48,8 +48,8 @@ overlay keeps its existing `BreakerOverlay` signature.
   2 minutes today"; "No breaths yet" before the first). Otherwise its title is the
   status ("Off for now", "Needs attention", "Ready when you are"), followed by the
   one next action and a one-line total. Then Apps, Defaults (breath length as the
-  row title), Reliability (with the Samsung battery tip in the row), and a quiet
-  footer for support, privacy and Reset breathing total.
+  row title), Reliability (with the battery tip in the row), and a quiet
+  footer for Help, support, privacy and Reset breathing total.
 - **Defaults** — breath slider with a large readout, redirects as four visible
   slots with zero to four selected destinations, schedule as Always on / Scheduled.
 - **Schedule as hours groups.** A week reads as groups of days sharing one set
@@ -62,8 +62,8 @@ overlay keeps its existing `BreakerOverlay` signature.
 - **App** — check-in toggle and interval, schedule Default / Always on /
   Custom, redirects Default / Custom, a note on what stays global, and
   "Stop breaths for <app>".
-- **Help** is one page reached from Home's footer: how a breath goes, checking
-  in, the 15-minute pause, what to check when a breath doesn't appear, and how to
+- **Help** is one page reached from Home's footer: how a breath goes, what to
+  check when one doesn't appear, checking in, the 15-minute pause, and how to
   switch it off, all readable offline. Two rows open the full guide and the
   privacy policy in the browser, and the installed version is at the foot.
 - **Pickers** are full screens with search; the redirect picker shows the four
@@ -158,3 +158,4 @@ export ANDROID_SDK_ROOT=/usr/lib/android-sdk JAVA_HOME=/usr/lib/jvm/java-17-open
 | ![](screenshots/settings-05-redirect-picker.png) Redirect picker | ![](screenshots/settings-07-home-large-text.png) 160% text |
 | ![](screenshots/settings-08-schedule-hours.png) Hours groups | ![](screenshots/settings-09-time-picker.png) Time dial |
 | ![](screenshots/settings-10-time-typed.png) Typed time | ![](screenshots/settings-16-help.png) Help |
+| ![](screenshots/settings-17-help-large-text.png) Help at 160% text | |
