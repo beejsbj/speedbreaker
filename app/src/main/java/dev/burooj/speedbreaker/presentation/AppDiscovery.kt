@@ -60,6 +60,21 @@ internal fun openNotificationSettings(context: Context) {
     )
 }
 
+internal fun openSupportPage(context: Context) {
+    try {
+        context.startActivity(Intent(Intent.ACTION_VIEW,
+            Uri.parse("https://beejsbj.github.io/speedbreaker/support.html")))
+    } catch (_: android.content.ActivityNotFoundException) {
+        android.widget.Toast.makeText(context,
+            "Help: beejsbj.github.io/speedbreaker/support.html",
+            android.widget.Toast.LENGTH_LONG).show()
+    }
+}
+
+/** The installed version, for a bug report; null if Android cannot say. */
+internal fun installedVersionName(context: Context): String? =
+    runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull()
+
 internal fun openPrivacyPolicy(context: Context) {
     try {
         context.startActivity(Intent(Intent.ACTION_VIEW,

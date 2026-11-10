@@ -273,6 +273,7 @@ internal fun HomeScreen(
     nowEpochMs: Long = System.currentTimeMillis(),
     onEndPause: (String) -> Unit = {},
     onSupport: () -> Unit = {},
+    onHelp: () -> Unit = {},
     onPrivacy: () -> Unit = {},
     supportLabel: String = "Buy me a coffee",
     supportSummary: String = "Opens ko-fi.com in your browser",
@@ -424,6 +425,7 @@ internal fun HomeScreen(
         Column {
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(8.dp))
+            FooterLink("Help", onHelp, description = "Help. How it works and what to check when a breath doesn’t appear")
             if (supportAvailable) {
                 FooterLink(supportLabel, onSupport, description = "$supportLabel. $supportSummary")
             }

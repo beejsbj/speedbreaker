@@ -62,6 +62,10 @@ overlay keeps its existing `BreakerOverlay` signature.
 - **App** — check-in toggle and interval, schedule Default / Always on /
   Custom, redirects Default / Custom, a note on what stays global, and
   "Stop breaths for <app>".
+- **Help** is one page reached from Home's footer: how a breath goes, checking
+  in, the 15-minute pause, what to check when a breath doesn't appear, and how to
+  switch it off, all readable offline. Two rows open the full guide and the
+  privacy policy in the browser, and the installed version is at the foot.
 - **Pickers** are full screens with search; the redirect picker shows the four
   slots filling as you choose, with Save available for zero to four destinations
   (owner correction [#9](https://github.com/beejsbj/speedbreaker/issues/9)).
@@ -153,4 +157,4 @@ export ANDROID_SDK_ROOT=/usr/lib/android-sdk JAVA_HOME=/usr/lib/jvm/java-17-open
 | ![](screenshots/settings-03-defaults.png) Defaults | ![](screenshots/settings-04-app.png) One app |
 | ![](screenshots/settings-05-redirect-picker.png) Redirect picker | ![](screenshots/settings-07-home-large-text.png) 160% text |
 | ![](screenshots/settings-08-schedule-hours.png) Hours groups | ![](screenshots/settings-09-time-picker.png) Time dial |
-| ![](screenshots/settings-10-time-typed.png) Typed time | |
+| ![](screenshots/settings-10-time-typed.png) Typed time | ![](screenshots/settings-16-help.png) Help |

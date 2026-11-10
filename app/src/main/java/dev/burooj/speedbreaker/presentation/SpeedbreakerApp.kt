@@ -205,12 +205,19 @@ internal fun SpeedbreakerApp() {
                     onDefaults = { route = Route.Defaults },
                     onApp = { route = Route.App(it) },
                     onSupport = support.onClick,
+                    onHelp = { route = Route.Help },
                     onPrivacy = { openPrivacyPolicy(context) },
                     supportLabel = support.label,
                     supportSummary = support.summary,
                     supportAvailable = support.available,
                     updateCard = updates?.homeCard,
                     onCheckUpdates = updates?.onCheck,
+                )
+                currentRoute == Route.Help -> HelpScreen(
+                    onBack = { route = Route.Home },
+                    onGuide = { openSupportPage(context) },
+                    onPrivacy = { openPrivacyPolicy(context) },
+                    versionName = remember(context) { installedVersionName(context) },
                 )
                 currentRoute == Route.Apps -> AppPickerScreen(
                     apps = launchableApps,
@@ -283,6 +290,7 @@ private sealed interface Route {
     data object Home : Route
     data object Apps : Route
     data object Defaults : Route
+    data object Help : Route
     data class App(val packageName: String) : Route
 }
 
