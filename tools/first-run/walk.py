@@ -2,7 +2,8 @@
 
 Installs the given APK with no data, then goes through first open, declining and
 reopening, consent, turning the service on in Android's own Accessibility screens,
-the Phone permission (denied once, then allowed), choosing one app, and a first breath.
+the Phone permission (refused until the app stops asking, then allowed in app info),
+choosing one app, and a first breath ended with Leave.
 Each step saves a screenshot; the visible text of each screen that could be read is
 saved beside it. The walk fails when a step a new person depends on does not happen.
 
@@ -12,6 +13,7 @@ screens and the app picker, and presses the app's one filled button by finding i
 the screenshot instead.
 """
 import argparse
+import hashlib
 import io
 import json
 import re
@@ -44,7 +46,9 @@ TARGETS = [
 class Walk:
     def __init__(self, args):
         self.adb = ["adb", "-s", args.serial]
+        self.serial = args.serial
         self.apk = args.apk
+        self.allow_adb_service = args.allow_adb_service
         self.out = args.output.resolve()
         self.out.mkdir(parents=True, exist_ok=True)
         self.steps = []
@@ -62,10 +66,10 @@ class Walk:
         return self.command("shell", shlex.join(args), **kwargs)
 
     def validate_emulator(self):
-        if self.shell("getprop", "ro.kernel.qemu") != "1":
+        if not self.serial.startswith("emulator-") or self.shell("getprop", "ro.kernel.qemu") != "1":
             raise RuntimeError("Refusing to run: this clears app data and changes settings; use an emulator.")
         if int(self.shell("getprop", "ro.build.version.sdk")) < 33:
-            raise RuntimeError("Use an API 33+ emulator; the walk expects the notification permission.")
+            raise RuntimeError("Use an API 33+ emulator; older permission screens are worded differently.")
 
     # ---------- reading and pressing ----------
 
@@ -133,33 +137,40 @@ class Walk:
         """Filled buttons as (left, top, right, bottom): bands of rows sharing one long run of the fill colour."""
         width, height = image.size
         pixels = image.load()
-        near = lambda p: all(abs(p[i] - FILLED[i]) <= 6 for i in range(3))
         bands, current = [], None
         for y in range(0, height, 2):
             best, run_start = None, None
             for x in range(0, width + 1, 2):
-                if x < width and near(pixels[x, y]):
+                if x < width and all(abs(pixels[x, y][i] - FILLED[i]) <= 6 for i in range(3)):
                     run_start = x if run_start is None else run_start
                 elif run_start is not None:
                     if best is None or x - run_start > best[1] - best[0]:
                         best = (run_start, x)
                     run_start = None
-            long_run = best if best and best[1] - best[0] >= width * 0.25 else None
+            long_run = best if best and best[1] - best[0] >= width * 0.1 else None
             if long_run and current and long_run[0] < current[2] and long_run[1] > current[0]:
                 current = [min(current[0], long_run[0]), current[1], max(current[2], long_run[1]), y]
             else:
-                if current and current[3] - current[1] >= 60:
-                    bands.append(tuple(current))
+                if current:
+                    bands.append(current)
                 current = [long_run[0], y, long_run[1], y] if long_run else None
-        if current and current[3] - current[1] >= 60:
-            bands.append(tuple(current))
-        return bands
+        if current:
+            bands.append(current)
+        # A button's label interrupts its fill, so rejoin bands that sit just above one another.
+        buttons = []
+        for band in bands:
+            last = buttons[-1] if buttons else None
+            if last and band[1] - last[3] < 80 and band[0] < last[2] and band[2] > last[0]:
+                buttons[-1] = [min(last[0], band[0]), last[1], max(last[2], band[2]), band[3]]
+            else:
+                buttons.append(band)
+        return [tuple(button) for button in buttons if button[3] - button[1] >= 60]
 
     def tap_filled(self, wait=2.0):
         """Press the screen's one filled button, without reading the screen."""
         buttons = self.filled_buttons(self.screenshot())
-        if not buttons:
-            raise RuntimeError("No filled button on screen.")
+        if len(buttons) != 1:
+            raise RuntimeError(f"Expected one filled button on screen, found {len(buttons)}.")
         left, top, right, bottom = buttons[0]
         self.shell("input", "tap", str((left + right) // 2), str((top + bottom) // 2))
         time.sleep(wait)
@@ -215,17 +226,31 @@ class Walk:
         self.shell("settings", "put", "secure", "enabled_accessibility_services", "null")
         self.command("uninstall", PACKAGE, check=False)
         self.command("install", str(self.apk), timeout=180)
-        self.command("logcat", "-c", check=False)
+        # Old lines would satisfy the waits below, so a failed clear must stop the walk.
+        self.command("logcat", "-c")
+        self.steps.append({
+            "step": "environment",
+            "apk_sha256": hashlib.sha256(self.apk.read_bytes()).hexdigest(),
+            "fingerprint": self.shell("getprop", "ro.build.fingerprint"),
+            "sdk": self.shell("getprop", "ro.build.version.sdk"),
+        })
         try:
             self.first_open()
             self.accessibility()
             self.phone_permission()
             target = self.choose_app()
             self.first_breath(target)
+        except Exception as error:
+            # Before cleanup, so the shot shows where it stopped.
+            try:
+                self.shot("failed", f"Stopped here: {error}", read=False)
+            except Exception:
+                pass
+            raise
         finally:
-            (self.out / "speedbreaker-log.txt").write_text(self.log() + "\n")
-            (self.out / "walk.json").write_text(json.dumps(self.steps, indent=2) + "\n")
             self.shell("settings", "put", "secure", "enabled_accessibility_services", "null", check=False)
+            (self.out / "walk.json").write_text(json.dumps(self.steps, indent=2) + "\n")
+            (self.out / "speedbreaker-log.txt").write_text(self.log() + "\n")
 
     def first_open(self):
         self.open_app(wait=3)
@@ -235,7 +260,8 @@ class Walk:
         self.shot("first-open-scrolled", "The same screen, scrolled.")
         self.tap(r"^Not now", scrolls=3)
         time.sleep(1)
-        self.expect(f"{PACKAGE}/" not in self.resumed(), "Declining did not close the app.")
+        resumed = self.resumed()
+        self.expect(resumed and f"{PACKAGE}/" not in resumed, f"Declining did not close the app: {resumed!r}")
         self.open_app(wait=4)
         self.expect(self.find(r"I understand", scrolls=3) is not None, "After declining, reopening skipped the disclosure.")
         self.shot("reopened-after-decline", "Declined, then reopened: the disclosure is back.")
@@ -243,6 +269,7 @@ class Walk:
         self.shot("home-before-setup", "Home straight after accepting.")
         self.shell("am", "force-stop", PACKAGE)
         self.open_app(wait=4)
+        self.expect(self.wait_for(r"Turn on in Accessibility", 30), f"Home did not return: {self.texts()}")
         self.expect(self.find(r"I understand") is None, "The disclosure showed again after it was accepted.")
 
     def resumed(self):
@@ -254,13 +281,17 @@ class Walk:
         how = "android-settings"
         try:
             self.tap(r"Speedbreaker attention pauses", scrolls=6, wait=2)
+            self.expect(self.wait_for(r"^Use Speedbreaker attention pauses", 15), "The service's page did not open.")
             self.shot("android-service-page", "Speedbreaker's entry in Android settings.")
             self.tap(r"^Use Speedbreaker attention pauses", wait=2)
+            self.expect(self.wait_for(r"^Allow$", 15), "Android's warning did not appear.")
             self.shot("android-warning", "Android's standard warning for every Accessibility service.")
             self.tap(r"^Allow$", wait=2)
         except RuntimeError as error:
-            # Settings layouts differ by image; the rest of the walk still needs the service on.
-            print(f"Could not turn the service on through Settings ({error}); using adb.", flush=True)
+            # Settings layouts differ by image. Only a run that asked for it may skip these screens.
+            if not self.allow_adb_service:
+                raise
+            print(f"::warning::Could not turn the service on through Settings ({error}); using adb.", flush=True)
             how = "adb"
             self.shell("settings", "put", "secure", "enabled_accessibility_services", SERVICE)
         self.steps.append({"step": "service-enabled", "note": f"Turned on through: {how}"})
@@ -272,17 +303,30 @@ class Walk:
         self.shot("android-service-on", "Android settings with the service on; Back returns to Speedbreaker.")
         self.open_app()
         self.shot("phone-step", "Back in the app with the service on: the Phone permission step.", read=False)
-        self.tap_filled()
-        self.shot("android-phone-prompt", "Android's Phone permission prompt.")
-        self.tap(r"^Don.t allow$", wait=4)
-        self.shot("phone-denied", "After saying no to Phone.", read=False)
-        self.tap_filled()
-        if self.find(r"^Allow$") is None:
-            self.shot("phone-denied-second-press", "The same button after a denial, when Android does not ask again.")
-            self.shell("pm", "grant", PACKAGE, "android.permission.READ_PHONE_STATE")
-            self.open_app()
-        else:
-            self.tap(r"^Allow$", wait=4)
+        # Keep saying no for as long as the app keeps asking, then take whatever way in it offers.
+        refusals, through = 0, None
+        for press in range(1, 6):
+            self.tap_filled()
+            if "com.android.settings" in self.resumed():
+                self.shot("android-app-info", "Where the button leads once the app has stopped asking.")
+                self.tap(r"^Permissions$", scrolls=2, wait=2)
+                self.tap(r"^Phone$", scrolls=2, wait=2)
+                self.shot("android-phone-permission", "The Phone permission in app info.")
+                self.tap(r"^Allow$", wait=2)
+                through = "app-info"
+                break
+            if self.find(r"^Don.t allow$") is not None:
+                if refusals == 0:
+                    self.shot("android-phone-prompt", "Android's Phone permission prompt.")
+                self.tap(r"^Don.t allow$", wait=4)
+                refusals += 1
+                self.shot(f"phone-refused-{refusals}", f"After saying no to Phone {refusals} time(s).", read=False)
+            else:
+                # Looking for the prompt switched the service off for a moment; let it return.
+                time.sleep(6)
+                self.shot(f"phone-press-{press}-no-prompt", "A press that Android answered without asking.", read=False)
+        self.steps.append({"step": "phone-allowed", "note": f"Refused {refusals} time(s); allowed through: {through}"})
+        self.expect(through is not None, "The app never offered a way to allow Phone after it was refused.")
         self.expect("granted=true" in self.permission_line("READ_PHONE_STATE"), "Phone permission was not granted.")
 
     def permission_line(self, name):
@@ -315,7 +359,6 @@ class Walk:
         label, package = target
         self.shell("input", "keyevent", "KEYCODE_HOME")
         time.sleep(2)
-        self.command("logcat", "-c", check=False)
         self.shell("monkey", "-p", package, "-c", "android.intent.category.LAUNCHER", "1", check=False)
         self.expect(self.wait_for_log("overlay addView ok", 30), f"Opening {label} did not start a breath.")
         shown = time.monotonic()
@@ -328,10 +371,11 @@ class Walk:
         self.steps.append({"step": f"{self.count:02d}-choices", "note": "After eight seconds: the choices."})
         buttons = self.filled_buttons(choices)
         self.expect(buttons, "No choice was available after eight seconds.")
-        # Before the breath ends Continue is not filled, so the filled button is Leave.
-        left, top, right, bottom = buttons[0]
+        # Leave is the right-hand choice; Continue, once it is filled too, is to its left.
+        left, top, right, bottom = max(buttons, key=lambda button: button[0])
         self.shell("input", "tap", str((left + right) // 2), str((top + bottom) // 2))
-        self.expect(self.wait_for_log("overlay dismissed", 15), "Leave did not end the breath.")
+        self.expect(self.wait_for_log("reason=CHOICE_LEAVE", 15), "Leave did not end the breath.")
+        self.expect(self.wait_for_log("overlay dismissed", 15), "The breath stayed on screen after Leave.")
         time.sleep(2)
         self.shot("after-leave", "After Leave.", read=False)
         self.open_app()
@@ -343,17 +387,14 @@ def main():
     parser.add_argument("--serial", required=True, help="emulator serial, for example emulator-5554")
     parser.add_argument("--apk", required=True, type=Path, help="an installable (signed) Speedbreaker APK")
     parser.add_argument("--output", type=Path, default=Path("build/first-run"))
+    parser.add_argument("--allow-adb-service", action="store_true",
+                        help="if Android's Accessibility screens cannot be walked, switch the service on with adb")
     args = parser.parse_args()
     walk = Walk(args)
     try:
         walk.run()
-    except RuntimeError as error:
-        try:
-            walk.shot("failed", f"Stopped here: {error}", read=False)
-            (walk.out / "walk.json").write_text(json.dumps(walk.steps, indent=2) + "\n")
-        except Exception:
-            pass
-        print(f"First-run walk failed: {error}", file=sys.stderr)
+    except Exception as error:
+        print(f"First-run walk failed: {type(error).__name__}: {error}", file=sys.stderr)
         return 1
     print(f"First-run walk passed: {len(walk.steps)} steps in {walk.out}")
     return 0
