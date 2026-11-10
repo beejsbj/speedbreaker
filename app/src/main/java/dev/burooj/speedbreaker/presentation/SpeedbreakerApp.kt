@@ -179,14 +179,14 @@ internal fun SpeedbreakerApp() {
                         )
                     },
                     onEnableAccessibility = {
-                        SetupReturn.expect(SetupReturn.Waiting.ServiceOn, SystemClock.elapsedRealtime())
                         openAccessibilitySettings(context)
+                        SetupReturn.expect(SetupReturn.Waiting.ServiceOn, SystemClock.elapsedRealtime())
                     },
                     onOpenAppInfo = { openAppDetails(context) },
                     onCallAccess = {
                         if (phoneNeedsSettings) {
-                            SetupReturn.expect(SetupReturn.Waiting.PhoneAllowed, SystemClock.elapsedRealtime())
                             openAppDetails(context)
+                            SetupReturn.expect(SetupReturn.Waiting.PhoneAllowed, SystemClock.elapsedRealtime())
                         } else {
                             phoneCouldAsk = mayAskForPhone()
                             phoneAskedAtMs = SystemClock.elapsedRealtime()
