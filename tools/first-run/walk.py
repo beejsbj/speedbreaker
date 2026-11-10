@@ -342,6 +342,7 @@ class Walk:
 
     def phone_permission(self):
         self.expect(self.wait_for_app(), "Speedbreaker did not come back by itself once the service was on.")
+        # Let the returned screen settle before the screenshot.
         time.sleep(3)
         self.shot("phone-step", "Back in the app with the service on: the Phone permission step.", read=False)
         # Keep saying no for as long as the app keeps asking, then take whatever way in it offers.
