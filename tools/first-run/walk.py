@@ -219,7 +219,7 @@ class Walk:
             resumed = self.resumed()
             if f"{PACKAGE}/" in resumed:
                 return
-            if "com.android.settings" in resumed:
+            if "com.android.settings" in resumed or "permissioncontroller" in resumed:
                 self.shell("input", "keyevent", "KEYCODE_BACK")
             time.sleep(1.5)
         raise RuntimeError(f"Speedbreaker is not in front: {self.resumed()}")
