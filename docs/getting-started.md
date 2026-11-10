@@ -32,7 +32,8 @@ overlay.** Afterward, navigation and the available choices let you leave.
 
 Tap **Turn on in Accessibility**, find **Speedbreaker attention pauses**, and
 enable it. On Samsung this is usually under **Accessibility → Installed apps**.
-Return to Speedbreaker afterward.
+Speedbreaker opens again by itself once the service is on; if it does not, press Back.
+On phones whose Settings supports it, the entry is scrolled into view and highlighted.
 
 If Android shows **Restricted setting** or **Controlled by Restricted Setting**:
 

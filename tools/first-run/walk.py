@@ -136,6 +136,15 @@ class Walk:
             self.shell("am", "broadcast", "-a", "android.intent.action.CLOSE_SYSTEM_DIALOGS", check=False)
         raise RuntimeError(message)
 
+    def wait_for_app(self, seconds=20):
+        """Wait for Speedbreaker to come to the front without anything being pressed."""
+        deadline = time.monotonic() + seconds
+        while time.monotonic() < deadline:
+            if f"{PACKAGE}/" in self.resumed():
+                return True
+            time.sleep(0.5)
+        return False
+
     def scroll(self):
         width, height = self.screen_size()
         self.shell("input", "swipe", str(width // 2), str(height * 7 // 10), str(width // 2), str(height * 3 // 10), "300")
@@ -332,8 +341,9 @@ class Walk:
         self.expect(self.wait_for_log("service connected", 30), "The service never connected.")
 
     def phone_permission(self):
-        self.shot("android-service-on", "Android settings with the service on; Back returns to Speedbreaker.")
-        self.open_app()
+        self.expect(self.wait_for_app(), "Speedbreaker did not come back by itself once the service was on.")
+        # Let the returned screen settle before the screenshot.
+        time.sleep(3)
         self.shot("phone-step", "Back in the app with the service on: the Phone permission step.", read=False)
         # Keep saying no for as long as the app keeps asking, then take whatever way in it offers.
         refusals, through = 0, None
@@ -345,6 +355,8 @@ class Walk:
                 self.tap_through(r"^Phone$", r"^Allow$", "The Phone permission did not open.", scrolls=2)
                 self.shot("android-phone-permission", "The Phone permission in app info.")
                 self.tap(r"^Allow$", wait=2)
+                # Reading those pages switched the service off for a moment; it brings the app back when it returns.
+                self.expect(self.wait_for_app(30), "Speedbreaker did not come back by itself once Phone was allowed.")
                 through = "app-info"
                 break
             if self.find(r"^Don.t allow$") is not None:

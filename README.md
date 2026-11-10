@@ -61,7 +61,7 @@ own apps and redirects.
 3. Open Speedbreaker, tap **Continue**, read the Accessibility disclosure, and tap
    **I understand — continue**. Home then lists three steps.
 4. Tap **Turn on in Accessibility** and enable **Speedbreaker attention pauses**.
-5. Return to Speedbreaker, tap **Allow Phone permission**, and allow it. Breaths
+5. Speedbreaker opens again by itself; if it does not, press Back. Tap **Allow Phone permission** and allow it. Breaths
    stay off without it so silent calls are not hidden.
 6. Tap **Choose apps**. Open a chosen app to try it.
 

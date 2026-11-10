@@ -1,13 +1,17 @@
 package dev.burooj.speedbreaker.observation
 
+import android.Manifest
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
+import dev.burooj.speedbreaker.MainActivity
 import dev.burooj.speedbreaker.enforcement.Breaker
 import dev.burooj.speedbreaker.enforcement.BreakerEnd
 import dev.burooj.speedbreaker.enforcement.Choice
@@ -74,7 +78,33 @@ internal class SpeedbreakerService : AccessibilityService() {
     private val ticker = object : Runnable {
         override fun run() {
             reconcile()
+            returnWhenPhoneAllowed()
             handler.postDelayed(this, TICK_MS)
+        }
+    }
+
+    /** Setup sent someone to app info for Phone permission; bring them back once it is allowed. */
+    private fun returnWhenPhoneAllowed() {
+        val now = SystemClock.elapsedRealtime()
+        if (!SetupReturn.isWaitingFor(SetupReturn.Waiting.PhoneAllowed, now)) return
+        if (checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) return
+        if (SetupReturn.take(SetupReturn.Waiting.PhoneAllowed, now)) returnToApp("PHONE_ALLOWED")
+    }
+
+    /**
+     * Reopens Speedbreaker over the Android settings page it opened, which sits on top of it in
+     * the same task. Only ever follows a button press in the app within the last few minutes.
+     */
+    private fun returnToApp(reason: String) {
+        Diag.i("setup return reason=$reason")
+        try {
+            startActivity(
+                Intent(this, MainActivity::class.java).addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP,
+                ),
+            )
+        } catch (error: RuntimeException) {
+            Diag.i("setup return failed error=${error.javaClass.simpleName}")
         }
     }
 
@@ -109,6 +139,7 @@ internal class SpeedbreakerService : AccessibilityService() {
         handler.removeCallbacks(ticker)
         handler.post(ticker)
         Diag.i("service connected sdk=${Build.VERSION.SDK_INT}")
+        if (SetupReturn.take(SetupReturn.Waiting.ServiceOn, SystemClock.elapsedRealtime())) returnToApp("SERVICE_ON")
         Diag.i(
             safetyPolicy.safetyDetail(emptySet()).logLine(
                 interactive = getSystemService(PowerManager::class.java)?.isInteractive == true,

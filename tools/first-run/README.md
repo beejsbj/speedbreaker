@@ -11,7 +11,8 @@ It saves a screenshot of every step, the visible text of each screen it could re
 (`walk.json`), and Speedbreaker's own log lines (`speedbreaker-log.txt`). It fails when
 a step a new person depends on does not happen: the disclosure not returning after a
 decline, consent offered before the disclosure, the welcome pages returning after
-consent, the app giving up on the Phone prompt before Android does, Android's Accessibility screens not
+consent, the app giving up on the Phone prompt before Android does, the app not
+coming back by itself after the service is switched on or Phone is allowed in app info, Android's Accessibility screens not
 leading to the switch, the service not connecting, no way to allow Phone after refusing
 it, no breath on opening the chosen app, or Leave not ending it.
 
