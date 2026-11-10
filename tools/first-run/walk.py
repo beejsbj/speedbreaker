@@ -109,6 +109,9 @@ class Walk:
 
     def tap(self, pattern, scrolls=0, wait=1.5):
         centre = self.find(pattern, scrolls)
+        if centre is None and self.wait_for(pattern, 8):
+            # The screen was still arriving when it was first read.
+            centre = self.find(pattern)
         if centre is None:
             raise RuntimeError(f"Nothing on screen matches {pattern!r}. Visible: {self.texts()}")
         self.shell("input", "tap", str(centre[0]), str(centre[1]))
