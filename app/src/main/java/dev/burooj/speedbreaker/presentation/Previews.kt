@@ -115,6 +115,12 @@ internal val Gallery: List<GallerySpec> = listOf(
             )
         }
     },
+    GallerySpec("settings-16-help", heightDp = 1500) {
+        Screen { HelpScreen(onBack = {}, onGuide = {}, onPrivacy = {}, versionName = "1.0.5") }
+    },
+    GallerySpec("settings-17-help-large-text", fontScale = 1.6f, heightDp = 1500) {
+        Screen { HelpScreen(onBack = {}, onGuide = {}, onPrivacy = {}, versionName = "1.0.5") }
+    },
     GallerySpec("settings-08-schedule-hours") {
         Screen {
             Column(Modifier.safeDrawingPadding().padding(20.dp)) {

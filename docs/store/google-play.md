@@ -19,8 +19,8 @@ prepared but inactive until destination and policy eligibility are verified. Pub
 - Website/help: https://beejsbj.github.io/speedbreaker/support.html
 - Source and issue tracker: https://github.com/beejsbj/speedbreaker
 
-The policy/help URLs are deployed and HTTP 200 was verified. Home links to the
-privacy policy. The public developer/support email is
+The policy/help URLs are deployed and HTTP 200 was verified. Home links to Help
+and the privacy policy. The public developer/support email is
 `burooj.bj+playsupport@gmail.com` (owner decision, October 12, recorded in
 [status.md](status.md)).
 Store graphics are generated from original assets; screenshots and the
