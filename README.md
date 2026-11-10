@@ -19,8 +19,8 @@ that same pause back during continuous use.
 Android 8.0 or newer. Installed from an APK; not currently on Google Play,
 F-Droid, or iOS.
 
-Version **1.0.3** adds a total of the time you have breathed and a calmer,
-redesigned Home screen. See the
+The current version is **1.0.5**. Recent versions added a total of the time you
+have breathed, a calmer Home screen, and in-app updates for the GitHub APK. See the
 [latest release](https://github.com/beejsbj/speedbreaker/releases/latest) and the
 [changelog](CHANGELOG.md).
 
@@ -39,8 +39,8 @@ There are no streaks, usage scores, or daily screen-time budgets. Speedbreaker
 works locally, without an account, ads, analytics, or cloud sync.
 
 From 1.0.4 the GitHub APK updates itself when you ask: **Check for updates** at
-the foot of Home downloads the new release, checks it, and hands it to Android's
-installer. An optional daily check is off until you turn it on in Defaults.
+the foot of Home asks GitHub for a newer release, and **Update** downloads it,
+checks it, and hands it to Android's installer. An optional daily check is off until you turn it on in Defaults.
 
 ## A look inside
 
