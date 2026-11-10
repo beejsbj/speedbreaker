@@ -127,6 +127,14 @@ class Walk:
         self.shell("input", "tap", str(centre[0]), str(centre[1]))
         time.sleep(wait)
 
+    def tap_through(self, pattern, then, message, scrolls=0):
+        """Tap [pattern] until [then] shows; a tap on a screen that is still settling can be lost."""
+        for _ in range(3):
+            self.tap(pattern, scrolls=scrolls, wait=2)
+            if self.wait_for(then, 10):
+                return
+        raise RuntimeError(message)
+
     def scroll(self):
         width, height = self.screen_size()
         self.shell("input", "swipe", str(width // 2), str(height * 7 // 10), str(width // 2), str(height * 3 // 10), "300")
@@ -286,11 +294,10 @@ class Walk:
         self.shot("android-accessibility", "Android's Accessibility screen, where the button leads.")
         how = "android-settings"
         try:
-            self.tap(r"Speedbreaker attention pauses", scrolls=6, wait=2)
-            self.expect(self.wait_for(r"^Use Speedbreaker attention pauses", 15), "The service's page did not open.")
+            self.tap_through(r"^Speedbreaker attention pauses$", r"^Use Speedbreaker attention pauses",
+                             "The service's page did not open.", scrolls=6)
             self.shot("android-service-page", "Speedbreaker's entry in Android settings.")
-            self.tap(r"^Use Speedbreaker attention pauses", wait=2)
-            self.expect(self.wait_for(r"^Allow$", 15), "Android's warning did not appear.")
+            self.tap_through(r"^Use Speedbreaker attention pauses", r"^Allow$", "Android's warning did not appear.")
             self.shot("android-warning", "Android's standard warning for every Accessibility service.")
             self.tap(r"^Allow$", wait=2)
         except RuntimeError as error:
@@ -315,8 +322,8 @@ class Walk:
             self.tap_filled()
             if "com.android.settings" in self.resumed():
                 self.shot("android-app-info", "Where the button leads once the app has stopped asking.")
-                self.tap(r"^Permissions$", scrolls=2, wait=2)
-                self.tap(r"^Phone$", scrolls=2, wait=2)
+                self.tap_through(r"^Permissions$", r"^Phone$", "App info did not open its permissions.", scrolls=2)
+                self.tap_through(r"^Phone$", r"^Allow$", "The Phone permission did not open.", scrolls=2)
                 self.shot("android-phone-permission", "The Phone permission in app info.")
                 self.tap(r"^Allow$", wait=2)
                 through = "app-info"
