@@ -30,8 +30,8 @@ Accessibility to identify visible apps and display its breathing overlay.
 overlay.** Afterward, navigation and the available choices let you leave.
 [Privacy details](privacy.md) explain what is observed and stored.
 
-Tap **Turn on in Accessibility**, find **Speedbreaker**, and
-enable it. On Samsung this is usually under **Accessibility → Installed apps**.
+Tap **Turn on in Accessibility**, find **Speedbreaker** (listed as **Speedbreaker attention pauses** in 1.0.5 and earlier),
+and enable it. On Samsung this is usually under **Accessibility → Installed apps**.
 Speedbreaker opens again by itself once the service is on; if it does not, press Back.
 On phones whose Settings supports it, the entry is scrolled into view and highlighted.
 
@@ -186,8 +186,8 @@ and earlier have no updater; install a newer APK over them by hand once.
 
 ## Stop or remove Speedbreaker
 
-Turn off **Speedbreaker** in Android Accessibility settings.
-That stops intervention and keeps your settings. You can uninstall Speedbreaker
+Turn off **Speedbreaker** (listed as **Speedbreaker attention pauses** in 1.0.5 and earlier)
+in Android Accessibility settings. That stops intervention and keeps your settings. You can uninstall Speedbreaker
 normally from app info; uninstalling removes its local app data. There is no
 cloud copy to restore from.
 

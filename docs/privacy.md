@@ -149,8 +149,8 @@ extraction rules.
 
 ## Stop observation or delete data
 
-Disable **Speedbreaker** in Android Accessibility settings to
-stop the service. Your saved settings remain on the phone. Uninstall the app,
+Disable **Speedbreaker** (listed as **Speedbreaker attention pauses** in 1.0.5 and earlier)
+in Android Accessibility settings to stop the service. Your saved settings remain on the phone. Uninstall the app,
 or clear its storage in Android Settings, to remove its local data. Clearing
 storage also resets consent, chosen apps, pause allowances, and the breathing total. There is no
 Speedbreaker cloud backup or account to delete.
