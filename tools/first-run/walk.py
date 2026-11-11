@@ -343,7 +343,12 @@ class Walk:
 
     def phone_permission(self):
         """Phone permission is optional and asked from its row on Home, after breaths already work."""
-        self.shot("home-after-first-breath", "Home after the first breath, taken without Phone permission.")
+        self.shot("home-after-first-breath", "Home after the first breath, taken without Phone permission.", read=False)
+        # Finding the row means reading the screen, which switches the service off and on and moves
+        # Home's rows under the tap. So the service is held off while the row is pressed (the prompt
+        # does not need it) and put back for the trip to app info, which does.
+        self.shell("settings", "put", "secure", "enabled_accessibility_services", "null")
+        time.sleep(3)
         # Keep saying no for as long as the app keeps asking, then take whatever way in it offers.
         refusals, through = 0, None
         for press in range(1, 6):
@@ -354,6 +359,8 @@ class Walk:
                     break
                 time.sleep(1)
             if "com.android.settings" in self.resumed():
+                self.shell("settings", "put", "secure", "enabled_accessibility_services", SERVICE)
+                time.sleep(4)
                 self.shot("android-app-info", "Where the row leads once the app has stopped asking.")
                 self.tap_through(r"^Permissions$", r"^Phone$", "App info did not open its permissions.", scrolls=2)
                 self.tap_through(r"^Phone$", r"^Allow$", "The Phone permission did not open.", scrolls=2)
