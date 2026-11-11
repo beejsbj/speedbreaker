@@ -1,6 +1,6 @@
 # Discovery and store distribution
 
-Store status checked October 11, 2026; the latest GitHub release (**1.0.5**, October 17)
+Store status checked October 11, 2026; the latest GitHub release (**1.0.6**, November 11)
 is the public Android release. Store preparation is implemented in PR #8; no F-Droid or Google Play
 submission/approval is claimed. The owner discontinued Apple Developer/App Store
 work; the native iOS feasibility prototype remains saved.

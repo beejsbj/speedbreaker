@@ -1,7 +1,7 @@
 # Google Play submission packet
 
 **Prepared source and drafts; not submitted.** Prepared for candidate 1.0.2 /
-version code 6; the current build is 1.0.5 / version code 9. Package
+version code 6; the current build is 1.0.6 / version code 10. Package
 `dev.burooj.speedbreaker`, minimum API 26, target API 36. Recheck the
 [target policy](https://support.google.com/googleplay/android-developer/answer/11926878?hl=en)
 at submission. Hosted CI produces an unsigned Play Android App Bundle and APK.
