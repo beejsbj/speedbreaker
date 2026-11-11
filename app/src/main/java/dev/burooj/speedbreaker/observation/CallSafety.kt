@@ -1,6 +1,7 @@
 package dev.burooj.speedbreaker.observation
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.media.AudioManager
 import android.telecom.TelecomManager
@@ -21,6 +22,8 @@ internal class CallSafety(private val context: Context) {
         false
     }
 
+    // Telecom is only asked behind phoneAllowed(), which lint does not follow.
+    @SuppressLint("MissingPermission")
     fun status(): Status {
         return try {
             if (phoneAllowed()) {
@@ -49,6 +52,7 @@ internal class CallSafety(private val context: Context) {
      */
     data class Detail(val status: Status, val telecomInCall: Boolean?, val audioMode: Int?)
 
+    @SuppressLint("MissingPermission")
     fun detail(): Detail = Detail(
         status = status(),
         telecomInCall = try {
