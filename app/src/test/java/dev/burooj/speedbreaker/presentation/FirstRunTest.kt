@@ -18,7 +18,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** What a new person meets before the first breath: two welcome pages, then three steps on Home. */
+/** What a new person meets before the first breath: two welcome pages, then two steps on Home. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w412dp-h915dp-xxhdpi")
@@ -51,13 +51,13 @@ class FirstRunTest {
     @Test
     fun aFreshInstallOpensOnStepOneAndNamesTheServiceToFind() {
         show(Protection.Off)
-        compose.onNodeWithText("Three steps to start").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Step 1 of 3, next. Turn on Speedbreaker in Accessibility").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Step 2 of 3, later. Allow Phone permission").assertExists()
+        compose.onNodeWithText("Two steps to start").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Step 1 of 2, next. Turn on Speedbreaker in Accessibility").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Step 2 of 2, later. Choose your apps").assertExists()
         compose.onNodeWithText("find “Speedbreaker”", substring = true).assertExists()
         compose.onNodeWithText("Turn on in Accessibility").assertExists()
-        // Later steps stay closed until their turn, and nothing reads as a fault.
-        compose.onNodeWithText("make and manage phone calls", substring = true).assertDoesNotExist()
+        // The later step stays closed until its turn, and nothing reads as a fault.
+        compose.onNodeWithText("Pick the apps that pull at you", substring = true).assertDoesNotExist()
         compose.onNodeWithText("Off for now").assertDoesNotExist()
     }
 
@@ -71,31 +71,47 @@ class FirstRunTest {
 
     @Test
     fun appsCanBeChosenEarlyFromTheirOwnRow() {
-        show(Protection.CallPermission)
+        show(Protection.Off)
         compose.onNodeWithText("APPS").assertExists()
         compose.onNodeWithText("Choose apps").assertExists()
     }
 
     @Test
-    fun thePhoneStepGivesItsReasonAndAsks() {
+    fun phonePermissionIsNotASetupStepAndBreathsDoNotWaitForIt() {
+        show(Protection.On, phoneAllowed = false)
+        compose.onNodeWithText("One step left").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Step 1 of 2, done. Turn on Speedbreaker in Accessibility").assertIsDisplayed()
+        compose.onNodeWithText("Breaths are off", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun thePhoneRowSaysWhatIsMissedWithoutItAndAsks() {
         var presses = 0
-        show(Protection.CallPermission, onCallAccess = { presses++ })
-        compose.onNodeWithText("Two steps left").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Step 1 of 3, done. Turn on Speedbreaker in Accessibility").assertIsDisplayed()
+        show(Protection.On, phoneAllowed = false, onCallAccess = { presses++ })
+        compose.onNodeWithText("rings silently or on vibrate can stay hidden", substring = true).assertExists()
         compose.onNodeWithText("make and manage phone calls", substring = true).assertExists()
-        compose.onNodeWithText("Open app info").assertDoesNotExist()
-        compose.onNodeWithText("Allow Phone permission").performScrollTo().performClick()
+        compose.onNodeWithText("Phone permission").performScrollTo().performClick()
         assertEquals(1, presses)
     }
 
     @Test
-    fun aWithheldPromptIsExplainedInsteadOfLeavingADeadButton() {
+    fun aWithheldPromptIsExplainedInsteadOfLeavingADeadRow() {
         var presses = 0
-        show(Protection.CallPermission, phoneNeedsSettings = true, onCallAccess = { presses++ })
+        show(Protection.On, phoneAllowed = false, phoneNeedsSettings = true, onCallAccess = { presses++ })
         compose.onNodeWithText("Permissions → Phone → Allow", substring = true).assertExists()
-        compose.onNodeWithText("Allow Phone permission").assertDoesNotExist()
-        compose.onNodeWithText("Open app info").performScrollTo().performClick()
+        compose.onNodeWithText("Phone permission").performScrollTo().performClick()
         assertEquals(1, presses)
+    }
+
+    @Test
+    fun anAllowedPhoneRowSaysSoAndLeadsToAppInfo() {
+        var asked = 0
+        var appInfo = 0
+        show(Protection.On, onCallAccess = { asked++ }, onOpenAppInfo = { appInfo++ })
+        compose.onNodeWithText("even a silent one", substring = true).assertExists()
+        compose.onNodeWithText("Phone permission").performScrollTo().performClick()
+        assertEquals(0, asked)
+        assertEquals(1, appInfo)
     }
 
     @Test
@@ -106,7 +122,7 @@ class FirstRunTest {
             stats = BreathStats(totalMs = 60_000, totalBreaths = 5),
         )
         compose.onNodeWithText("Off for now").assertIsDisplayed()
-        compose.onNodeWithText("Three steps to start").assertDoesNotExist()
+        compose.onNodeWithText("Two steps to start").assertDoesNotExist()
         compose.onNodeWithText("Turn on in Accessibility").assertExists()
     }
 
@@ -115,7 +131,9 @@ class FirstRunTest {
         settings: Settings = Settings(consentAccepted = true),
         stats: BreathStats = BreathStats(),
         phoneNeedsSettings: Boolean = false,
+        phoneAllowed: Boolean = true,
         onCallAccess: () -> Unit = {},
+        onOpenAppInfo: () -> Unit = {},
     ) = compose.setContent {
         SpeedbreakerTheme {
             HomeScreen(
@@ -124,13 +142,14 @@ class FirstRunTest {
                 runtimeError = null,
                 notificationsAllowed = true,
                 onEnableAccessibility = {},
-                onOpenAppInfo = {},
+                onOpenAppInfo = onOpenAppInfo,
                 onNotifications = {},
                 onChooseApps = {},
                 onDefaults = {},
                 onApp = {},
                 onCallAccess = onCallAccess,
                 phoneNeedsSettings = phoneNeedsSettings,
+                phoneAllowed = phoneAllowed,
                 stats = stats,
             )
         }

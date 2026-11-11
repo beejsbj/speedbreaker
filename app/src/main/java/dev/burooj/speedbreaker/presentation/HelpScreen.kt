@@ -44,6 +44,13 @@ internal fun HelpScreen(
             "see Battery and background on Home.",
     )
     HelpTopic(
+        heading = "Calls",
+        body = "A breath steps aside when you’re on a call or the phone rings aloud. A call that rings " +
+            "silently or on vibrate is only seen with Phone permission, which is optional: allow it " +
+            "under Phone permission on Home. Android words it as “make and manage phone calls”; Speedbreaker can’t " +
+            "make calls and doesn’t read numbers, call history, or audio.",
+    )
+    HelpTopic(
         heading = "Checking in",
         body = "Stay in a chosen app and another breath comes after ten minutes of use. Tap the app " +
             "under Apps on Home to change the interval or turn it off.",

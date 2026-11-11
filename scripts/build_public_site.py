@@ -98,7 +98,7 @@ Then continue, leave, or open somewhere else. Optional check-ins bring the pause
 <p>Android 8.0 or newer. GitHub APK is available. F-Droid and Google Play distribution are in preparation;
 no store availability is claimed.</p><h2>What the pause does</h2>
 <p>The first eight seconds hold ordinary navigation. Settings and Android-reported calls yield.
-Breaths stay off without Phone permission. Calling apps exposing neither Android call state nor communication audio
+Phone permission is optional; without it a call ringing silently or on vibrate can be hidden for the length of a breath. Calling apps exposing neither Android call state nor communication audio
 may not be detected. You choose every target and optional detour.</p>
 <p>No account, ads, analytics or per-app usage history. Settings, pause state and a resettable total of time breathed stay on the phone.</p>''')
     page("privacy.html", "Privacy policy",

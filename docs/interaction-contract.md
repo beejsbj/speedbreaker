@@ -88,6 +88,11 @@ Device observations and untested recovery cases must still be reported accuratel
 
 ## 1.0.1 call-safety and pause-control clarification
 
+**Superseded in part by 1.0.6 (owner decision, November 11, #70):** Phone permission is
+optional. Without it Telecom is not asked and only the audio mode is read, so breaths
+run and a call ringing silently or on vibrate is not seen. The rest of this section
+describes behaviour with the permission granted.
+
 The service observes visible app identities, including non-target safety screens,
 without traversing screen text. Phone permission is now required before breaths
 can run. It reads Android's aggregate call-state boolean and current audio mode;

@@ -101,50 +101,39 @@ class HomeStatusTest {
         assertEquals("Speedbreaker is on, Pause 15 min needs notifications", homeStatusDescription("Pause 15 min needs notifications"))
     }
 
-    private fun setup(protection: Protection, phoneAllowed: Boolean = false, hasApps: Boolean = false, hasBreathed: Boolean = false) =
-        setupProgress(protection, phoneAllowed, hasApps, hasBreathed)
+    private fun setup(protection: Protection, hasApps: Boolean = false, hasBreathed: Boolean = false) =
+        setupProgress(protection, hasApps, hasBreathed)
 
     @Test
     fun `setup counts down the steps a new person has left`() {
         val fresh = setup(Protection.Off)!!
         assertEquals(1, fresh.current)
-        assertEquals("Three steps to start", setupTitle(fresh))
+        assertEquals("Two steps to start", setupTitle(fresh))
 
-        val serviceOn = setup(Protection.CallPermission)!!
+        val serviceOn = setup(Protection.On)!!
         assertEquals(2, serviceOn.current)
-        assertEquals("Two steps left", setupTitle(serviceOn))
-
-        val phoneAllowed = setup(Protection.On, phoneAllowed = true)!!
-        assertEquals(3, phoneAllowed.current)
-        assertEquals("One step left", setupTitle(phoneAllowed))
+        assertEquals("One step left", setupTitle(serviceOn))
     }
 
     @Test
-    fun `steps done out of order are already ticked`() {
+    fun `apps chosen before the service is on are already ticked`() {
         val appsFirst = setup(Protection.Off, hasApps = true)!!
         assertEquals(1, appsFirst.current)
-        assertEquals("Two steps left", setupTitle(appsFirst))
-        assertEquals(2, setup(Protection.CallPermission, hasApps = true)!!.current)
-
-        // Phone allowed, then the service switched off again before a first breath.
-        val phoneKept = setup(Protection.Off, phoneAllowed = true, hasApps = true)!!
-        assertEquals(1, phoneKept.current)
-        assertEquals("One step left", setupTitle(phoneKept))
+        assertEquals("One step left", setupTitle(appsFirst))
     }
 
     @Test
     fun `setup ends when everything is done and gives way to repairs once a breath is counted`() {
-        assertNull(setup(Protection.On, phoneAllowed = true, hasApps = true))
+        assertNull(setup(Protection.On, hasApps = true))
         assertNull(setup(Protection.Off, hasApps = true, hasBreathed = true))
-        assertNull(setup(Protection.CallPermission, hasBreathed = true))
-        assertNull(setup(Protection.On, phoneAllowed = true, hasBreathed = true))
+        assertNull(setup(Protection.On, hasBreathed = true))
     }
 
     @Test
     fun `problems that are not setup steps keep their own words`() {
         assertNull(setup(Protection.Broken))
         assertNull(setup(Protection.CallUnavailable))
-        assertNull(setup(Protection.CallActive, phoneAllowed = true))
+        assertNull(setup(Protection.CallActive))
     }
 
     private fun withheld(

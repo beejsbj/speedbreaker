@@ -68,8 +68,9 @@ prerelease. Version 1.0.1 fixes [call interruption #6](https://github.com/beejsb
 [pause controls #5](https://github.com/beejsbj/speedbreaker/issues/5). Review and
 verification receipts are in [the 1.0.1 record](docs/reviews/2026-10-11-1.0.1.md).
 Calls are detected through Android Telecom and communication audio; third-party
-calls exposing neither signal are outside that coverage. Phone permission is
-required, and missing access suspends breaths.
+calls exposing neither signal are outside that coverage. Phone permission was
+required until 1.0.6; it is now optional (owner decision, November 11, #70): without it
+only the audio mode is read, so a call ringing silently or on vibrate is not seen.
 
 Burooj requested visible app icons for redirects and a quiet optional support
 link in the app. He prefers the Mac for local heavy jobs; use hosted CI or the

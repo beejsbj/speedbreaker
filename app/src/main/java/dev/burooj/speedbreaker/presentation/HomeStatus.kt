@@ -37,14 +37,10 @@ internal fun homeStatusText(note: String?): String = if (note == null) "On" else
 internal fun homeStatusDescription(note: String?): String =
     if (note == null) "Speedbreaker is on" else "Speedbreaker is on, $note"
 
-/** Which of the three first-time steps are done; [current] is the one to do next. */
-internal data class SetupProgress(val accessibility: Boolean, val phone: Boolean, val apps: Boolean) {
-    val remaining: Int get() = listOf(accessibility, phone, apps).count { !it }
-    val current: Int get() = when {
-        !accessibility -> 1
-        !phone -> 2
-        else -> 3
-    }
+/** Which of the two first-time steps are done; [current] is the one to do next. */
+internal data class SetupProgress(val accessibility: Boolean, val apps: Boolean) {
+    val remaining: Int get() = listOf(accessibility, apps).count { !it }
+    val current: Int get() = if (!accessibility) 1 else 2
 }
 
 /**
@@ -55,22 +51,17 @@ internal data class SetupProgress(val accessibility: Boolean, val phone: Boolean
  */
 internal fun setupProgress(
     protection: Protection,
-    phoneAllowed: Boolean,
     hasApps: Boolean,
     hasBreathed: Boolean,
 ): SetupProgress? = when {
     hasBreathed -> null
-    protection == Protection.Off -> SetupProgress(accessibility = false, phone = phoneAllowed, apps = hasApps)
-    protection == Protection.CallPermission -> SetupProgress(accessibility = true, phone = false, apps = hasApps)
-    protection == Protection.On && !hasApps -> SetupProgress(accessibility = true, phone = true, apps = false)
+    protection == Protection.Off -> SetupProgress(accessibility = false, apps = hasApps)
+    protection == Protection.On && !hasApps -> SetupProgress(accessibility = true, apps = false)
     else -> null
 }
 
-internal fun setupTitle(progress: SetupProgress): String = when (progress.remaining) {
-    1 -> "One step left"
-    2 -> "Two steps left"
-    else -> "Three steps to start"
-}
+internal fun setupTitle(progress: SetupProgress): String =
+    if (progress.remaining == 1) "One step left" else "Two steps to start"
 
 /**
  * Whether Android will no longer show a permission's prompt, so only app info can change it.

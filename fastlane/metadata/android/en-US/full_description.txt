@@ -17,6 +17,6 @@ No account, ads, analytics, cloud sync, per-app or time-stamped history, streaks
 ACCESSIBILITY AND PHONE PERMISSION
 Speedbreaker uses Android's AccessibilityService API to identify visible app package names, including relevant system screens, show its breathing pause and carry out your navigation choices. It does not read screen text or typed input, capture screenshots, or upload app activity. You see an in-app disclosure and choose whether to consent before enabling the service.
 
-Phone permission supports a check of Android's call state. No phone numbers, call history or audio are read. Breaths stay off without this access. Calling apps exposing neither Android call state nor communication audio may not be detected while ringing. Notifications are needed for the fifteen-minute Pause option.
+Phone permission is optional. It supports a check of Android's call state; no phone numbers, call history or audio are read. Without it, a call ringing silently or on vibrate can be hidden for the length of a breath. Calling apps exposing neither Android call state nor communication audio may not be detected while ringing. Notifications are needed for the fifteen-minute Pause option.
 
 Android 8.0 or newer. Device behavior can vary. One Hand Operation+ gestures are unavailable during the overlay. Speedbreaker is a general attention aid, with no medical or disability-treatment claim.

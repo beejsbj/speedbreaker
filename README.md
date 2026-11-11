@@ -59,11 +59,12 @@ own apps and detours.
 2. Open it on your phone. If prompted, allow your browser or file manager to
    install this APK, then follow Android's installer.
 3. Open Speedbreaker, tap **Continue**, read the Accessibility disclosure, and tap
-   **I understand — continue**. Home then lists three steps.
+   **I understand — continue**. Home then lists two steps.
 4. Tap **Turn on in Accessibility** and enable **Speedbreaker**.
-5. Speedbreaker opens again by itself; if it does not, press Back. Tap **Allow Phone permission** and allow it. Breaths
-   stay off without it so silent calls are not hidden.
-6. Tap **Choose apps**. Open a chosen app to try it.
+5. Speedbreaker opens again by itself; if it does not, press Back. Tap **Choose apps**, then
+   open a chosen app to try it.
+6. Optional: under **Reliability**, tap **Phone permission** and allow it, so a breath also
+   steps aside for a call that rings silently or on vibrate.
 
 If Android says the Accessibility setting is restricted, open Speedbreaker's
 **App info → ⋮ → Allow restricted settings**, confirm your identity, and return
@@ -106,8 +107,9 @@ choices unlock. You can turn Speedbreaker off in Android Accessibility settings.
 ## Privacy and device support
 
 Accessibility lets Speedbreaker identify visible apps and display its pause.
-Phone permission supports a call-state check, without reading numbers, call
-history, or audio. The app does not read message text or take screenshots. It keeps
+Phone permission is optional. It supports a call-state check, without reading numbers,
+call history, or audio; without it a call ringing silently or on vibrate can be hidden for
+the length of a breath. The app does not read message text or take screenshots. It keeps
 only a running total of the seconds you have breathed and the breaths you have taken
 (overall and today), shown on Home and resettable there. It never sends them anywhere,
 and keeps no per-app or time-stamped history.
