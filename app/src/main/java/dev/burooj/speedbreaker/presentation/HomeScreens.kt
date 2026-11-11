@@ -243,7 +243,6 @@ internal enum class Protection {
     /** Connected and able to pause chosen apps. */
     On,
 
-    CallPermission,
     CallUnavailable,
     CallActive,
 }
@@ -268,7 +267,7 @@ internal fun HomeScreen(
     onApp: (String) -> Unit,
     onCallAccess: () -> Unit = {},
     phoneNeedsSettings: Boolean = false,
-    phoneAllowed: Boolean = protection == Protection.On,
+    phoneAllowed: Boolean = true,
     pauses: Map<String, PauseState> = emptyMap(),
     nowEpochMs: Long = System.currentTimeMillis(),
     onEndPause: (String) -> Unit = {},
@@ -291,7 +290,7 @@ internal fun HomeScreen(
     var confirmingReset by remember { mutableStateOf(false) }
 
     val healthy = protection == Protection.On && appCount > 0
-    val setup = setupProgress(protection, phoneAllowed, hasApps = appCount > 0, hasBreathed = !stats.isEmpty)
+    val setup = setupProgress(protection, hasApps = appCount > 0, hasBreathed = !stats.isEmpty)
     val title = if (healthy) {
         null
     } else if (setup != null) {
@@ -300,7 +299,6 @@ internal fun HomeScreen(
         when (protection) {
             Protection.Off -> "Off for now"
             Protection.Broken, Protection.CallUnavailable -> "Needs attention"
-            Protection.CallPermission -> "One more step"
             Protection.CallActive -> "Giving your call room"
             Protection.On -> "Ready when you are"
         }
@@ -329,10 +327,8 @@ internal fun HomeScreen(
         if (setup != null) {
             SetupSteps(
                 progress = setup,
-                phoneNeedsSettings = phoneNeedsSettings,
                 onEnableAccessibility = onEnableAccessibility,
                 onOpenAppInfo = onOpenAppInfo,
-                onCallAccess = onCallAccess,
                 onChooseApps = onChooseApps,
             )
         } else {
@@ -340,11 +336,9 @@ internal fun HomeScreen(
                 protection = protection,
                 runtimeError = runtimeError,
                 hasApps = appCount > 0,
-                phoneNeedsSettings = phoneNeedsSettings,
                 onEnableAccessibility = onEnableAccessibility,
                 onOpenAppInfo = onOpenAppInfo,
                 onChooseApps = onChooseApps,
-                onCallAccess = onCallAccess,
             )
         }
 
@@ -361,7 +355,7 @@ internal fun HomeScreen(
         updateCard?.invoke()
 
         // While choosing apps is the open setup step, its button is the way in; a second row would repeat it.
-        if (setup?.current != 3) Section(
+        if (setup?.current != 2) Section(
             title = "Apps",
             footnote = if (appCount == 0) "Nothing is chosen until you pick it." else null,
         ) {
@@ -409,6 +403,28 @@ internal fun HomeScreen(
                         } else {
                             MaterialTheme.colorScheme.outline
                         },
+                    )
+                },
+            )
+            RowDivider()
+            // Optional: breaths work without it, so off is a choice here too.
+            NavRow(
+                title = "Phone permission",
+                summary = when {
+                    phoneAllowed -> "Allowed. A breath steps aside for a ringing call, even a silent one."
+                    phoneNeedsSettings -> PHONE_APP_INFO
+                    else -> PHONE_OPTIONAL
+                },
+                onClick = if (phoneAllowed) onOpenAppInfo else onCallAccess,
+                // The app-info wording replaces the summary after a press, so a screen reader has to be told.
+                modifier = if (phoneNeedsSettings && !phoneAllowed) {
+                    Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                } else {
+                    Modifier
+                },
+                leading = {
+                    StatusDot(
+                        if (phoneAllowed) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline,
                     )
                 },
             )
@@ -537,11 +553,9 @@ private fun StatusPanel(
     protection: Protection,
     runtimeError: String?,
     hasApps: Boolean,
-    phoneNeedsSettings: Boolean,
     onEnableAccessibility: () -> Unit,
     onOpenAppInfo: () -> Unit,
     onChooseApps: () -> Unit,
-    onCallAccess: () -> Unit,
 ) {
     when (protection) {
         Protection.Off -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -559,13 +573,9 @@ private fun StatusPanel(
             )
             PrimaryAction("Open Accessibility", onEnableAccessibility, Modifier.fillMaxWidth())
         }
-        Protection.CallPermission -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Notice(tone = NoticeTone.Repair, text = "Breaths are off until Phone permission is allowed. $PHONE_REASON")
-            PhoneActions(phoneNeedsSettings, onCallAccess)
-        }
         Protection.CallUnavailable -> Notice(
             tone = NoticeTone.Repair,
-            text = "Android’s call-state check is unavailable, so breaths are off. " +
+            text = "Android’s call check is unavailable, so breaths are off. " +
                 "Your settings are kept. Try restarting your phone.",
         )
         Protection.CallActive -> Notice(
@@ -589,17 +599,15 @@ private fun StatusPanel(
 /* ---------- First-time setup ---------- */
 
 /**
- * The three things a new person does before the first breath, in order. The step to do next is
+ * The two things a new person does before the first breath, in order. The step to do next is
  * open, with its reason and its one button; finished steps keep a moss tick. It gives way to the
  * ordinary status as soon as a breath has been taken, so a later repair never reads as setup.
  */
 @Composable
 private fun SetupSteps(
     progress: SetupProgress,
-    phoneNeedsSettings: Boolean,
     onEnableAccessibility: () -> Unit,
     onOpenAppInfo: () -> Unit,
-    onCallAccess: () -> Unit,
     onChooseApps: () -> Unit,
 ) {
     val serviceName = stringResource(R.string.accessibility_service_label)
@@ -614,12 +622,7 @@ private fun SetupSteps(
             AccessibilityActions(onEnableAccessibility, onOpenAppInfo)
         }
         RowDivider()
-        SetupStep(2, "Allow Phone permission", progress.phone, progress.current == 2) {
-            StepText("$PHONE_REASON Breaths stay off until it’s allowed.")
-            PhoneActions(phoneNeedsSettings, onCallAccess)
-        }
-        RowDivider()
-        SetupStep(3, "Choose your apps", progress.apps, progress.current == 3) {
+        SetupStep(2, "Choose your apps", progress.apps, progress.current == 2) {
             StepText("Pick the apps that pull at you. Opening one starts a breath.")
             PrimaryAction("Choose apps", onChooseApps, Modifier.fillMaxWidth())
         }
@@ -642,7 +645,7 @@ private fun SetupStep(
     }
     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp)) {
         Row(
-            modifier = Modifier.clearAndSetSemantics { contentDescription = "Step $number of 3, $state. $title" },
+            modifier = Modifier.clearAndSetSemantics { contentDescription = "Step $number of 2, $state. $title" },
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
@@ -698,29 +701,13 @@ private fun ColumnScope.AccessibilityActions(onEnableAccessibility: () -> Unit, 
     QuietAction("Open app info", onOpenAppInfo)
 }
 
-/**
- * Asks for Phone permission while Android will still show its prompt. Once Android has stopped
- * asking, the same place says so and leads to the permission in app info instead.
- */
-@Composable
-private fun ColumnScope.PhoneActions(needsSettings: Boolean, onCallAccess: () -> Unit) {
-    if (needsSettings) {
-        // Appears in place after a press, so a screen reader has to be told.
-        Text(
-            text = "Android won’t ask again here. Open app info, then Permissions → Phone → Allow. " +
-                "Speedbreaker opens again once it’s allowed.",
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-        )
-        PrimaryAction("Open app info", onCallAccess, Modifier.fillMaxWidth())
-    } else {
-        PrimaryAction("Allow Phone permission", onCallAccess, Modifier.fillMaxWidth())
-    }
-}
+private const val PHONE_OPTIONAL = "Optional. Without it, a call that rings without a ringtone (silent, vibrate or Do Not " +
+    "Disturb) can stay hidden behind a breath. Android words this as “make and manage phone calls”; Speedbreaker can’t make calls and " +
+    "doesn’t read numbers, call history, or audio."
 
-private const val PHONE_REASON = "So a breath doesn’t cover an incoming call, Speedbreaker checks whether your " +
-    "phone is ringing or in a call. Android words this as “make and manage phone calls”; Speedbreaker " +
-    "can’t make calls and doesn’t read numbers, call history, or audio."
+/** Once Android has stopped showing its prompt, the row says so and leads to app info instead. */
+private const val PHONE_APP_INFO = "Not allowed, and Android won’t ask again here. Tap to open app info, then " +
+    "Permissions → Phone → Allow. Speedbreaker opens again once it’s allowed."
 
 internal enum class NoticeTone { Calm, Repair }
 

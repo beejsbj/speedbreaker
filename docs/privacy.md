@@ -2,7 +2,7 @@
 
 Applies to Android Speedbreaker through **1.0.5**, including its GitHub,
 community (F-Droid) and Google Play builds. Neither store build has been released.
-Last reviewed: **October 17, 2026**; corrected **November 10, 2026** (window data and notification-shade wording). Publisher: **Burooj (beejsbj)**.
+Last reviewed: **October 17, 2026**; corrected **November 10, 2026** (window data and notification-shade wording); updated **November 11, 2026** (Phone permission is optional). Publisher: **Burooj (beejsbj)**.
 
 Speedbreaker runs on your Android phone. It has no account, analytics, ads,
 cloud sync, billing SDK or developer backend. The community (F-Droid) and Google
@@ -41,21 +41,25 @@ A single on-device flag records only that Speedbreaker muted the music stream du
 
 ## Call safety
 
-Speedbreaker checks Android’s aggregate call-state boolean through
-`TelecomManager.isInCall()`, including silent ringing and calls registered by
-third-party calling apps. It also checks the current audio mode as a secondary
-signal for communication audio. These values are not stored. When a safety check
+With Phone permission, Speedbreaker checks Android’s aggregate call-state boolean
+through `TelecomManager.isInCall()`, including silent ringing and calls registered by
+third-party calling apps. With or without it, Speedbreaker checks the current audio
+mode, which changes for ringtone and communication audio. These values are not stored. When a safety check
 holds back or ends a breath, the aggregate result (booleans and the audio-mode
 number) is written to Android's local diagnostic log described below.
 
-Android calls the required runtime permission **Phone**. Speedbreaker uses it
+Android calls the runtime permission **Phone**. It is optional from 1.0.6 (earlier
+versions kept breaths off without it), and is offered under Reliability on Home,
+not during setup. Speedbreaker uses it
 only for the call-state check; it does not request contacts, call logs, microphone
 access, or permission to place or answer calls. It does not read phone numbers,
 caller identity, call history, notification contents, or audio.
 
-If permission is denied or revoked, or a detectable system-service error occurs,
-breathing overlays stay off. Existing settings and pause allowances remain.
-Android’s APIs cannot identify every failure, and calling apps that do not
+Without the permission, breaths still run and the call-state check is skipped. A call
+that rings without a ringtone (silent, vibrate or Do Not Disturb) does not change the audio mode, so it is not seen
+and can stay hidden behind a breath for the breath’s length. If a detectable
+system-service error occurs, breathing overlays stay off; existing settings and pause
+allowances remain. Android’s APIs cannot identify every failure, and calling apps that do not
 register calls with Android may not be detected before communication audio starts.
 See [Android’s call-state API](https://developer.android.com/reference/android/telecom/TelecomManager#isInCall()).
 
@@ -127,7 +131,7 @@ or send them anywhere. See [Device diagnostics](build-and-test.md#device-diagnos
 | Permission or capability | Purpose |
 | --- | --- |
 | Accessibility service | Identify visible apps, show the breathing overlay, and perform the user's navigation choices. You enable it in Android Settings. |
-| Phone state | Check whether Android reports a ringing, active, dialing, or held call. Breaths stay off if this permission is denied or revoked. |
+| Phone state (optional) | Check whether Android reports a ringing, active, dialing, or held call. Without it, breaths run and a call ringing without a ringtone (silent, vibrate or Do Not Disturb) is not seen. |
 | Notifications | Show each active fifteen-minute pause and its **End now** action. Pause requires notifications to be available. |
 | Receive boot completed | Support recovery of locally stored pause state after the phone restarts. |
 | Internet (GitHub build only) | Check GitHub for a newer release and download it, only when you ask or have turned on the daily check. |

@@ -43,14 +43,14 @@ class DiagTest {
 
     @Test fun safetyDetailCarriesStatusBooleansAndTheAudioModeNumber() {
         val detail = SafetyDetail(
-            callSafety = CallSafety.Status.PermissionRequired,
+            callSafety = CallSafety.Status.Unavailable,
             telecomInCall = null,
             audioMode = 0,
             keyguardLocked = false,
             yieldPackageVisible = true,
         )
         assertEquals(
-            "safety detail interactive=true callSafety=PermissionRequired telecomInCall=unknown " +
+            "safety detail interactive=true callSafety=Unavailable telecomInCall=unknown " +
                 "audioMode=0 keyguardLocked=false yieldPackageVisible=true",
             detail.logLine(interactive = true),
         )

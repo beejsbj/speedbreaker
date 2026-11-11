@@ -106,7 +106,7 @@ internal fun SpeedbreakerApp() {
             }
         }
         val callStatus = remember(resumeTick, nowEpochMs) { callSafety.status() }
-        val phoneAllowed = callStatus != CallSafety.Status.PermissionRequired
+        val phoneAllowed = remember(resumeTick, nowEpochMs) { callSafety.phoneAllowed() }
         // Allowed from app info, or revoked later: either way Android's prompt is the way in again.
         SideEffect {
             if (phoneAllowed && (phoneNeedsSettings || phoneSilentRefusals > 0)) {
@@ -160,7 +160,6 @@ internal fun SpeedbreakerApp() {
                     protection = when {
                         !accessibilityEnabled -> Protection.Off
                         !connected || runtimeError != null -> Protection.Broken
-                        callStatus == CallSafety.Status.PermissionRequired -> Protection.CallPermission
                         callStatus == CallSafety.Status.Unavailable -> Protection.CallUnavailable
                         callStatus == CallSafety.Status.InCall -> Protection.CallActive
                         else -> Protection.On

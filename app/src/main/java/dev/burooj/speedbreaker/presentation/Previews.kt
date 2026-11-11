@@ -61,12 +61,6 @@ internal val Gallery: List<GallerySpec> = listOf(
         Screen { WelcomeScreen(startOnDisclosure = true, onAccept = {}) }
     },
     GallerySpec("setup-02-home-off") { Screen { HomeSample(Protection.Off, FreshInstall, notifications = false) } },
-    GallerySpec("setup-06-home-phone") {
-        Screen { HomeSample(Protection.CallPermission, FreshInstall, notifications = false) }
-    },
-    GallerySpec("setup-07-home-phone-app-info") {
-        Screen { HomeSample(Protection.CallPermission, FreshInstall, notifications = false, phoneNeedsSettings = true) }
-    },
     GallerySpec("setup-03-home-ready-no-apps") {
         Screen { HomeSample(Protection.On, FreshInstall, notifications = false) }
     },
@@ -138,6 +132,14 @@ internal val Gallery: List<GallerySpec> = listOf(
     },
     GallerySpec("settings-12-home-notifications-blocked") {
         Screen { HomeSample(Protection.On, SampleSettings, notifications = false, withBreaths = true) }
+    },
+    GallerySpec("settings-18-home-phone-optional", heightDp = 1500) {
+        Screen { HomeSample(Protection.On, SampleSettings, withBreaths = true, phoneAllowed = false) }
+    },
+    GallerySpec("settings-19-home-phone-app-info", heightDp = 1500) {
+        Screen {
+            HomeSample(Protection.On, SampleSettings, withBreaths = true, phoneAllowed = false, phoneNeedsSettings = true)
+        }
     },
     GallerySpec("settings-14-home-full-page", heightDp = 1500) {
         Screen { HomeSample(Protection.On, SampleSettings, withBreaths = true) }
@@ -213,6 +215,7 @@ private fun HomeSample(
     withBreaths: Boolean = false,
     now: Long = ActiveNow,
     phoneNeedsSettings: Boolean = false,
+    phoneAllowed: Boolean = true,
 ) = HomeScreen(
     settings = settings,
     protection = protection,
@@ -225,6 +228,7 @@ private fun HomeSample(
     onDefaults = {},
     onApp = {},
     phoneNeedsSettings = phoneNeedsSettings,
+    phoneAllowed = phoneAllowed,
     nowEpochMs = now,
     stats = if (withBreaths) sampleStats(now) else BreathStats(),
 )

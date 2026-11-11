@@ -36,9 +36,9 @@ overlay keeps its existing `BreakerOverlay` signature.
 - **Welcome** is two short pages. The first says what it does in three lines;
   the second is the Accessibility disclosure (what it sees, what the first eight
   seconds do, what it keeps) with accept and decline. Back returns to the first.
-- **First-time setup** is three numbered steps on Home: Accessibility, Phone
-  permission, apps. The title counts them down ("Three steps to start", "Two
-  steps left", "One step left"); the next step is open with its reason and its
+- **First-time setup** is two numbered steps on Home: Accessibility, then apps.
+  The title counts them down ("Two steps to start", "One step left"); Phone
+  permission is optional and lives under Reliability; the next step is open with its reason and its
   one button, finished steps keep a moss tick. After a first breath the same
   states are repairs and read as the statuses below. The Accessibility button
   asks Android to scroll to and highlight Speedbreaker's entry, and the service
@@ -147,8 +147,8 @@ export ANDROID_SDK_ROOT=/usr/lib/android-sdk JAVA_HOME=/usr/lib/jvm/java-17-open
 |---|---|
 | ![](screenshots/setup-00-loading.png) Loading, mid-morph | |
 | ![](screenshots/setup-01-welcome.png) Welcome: what it does | ![](screenshots/setup-05-disclosure.png) Welcome: the disclosure |
-| ![](screenshots/setup-02-home-off.png) Step 1: Accessibility | ![](screenshots/setup-06-home-phone.png) Step 2: Phone permission |
-| ![](screenshots/setup-07-home-phone-app-info.png) Step 2 once Android stops asking | ![](screenshots/setup-03-home-ready-no-apps.png) Step 3: apps |
+| ![](screenshots/setup-02-home-off.png) Step 1: Accessibility | ![](screenshots/setup-03-home-ready-no-apps.png) Step 2: apps |
+| ![](screenshots/settings-18-home-phone-optional.png) Phone permission, optional, not allowed | ![](screenshots/settings-19-home-phone-app-info.png) Once Android stops asking |
 | ![](screenshots/setup-04-app-picker.png) Choose apps | |
 
 | Settings | |

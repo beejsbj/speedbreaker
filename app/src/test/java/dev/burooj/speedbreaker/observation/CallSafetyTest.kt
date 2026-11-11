@@ -59,19 +59,39 @@ class CallSafetyTest {
         assertFalse(policy.safetyUiVisible(setOf("target.app", "com.android.systemui")))
     }
 
-    @Test fun permissionRevocationDismissesAnExistingBreaker() {
-        val engine = EnforcementEngine()
-        assertNotNull(engine.update(settings, observation(0)).breaker)
+    private fun denyPhone() {
         shadowOf(context).denyPermissions(Manifest.permission.READ_PHONE_STATE)
         shadowOf(telecom).setReadPhoneStatePermission(false)
-        assertNull(engine.update(settings, observation(1_000)).breaker)
-        assertNull(engine.update(settings, observation(9_000)).breaker)
     }
 
-    @Test fun deniedPermissionDoesNotAllowANewBreaker() {
-        shadowOf(context).denyPermissions(Manifest.permission.READ_PHONE_STATE)
-        shadowOf(telecom).setReadPhoneStatePermission(false)
-        assertNull(EnforcementEngine().update(settings, observation(0)).breaker)
+    @Test fun breathsDoNotWaitForPhonePermission() {
+        denyPhone()
+        assertFalse(CallSafety(context).phoneAllowed())
+        assertEquals(CallSafety.Status.Idle, CallSafety(context).status())
+        val engine = EnforcementEngine()
+        assertNotNull(engine.update(settings, observation(0)).breaker)
+        assertNotNull(engine.update(settings, observation(1_000)).breaker)
+    }
+
+    @Test fun withoutPhonePermissionRingtoneAndCallAudioStillYield() {
+        denyPhone()
+        val audio = context.getSystemService(AudioManager::class.java)
+        val engine = EnforcementEngine()
+        assertNotNull(engine.update(settings, observation(0)).breaker)
+        audio.mode = AudioManager.MODE_RINGTONE
+        assertNull(engine.update(settings, observation(1_000)).breaker)
+        audio.mode = AudioManager.MODE_IN_CALL
+        assertNull(engine.update(settings, observation(2_000)).breaker)
+        assertEquals(CallSafety.Status.InCall, CallSafety(context).status())
+    }
+
+    /** The known gap, stated on Home and in the privacy policy: Telecom is not asked. */
+    @Test fun withoutPhonePermissionASilentRingingCallIsNotSeen() {
+        denyPhone()
+        context.getSystemService(AudioManager::class.java).mode = AudioManager.MODE_NORMAL
+        shadowOf(telecom).setIsInCall(true)
+        assertEquals(CallSafety.Status.Idle, CallSafety(context).status())
+        assertNull(CallSafety(context).detail().telecomInCall)
     }
 
     @Test fun alreadyActiveCallPreventsNewBreakerAndStaleChoicesHaveNoSideEffects() {
@@ -90,14 +110,15 @@ class CallSafetyTest {
         }
     }
 
-    @Test fun appOpsDenialYieldsEvenWithRuntimePermissionGranted() {
+    @Test fun appOpsDenialCountsAsNotAllowedEvenWithRuntimePermissionGranted() {
         val appOps = context.getSystemService(AppOpsManager::class.java)
         shadowOf(appOps).setMode(
             AppOpsManager.OPSTR_READ_PHONE_STATE, Process.myUid(), context.packageName,
             AppOpsManager.MODE_IGNORED,
         )
-        assertEquals(CallSafety.Status.PermissionRequired, CallSafety(context).status())
-        assertTrue(policy.safetyUiVisible(setOf("target.app")))
+        // An app-op denial counts as not allowed: Telecom is skipped, not treated as a fault.
+        assertFalse(CallSafety(context).phoneAllowed())
+        assertEquals(CallSafety.Status.Idle, CallSafety(context).status())
     }
 
     @Test fun missingManagerOrExposedServiceFailureSuspendsBreaths() {

@@ -23,7 +23,7 @@ currently distributed through Google Play or F-Droid and has no iOS version.
 The first page says what Speedbreaker does; tap **Continue**. Read the disclosure
 on the second page and tap **I understand — continue**. **Not now — close** closes
 the app without accepting, and the pages return the next time you open it. Home
-then lists three steps: Accessibility, Phone permission, and choosing apps. You can
+then lists two steps: Accessibility and choosing apps. You can
 leave and come back at any point; finished steps stay ticked. Speedbreaker uses
 Accessibility to identify visible apps and display its breathing overlay.
 **For the first eight seconds, Home, Back, and Recents do not dismiss that
@@ -45,20 +45,23 @@ If Android shows **Restricted setting** or **Controlled by Restricted Setting**:
 Menu names differ across Android versions and manufacturers. This is an
 individual app approval, not a reason to turn off Play Protect.
 
-## Allow Phone permission
+## Phone permission (optional)
 
-After Accessibility connects, tap **Allow Phone permission** and allow it. Android
-words its prompt as “make and manage phone calls”; Speedbreaker cannot make calls.
-The permission lets it detect ringing calls, including
-silent ones, even when their controls appear in a system notification. It checks
-whether a call exists; it does not read numbers, call history, or audio.
+Breaths work without Phone permission. Without it, Speedbreaker notices a call only
+once Android switches to ringtone or call audio, so a call that rings without a ringtone
+(silent, vibrate or Do Not Disturb) can stay hidden behind a breath for its length (twelve seconds by default).
 
-Breaths stay off if this permission is denied or revoked. After one denial the
-same button asks again. After two, Android stops showing its prompt; the step then
-says so and its button becomes **Open app info**, where **Permissions → Phone →
-Allow** grants it.
-Android-reported calls and communication audio suspend breaths. Some third-party
-calling apps do not report incoming calls to Android and may not be detected.
+To close that gap, tap **Phone permission** under **Reliability** on Home and allow it.
+Android words its prompt as “make and manage phone calls”; Speedbreaker cannot make
+calls. The permission lets it detect ringing calls, including silent ones, even when
+their controls appear in a system notification. It checks whether a call exists; it
+does not read numbers, call history, or audio.
+
+After one denial the same row asks again. After two, Android stops showing its
+prompt; the row then says so and opens app info, where **Permissions → Phone →
+Allow** grants it, and Speedbreaker opens again once it is allowed.
+Some third-party calling apps do not report incoming calls to Android and may not
+be detected either way.
 
 ## Choose and configure apps
 
@@ -67,7 +70,7 @@ changes to the target selection take effect as you select or deselect apps.
 Speedbreaker, the launcher, keyboards, and safety-related system apps are
 excluded from the picker. Nothing is selected on a fresh installation.
 
-With Accessibility connected and Phone permission allowed, the home screen shows **One step left**
+With Accessibility connected, the home screen shows **One step left**
 until you choose an app, then **On** with how long you have breathed so far. Open
 one of those apps to try the breath.
 

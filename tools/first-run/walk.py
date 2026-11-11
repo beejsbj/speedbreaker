@@ -2,8 +2,9 @@
 
 Installs the given APK with no data, then goes through first open, declining and
 reopening, consent, turning the service on in Android's own Accessibility screens,
-the Phone permission (refused until the app stops asking, then allowed in app info),
-choosing one app, and a first breath ended with Leave.
+choosing one app, a first breath ended with Leave before Phone permission is granted,
+and then the optional Phone permission (refused until the app stops asking, then
+allowed in app info).
 Each step saves a screenshot; the visible text of each screen that could be read is
 saved beside it. The walk fails when a step a new person depends on does not happen.
 
@@ -264,9 +265,9 @@ class Walk:
         try:
             self.first_open()
             self.accessibility()
-            self.phone_permission()
             target = self.choose_app()
             self.first_breath(target)
+            self.phone_permission()
         except Exception as error:
             # Before cleanup, so the shot shows where it stopped.
             try:
@@ -299,8 +300,8 @@ class Walk:
         self.shot("reopened-after-decline", "Declined, then reopened: the two pages start again.")
         self.tap(r"^Continue$", scrolls=2, wait=2)
         self.tap(r"I understand", scrolls=3, wait=3)
-        self.expect(self.wait_for(r"^Three steps to start$", 15), f"Home did not open on setup: {self.texts()}")
-        self.shot("home-before-setup", "Home straight after accepting: three steps.")
+        self.expect(self.wait_for(r"^Two steps to start$", 15), f"Home did not open on setup: {self.texts()}")
+        self.shot("home-before-setup", "Home straight after accepting: two steps.")
         # Help is opened here, before the service is on, because reading a screen later disturbs it.
         self.tap(r"^Help$", scrolls=6, wait=2)
         self.expect(self.wait_for(r"^HOW A BREATH GOES$", 15), f"Help did not open: {self.texts()}")
@@ -308,7 +309,7 @@ class Walk:
         self.scroll()
         self.shot("help-scrolled", "Help, scrolled.")
         self.shell("input", "keyevent", "KEYCODE_BACK")
-        self.expect(self.wait_for(r"^Three steps to start$", 15), f"Back from Help did not return Home: {self.texts()}")
+        self.expect(self.wait_for(r"^Two steps to start$", 15), f"Back from Help did not return Home: {self.texts()}")
         self.shell("am", "force-stop", PACKAGE)
         self.open_app(wait=4)
         self.expect(self.wait_for(r"Turn on in Accessibility", 30), f"Home did not return: {self.texts()}")
@@ -341,16 +342,26 @@ class Walk:
         self.expect(self.wait_for_log("service connected", 30), "The service never connected.")
 
     def phone_permission(self):
-        self.expect(self.wait_for_app(), "Speedbreaker did not come back by itself once the service was on.")
-        # Let the returned screen settle before the screenshot.
+        """Phone permission is optional and asked from its row on Home, after breaths already work."""
+        self.shot("home-after-first-breath", "Home after the first breath, taken without Phone permission.", read=False)
+        # Finding the row means reading the screen, which switches the service off and on and moves
+        # Home's rows under the tap. So the service is held off while the row is pressed (the prompt
+        # does not need it) and put back for the trip to app info, which does.
+        self.shell("settings", "put", "secure", "enabled_accessibility_services", "null")
         time.sleep(3)
-        self.shot("phone-step", "Back in the app with the service on: the Phone permission step.", read=False)
         # Keep saying no for as long as the app keeps asking, then take whatever way in it offers.
         refusals, through = 0, None
         for press in range(1, 6):
-            self.tap_filled()
+            self.tap(r"^Phone permission$", scrolls=6, wait=2)
+            # App info can take a moment to come to the front on a slow emulator.
+            for _ in range(6):
+                if "com.android.settings" in self.resumed() or "permissioncontroller" in self.resumed():
+                    break
+                time.sleep(1)
             if "com.android.settings" in self.resumed():
-                self.shot("android-app-info", "Where the button leads once the app has stopped asking.")
+                self.shell("settings", "put", "secure", "enabled_accessibility_services", SERVICE)
+                time.sleep(4)
+                self.shot("android-app-info", "Where the row leads once the app has stopped asking.")
                 self.tap_through(r"^Permissions$", r"^Phone$", "App info did not open its permissions.", scrolls=2)
                 self.tap_through(r"^Phone$", r"^Allow$", "The Phone permission did not open.", scrolls=2)
                 self.shot("android-phone-permission", "The Phone permission in app info.")
@@ -364,24 +375,28 @@ class Walk:
                     self.shot("android-phone-prompt", "Android's Phone permission prompt.")
                 self.tap(r"^Don.t allow$", wait=4)
                 refusals += 1
-                self.shot(f"phone-refused-{refusals}", f"After saying no to Phone {refusals} time(s).", read=False)
+                self.shot(f"phone-refused-{refusals}", f"The Phone row after saying no {refusals} time(s).")
             else:
-                # Looking for the prompt switched the service off for a moment; let it return.
-                time.sleep(6)
-                self.shot(f"phone-press-{press}-no-prompt", "A press that Android answered without asking.", read=False)
+                time.sleep(2)
+                self.shot(f"phone-press-{press}-no-prompt", "A press that Android answered without asking.")
         self.steps.append({"step": "phone-allowed", "note": f"Refused {refusals} time(s); allowed through: {through}"})
         self.expect(through is not None, "The app never offered a way to allow Phone after it was refused.")
         # Android shows its prompt twice. The app must keep asking for as long as Android will.
         self.expect(refusals == 2, f"The app sent a person to app info after {refusals} refusal(s), not 2.")
         self.expect("granted=true" in self.permission_line("READ_PHONE_STATE"), "Phone permission was not granted.")
+        time.sleep(3)
+        self.expect(self.find(r"even a silent one", scrolls=6) is not None, "Home does not show Phone as allowed.")
+        self.shot("phone-allowed", "The Phone row once it is allowed.")
 
     def permission_line(self, name):
         dump = self.shell("dumpsys", "package", PACKAGE, check=False)
         return "\n".join(line for line in dump.splitlines() if f"android.permission.{name}:" in line)
 
     def choose_app(self):
-        self.open_app()
-        self.shot("ready-to-choose", "Service on and Phone allowed: choosing apps is next.", read=False)
+        self.expect(self.wait_for_app(), "Speedbreaker did not come back by itself once the service was on.")
+        # Let the returned screen settle before the screenshot.
+        time.sleep(3)
+        self.shot("ready-to-choose", "Back in the app with the service on: choosing apps is next.", read=False)
         self.tap_filled()
         picker = self.shot("app-picker", "The app picker.")
         target = next(((label, package) for label, package in TARGETS
@@ -403,6 +418,9 @@ class Walk:
 
     def first_breath(self, target):
         label, package = target
+        # Breaths must not wait for Phone permission, which nothing has asked for yet.
+        self.expect("granted=true" not in self.permission_line("READ_PHONE_STATE"),
+                    "Phone permission was granted before the first breath.")
         self.shell("input", "keyevent", "KEYCODE_HOME")
         time.sleep(2)
         self.shell("monkey", "-p", package, "-c", "android.intent.category.LAUNCHER", "1", check=False)
@@ -425,7 +443,6 @@ class Walk:
         time.sleep(2)
         self.shot("after-leave", "After Leave.", read=False)
         self.open_app()
-        self.shot("home-after-first-breath", "Home after the first breath.", read=False)
 
 
 def main():
