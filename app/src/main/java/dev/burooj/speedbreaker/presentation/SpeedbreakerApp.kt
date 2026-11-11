@@ -242,7 +242,7 @@ internal fun SpeedbreakerApp() {
                     },
                     onRedirects = {
                         redirectRequest = RedirectRequest(
-                            title = "Redirects",
+                            title = "Detours",
                             selected = settings.redirects,
                             transformFor = { value -> { current -> current.copy(redirects = value) } },
                         )
@@ -265,7 +265,7 @@ internal fun SpeedbreakerApp() {
                         },
                         onRedirects = { current ->
                             redirectRequest = RedirectRequest(
-                                title = "Redirects for this app",
+                                title = "Detours for this app",
                                 selected = current,
                                 transformFor = { value ->
                                     { settings ->

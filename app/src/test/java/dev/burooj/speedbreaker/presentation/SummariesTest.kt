@@ -8,7 +8,7 @@ import org.junit.Test
 class SummariesTest {
     @Test
     fun defaultsSummary_reportsEveryOptionalRedirectCount() {
-        val labels = listOf("no redirects", "1 redirect", "2 redirects", "3 redirects", "4 redirects")
+        val labels = listOf("no detours", "1 detour", "2 detours", "3 detours", "4 detours")
         for (count in 0..4) {
             val settings = dev.burooj.speedbreaker.model.Settings(redirects = (1..count).map { "alt.$it" })
             assertEquals("Always on · ${labels[count]}", defaultsSummary(settings, use24Hour = true))
@@ -23,7 +23,7 @@ class SummariesTest {
             schedule = startingSchedule(),
         )
         assertEquals("20-second breath", defaultsTitle(settings))
-        assertEquals("Weekdays · 09:00–17:00 · 1 redirect", defaultsSummary(settings, use24Hour = true))
+        assertEquals("Weekdays · 09:00–17:00 · 1 detour", defaultsSummary(settings, use24Hour = true))
     }
 
     @Test

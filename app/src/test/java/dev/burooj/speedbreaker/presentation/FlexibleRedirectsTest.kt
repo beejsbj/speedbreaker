@@ -45,7 +45,7 @@ class FlexibleRedirectsTest {
         var saved: List<String>? = null
         compose.setContent {
             SpeedbreakerTheme {
-                RedirectPickerScreen("Redirects", apps, emptyList(), onBack = {}, onSave = { saved = it })
+                RedirectPickerScreen("Detours", apps, emptyList(), onBack = {}, onSave = { saved = it })
             }
         }
         val list = compose.onNode(hasScrollToIndexAction())
@@ -65,7 +65,7 @@ class FlexibleRedirectsTest {
         var saved: List<String>? = null
         compose.setContent {
             SpeedbreakerTheme {
-                RedirectPickerScreen("Redirects", apps, apps.take(4).map { it.packageName }, onBack = {}, onSave = { saved = it })
+                RedirectPickerScreen("Detours", apps, apps.take(4).map { it.packageName }, onBack = {}, onSave = { saved = it })
             }
         }
         val list = compose.onNode(hasScrollToIndexAction())

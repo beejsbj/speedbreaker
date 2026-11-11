@@ -33,12 +33,11 @@ All free features are available offline. To review:
 
 1. Open the app. Read the full Accessibility disclosure. Decline closes the app
    without accepting consent; reopening shows it again. Accepting opens Home.
-2. Open Accessibility settings through Home and enable **Speedbreaker attention
-   pauses**. Grant Phone access through Home; otherwise overlays remain off.
-3. Pick a harmless app such as Calculator; no targets or redirects are preselected.
+2. Open Accessibility settings through Home and enable **Speedbreaker**. Grant Phone access through Home; otherwise overlays remain off.
+3. Pick a harmless app such as Calculator; no targets or detours are preselected.
 4. Check that the current time falls within your chosen schedule, then open the
    target. Observe the breath and navigation hold. After eight seconds Leave,
-   configured redirects and Pause become available; Continue waits for the full
+   configured detours and Pause become available; Continue waits for the full
    configured breath. Pause also requires notification access.
 5. Android Settings and supported system/call safety surfaces interrupt. Disable
    the service or uninstall through Android Settings to stop it.

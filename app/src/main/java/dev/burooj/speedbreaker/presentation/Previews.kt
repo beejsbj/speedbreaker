@@ -107,7 +107,7 @@ internal val Gallery: List<GallerySpec> = listOf(
     GallerySpec("settings-05-redirect-picker") {
         Screen {
             RedirectPickerScreen(
-                title = "Redirects",
+                title = "Detours",
                 apps = SampleApps.filter { it.packageName !in SampleSettings.apps },
                 initial = listOf(KINDLE, NOTES, DUOLINGO),
                 onBack = {},

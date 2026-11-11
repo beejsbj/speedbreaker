@@ -79,9 +79,9 @@ internal fun defaultsTitle(settings: Settings): String = "${settings.breathSecon
 internal fun defaultsSummary(settings: Settings, use24Hour: Boolean): String {
     val count = settings.redirects.size
     val redirects = when (count) {
-        0 -> "no redirects"
-        1 -> "1 redirect"
-        else -> "$count redirects"
+        0 -> "no detours"
+        1 -> "1 detour"
+        else -> "$count detours"
     }
     return "${scheduleSummary(settings.schedule, use24Hour)} · $redirects"
 }

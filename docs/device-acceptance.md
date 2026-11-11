@@ -17,7 +17,7 @@ the test target. Do not place an emergency call.
 Android may show **Controlled by Restricted Setting** for the newly installed
 Accessibility service. Open **Settings → Apps → Speedbreaker → More options →
 Allow restricted settings**, complete the phone's identity check, then return to
-**Accessibility → Installed apps → Speedbreaker attention pauses** to enable it.
+**Accessibility → Installed apps → Speedbreaker** to enable it.
 This is a per-app approval; do not disable Play Protect or broader device
 protections. The identity check must be completed by the phone owner.
 

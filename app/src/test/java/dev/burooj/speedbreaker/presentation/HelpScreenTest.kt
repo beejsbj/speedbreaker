@@ -58,7 +58,7 @@ class HelpScreenTest {
         }
         compose.onNodeWithText("IF A BREATH DOESN’T APPEAR").assertExists()
         compose.onNodeWithText("SWITCH IT OFF").assertExists()
-        compose.onNodeWithText("Speedbreaker attention pauses", substring = true).assertExists()
+        compose.onNodeWithText("Turn off “Speedbreaker”", substring = true).assertExists()
         compose.onNodeWithText("Speedbreaker 9.9.9").assertExists()
         // Back first: it sits at the top and scrolls out of reach once the rows below are shown.
         compose.onNodeWithContentDescription("Back").performClick()

@@ -322,10 +322,10 @@ class Walk:
         self.shot("android-accessibility", "Android's Accessibility screen, where the button leads.")
         how = "android-settings"
         try:
-            self.tap_through(r"^Speedbreaker attention pauses$", r"^Use Speedbreaker attention pauses",
+            self.tap_through(r"^Speedbreaker$", r"^Use Speedbreaker",
                              "The service's page did not open.", scrolls=6)
             self.shot("android-service-page", "Speedbreaker's entry in Android settings.")
-            self.tap_through(r"^Use Speedbreaker attention pauses", r"^Allow$", "Android's warning did not appear.")
+            self.tap_through(r"^Use Speedbreaker", r"^Allow$", "Android's warning did not appear.")
             self.shot("android-warning", "Android's standard warning for every Accessibility service.")
             self.tap(r"^Allow$", wait=2)
         except RuntimeError as error:

@@ -79,7 +79,7 @@ class PickerReachabilityTest {
         var wentBack = false
         setPickerContent {
             RedirectPickerScreen(
-                title = "Redirects for this app",
+                title = "Detours for this app",
                 apps = apps,
                 initial = initial,
                 onBack = { wentBack = true },

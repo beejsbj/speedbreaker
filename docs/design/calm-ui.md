@@ -25,7 +25,7 @@ overlay keeps its existing `BreakerOverlay` signature.
   anchored to the breaker's start). Reduced motion: still orb, "Breathe slowly".
 - Continue's wait lives in the button itself ("Continue in 9s").
 - Trigger reads as "Opening" / "Checking in" under the app name.
-- Redirects are icon tiles under an "Or go to" label.
+- Detours are icon tiles under an "Or go to" label.
 - Pause stays top-right; exhausted and notification-less states are explicit.
 - Layout: stacked in portrait (choices within thumb reach), side-by-side in
   landscape, scrollable at large text sizes; short split-screen windows shrink
@@ -53,7 +53,7 @@ overlay keeps its existing `BreakerOverlay` signature.
   one next action and a one-line total. Then Apps, Defaults (breath length as the
   row title), Reliability (with the battery tip in the row), and a quiet
   footer for Help, support, privacy and Reset breathing total.
-- **Defaults** — breath slider with a large readout, redirects as four visible
+- **Defaults** — breath slider with a large readout, detours as four visible
   slots with zero to four selected destinations, schedule as Always on / Scheduled.
 - **Schedule as hours groups.** A week reads as groups of days sharing one set
   of hours ("9 AM to 5 PM · M T W T F", "10 AM to Midnight · S S"). Changing a
@@ -63,13 +63,13 @@ overlay keeps its existing `BreakerOverlay` signature.
 - **Time picker** — the Material 3 clock dial in a dialog, with a keyboard
   toggle to type the time instead. An end of 12 AM means end of day.
 - **App** — check-in toggle and interval, schedule Default / Always on /
-  Custom, redirects Default / Custom, a note on what stays global, and
+  Custom, detours Default / Custom, a note on what stays global, and
   "Stop breaths for <app>".
 - **Help** is one page reached from Home's footer: how a breath goes, what to
   check when one doesn't appear, checking in, the 15-minute pause, and how to
   switch it off, all readable offline. Two rows open the full guide and the
   privacy policy in the browser, and the installed version is at the foot.
-- **Pickers** are full screens with search; the redirect picker shows the four
+- **Pickers** are full screens with search; the detour picker shows the four
   slots filling as you choose, with Save available for zero to four destinations
   (owner correction [#9](https://github.com/beejsbj/speedbreaker/issues/9)).
 
@@ -83,7 +83,7 @@ These are presentation-level, but they change what a tap does:
    raw HH:MM field. Picking 00:00 as an end time stores 24:00 (end of day),
    which covers the same minutes.
 3. Per-app Custom schedule starts from the global schedule when one exists.
-4. The redirect picker is a full-screen page instead of a dialog; Clear remains.
+4. The detour picker is a full-screen page instead of a dialog; Clear remains.
 5. "Notifications" asks for permission once, then opens system settings.
 6. App settings gained "Stop breaths for <app>" (same effect as unchecking it in
    the picker).
@@ -103,7 +103,7 @@ Four Expressive behaviors, chosen because they act on feel rather than look:
   appear without a stagger or a collapsing hit area. The
   bouncier *expressive* scheme is not used. The breath itself stays on its
   eased 4-second rhythm: it is a breathing pace, not a UI transition.
-- **Press shape morph** — Continue, Leave, Pause, redirect tiles, and the
+- **Press shape morph** — Continue, Leave, Pause, detour tiles, and the
   shared actions square off slightly under the finger and spring back.
   Continue and Leave morph identically.
 - **Connected button groups** replace segmented buttons for mode choices.
@@ -138,7 +138,7 @@ export ANDROID_SDK_ROOT=/usr/lib/android-sdk JAVA_HOME=/usr/lib/jvm/java-17-open
 | Overlay | |
 |---|---|
 | ![](screenshots/overlay-01-breath.png) Hard lock: breath only | ![](screenshots/overlay-02-choices-waiting.png) Choices; Continue waiting |
-| ![](screenshots/overlay-03-choices-ready.png) Breath complete | ![](screenshots/overlay-04-checkin-no-redirects-no-pauses.png) Check-in, no redirects, pauses spent |
+| ![](screenshots/overlay-03-choices-ready.png) Breath complete | ![](screenshots/overlay-04-checkin-no-redirects-no-pauses.png) Check-in, no detours, pauses spent |
 | ![](screenshots/overlay-07-large-text.png) 160% text | ![](screenshots/overlay-08-reduced-motion-breath.png) Reduced motion |
 
 ![](screenshots/overlay-06-landscape.png)
@@ -158,7 +158,7 @@ export ANDROID_SDK_ROOT=/usr/lib/android-sdk JAVA_HOME=/usr/lib/jvm/java-17-open
 | ![](screenshots/settings-11-home-first-breath.png) Before the first breath | ![](screenshots/settings-12-home-notifications-blocked.png) Pause needs notifications |
 | ![](screenshots/settings-13-home-resting.png) Resting until the next hours | ![](screenshots/settings-14-home-full-page.png) Full page with footer |
 | ![](screenshots/settings-03-defaults.png) Defaults | ![](screenshots/settings-04-app.png) One app |
-| ![](screenshots/settings-05-redirect-picker.png) Redirect picker | ![](screenshots/settings-07-home-large-text.png) 160% text |
+| ![](screenshots/settings-05-redirect-picker.png) Detour picker | ![](screenshots/settings-07-home-large-text.png) 160% text |
 | ![](screenshots/settings-08-schedule-hours.png) Hours groups | ![](screenshots/settings-09-time-picker.png) Time dial |
 | ![](screenshots/settings-10-time-typed.png) Typed time | ![](screenshots/settings-16-help.png) Help |
 | ![](screenshots/settings-17-help-large-text.png) Help at 160% text | |

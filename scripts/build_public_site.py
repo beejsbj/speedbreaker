@@ -99,7 +99,7 @@ Then continue, leave, or open somewhere else. Optional check-ins bring the pause
 no store availability is claimed.</p><h2>What the pause does</h2>
 <p>The first eight seconds hold ordinary navigation. Settings and Android-reported calls yield.
 Breaths stay off without Phone permission. Calling apps exposing neither Android call state nor communication audio
-may not be detected. You choose every target and optional redirect.</p>
+may not be detected. You choose every target and optional detour.</p>
 <p>No account, ads, analytics or per-app usage history. Settings, pause state and a resettable total of time breathed stay on the phone.</p>''')
     page("privacy.html", "Privacy policy",
          "What Speedbreaker observes, what stays on your phone, and the permissions it asks for.",
@@ -107,7 +107,7 @@ may not be detected. You choose every target and optional redirect.</p>
     page("support.html", "Setup and support",
          "Set up Speedbreaker, turn it off, and report a problem.", f'''
 <h1>Help with Speedbreaker</h1><p><a href="{REPO}/blob/main/docs/getting-started.md">Setup and troubleshooting</a></p>
-<p>You can stop observation in Android Settings → Accessibility → Speedbreaker attention pauses.
+<p>You can stop observation in Android Settings → Accessibility → Speedbreaker.
 Clear app storage or uninstall to remove local settings and pause state.</p>
 <h2>Report a problem</h2><p><a href="{REPO}/issues/new/choose">Open a public GitHub issue</a> with your phone model,
 Android/app versions, steps and what happened. Remove personal details from screenshots and logs.</p>

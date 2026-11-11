@@ -30,8 +30,8 @@ Accessibility to identify visible apps and display its breathing overlay.
 overlay.** Afterward, navigation and the available choices let you leave.
 [Privacy details](privacy.md) explain what is observed and stored.
 
-Tap **Turn on in Accessibility**, find **Speedbreaker attention pauses**, and
-enable it. On Samsung this is usually under **Accessibility → Installed apps**.
+Tap **Turn on in Accessibility**, find **Speedbreaker** (listed as **Speedbreaker attention pauses** in 1.0.5 and earlier),
+and enable it. On Samsung this is usually under **Accessibility → Installed apps**.
 Speedbreaker opens again by itself once the service is on; if it does not, press Back.
 On phones whose Settings supports it, the entry is scrolled into view and highlighted.
 
@@ -40,7 +40,7 @@ If Android shows **Restricted setting** or **Controlled by Restricted Setting**:
 1. Open **Settings → Apps → Speedbreaker**, or use **Open app info** in the app.
 2. Open the **⋮** menu and choose **Allow restricted settings**.
 3. Complete the phone's identity check yourself.
-4. Return to Accessibility and enable **Speedbreaker attention pauses**.
+4. Return to Accessibility and enable **Speedbreaker**.
 
 Menu names differ across Android versions and manufacturers. This is an
 individual app approval, not a reason to turn off Play Protect.
@@ -72,16 +72,16 @@ until you choose an app, then **On** with how long you have breathed so far. Ope
 one of those apps to try the breath.
 
 The defaults are a twelve-second breath, check-ins every ten minutes of
-continuous use, and active hours all day, every day. No redirects are configured.
+continuous use, and active hours all day, every day. No detours are configured.
 
 | To change… | Open… | What to expect |
 | --- | --- | --- |
 | Breath length | **Defaults → Breath** | 8–60 seconds, shared by all chosen apps. The first eight seconds always hold the overlay. |
 | Repeat check-ins | An app → **Check in again** | Turn off, or choose an interval from 1 to 120 minutes. A breath on opening still applies. |
-| Redirect destinations | **Defaults → Redirects** | Choose one to four eligible apps and save, or leave redirects empty. Chosen target apps cannot be redirects. |
+| Detour destinations | **Defaults → Detours** | Choose one to four eligible apps and save, or leave detours empty. Chosen target apps cannot be detours. |
 | Active hours | **Defaults → Schedule → Scheduled** | One active window per day, including overnight windows. Review the initial weekday 9 AM–5 PM schedule. |
 | One app's hours | An app → **Schedule** | Follow the default, stay always on, or set custom hours that replace the default. |
-| One app's redirects | An app → **Redirects → Custom** | Replace the default set with one to four apps, or leave the custom set empty to show none for that app. Choose Default to inherit again. |
+| One app's detours | An app → **Detours → Custom** | Replace the default set with one to four apps, or leave the custom set empty to show none for that app. Choose Default to inherit again. |
 | Stop breaths for one app | An app → **Stop breaths for…** | Remove it from the chosen apps. |
 
 Schedules use the phone's local time. Days without a scheduled window are off.
@@ -93,7 +93,7 @@ while it is visible starts a breath.
 For eight seconds, only the breathing screen is available. At eight seconds:
 
 - **Leave** returns to your home screen and ends that app's session.
-- A configured **redirect** opens that app and ends the target session.
+- A configured **detour** opens that app and ends the target session.
 - **Pause 15 min** skips intervention for that target for fifteen minutes,
   using one of its two daily allowances. Notifications must be available.
 - **Continue** becomes available once the whole configured breath is complete.
@@ -102,7 +102,7 @@ The reflection, “What are you here for?”, asks for no input and stores no an
 After Continue, visible screen-on use counts toward the next check-in, including
 split-screen and picture-in-picture. Leaving briefly pauses that interval;
 returning within ten seconds resumes it. A longer absence starts a fresh
-opening breath. Leave and redirects end the session immediately.
+opening breath. Leave and detours end the session immediately.
 
 A fifteen-minute pause appears under **Active pauses** on Speedbreaker’s home
 screen, with **End now** for each app. Its notification provides the same action
@@ -113,7 +113,7 @@ next opening otherwise. Allowances reset each local day. An active pause keeps
 its original expiry even if it crosses midnight.
 
 One Hand Operation+ edge gestures do not work while the overlay is visible.
-Use Leave, a redirect, or ordinary navigation after eight seconds. Android-reported
+Use Leave, a detour, or ordinary navigation after eight seconds. Android-reported
 calls, the dialer, lock screen, screen-off, and Android Settings take priority.
 A call-state check runs during each observation and on the service’s 250 ms tick;
 this avoids the eight-second lock delay, but is not a guaranteed response deadline.
@@ -153,12 +153,12 @@ notifications are blocked, or when that app has used both daily allowances.
 Turning notifications off also ends active pauses when the service observes
 the change. Breathing interventions work without notification permission.
 
-### Redirect buttons are missing
+### Detour buttons are missing
 
-The redirect row is optional and appears with one to four valid destinations.
-Choose up to four apps in Defaults, or in that app's Custom redirects, and save.
+The detour row is optional and appears with one to four valid destinations.
+Choose up to four apps in Defaults, or in that app's Custom detours, and save.
 An empty Custom set shows none for that app; Default inherits the global set. An
-app selected as a target cannot also be a redirect.
+app selected as a target cannot also be a detour.
 
 ### Installation or an update fails
 
@@ -186,8 +186,8 @@ and earlier have no updater; install a newer APK over them by hand once.
 
 ## Stop or remove Speedbreaker
 
-Turn off **Speedbreaker attention pauses** in Android Accessibility settings.
-That stops intervention and keeps your settings. You can uninstall Speedbreaker
+Turn off **Speedbreaker** (listed as **Speedbreaker attention pauses** in 1.0.5 and earlier)
+in Android Accessibility settings. That stops intervention and keeps your settings. You can uninstall Speedbreaker
 normally from app info; uninstalling removes its local app data. There is no
 cloud copy to restore from.
 

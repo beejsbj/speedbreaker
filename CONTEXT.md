@@ -29,7 +29,7 @@ Background time does not count.
 
 **Leave**: end the target session and return Home after the eight-second lock.
 
-**Redirect**: leave the target for one of one to four configured alternative
+**Redirect** (shown to people as a **Detour**; the code and saved settings keep `redirect`): leave the target for one of one to four configured alternative
 apps, or configure none. Redirects must be non-target apps. Per-app alternatives
 replace the global set; an empty custom set shows none, while Default inherits.
 This follows Burooj’s October 11 [owner correction #9](https://github.com/beejsbj/speedbreaker/issues/9),
