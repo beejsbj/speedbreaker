@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.0.6 — November 11, 2026
+
+Install over 1.0.5; your settings carry over.
+
+- **Breaths work with Accessibility alone.** Phone permission is now optional. Without
+  it, a breath still steps aside when you are on a call or a ringtone is playing, but
+  a call that rings without a ringtone (silent, vibrate or Do Not Disturb) can stay
+  hidden behind a breath for its length. Allow it under **Reliability → Phone
+  permission** on Home to close that gap. If you already allowed it, nothing changes.
+- **A clearer first open.** Two short pages (what it does, then the Accessibility
+  disclosure), then two steps on Home: turn it on, choose apps. The Accessibility
+  button asks Android to scroll to and highlight Speedbreaker, and the app opens again
+  by itself once the service is on.
+- **New names.** The entry in Android's Accessibility list is now **Speedbreaker**
+  (it was "Speedbreaker attention pauses"); the service stays on through the update.
+  **Redirects** are now **Detours**. "Pause" now only means the 15-minute break from
+  breaths.
+- **Help** at the foot of Home: how a breath goes, what to check when one doesn't
+  appear, calls, check-ins, Pause, and how to switch it off.
+- Plainer wording throughout, a **Done** button in the app picker, and a pause
+  notification that says "Paused for <app>" and when breaths return.
+- The privacy policy and guides were corrected: the notification shade can't be
+  pulled over a breath in its first eight seconds, and window ids and types (not
+  contents, positions or sizes) are read.
+
+Version code: **10**.
+
 ## 1.0.5 — October 17, 2026
 
 - The app icon is now the Speedbreaker mark — two open arcs and a still center —
