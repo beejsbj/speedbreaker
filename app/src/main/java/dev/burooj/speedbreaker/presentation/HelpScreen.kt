@@ -32,7 +32,7 @@ internal fun HelpScreen(
     HelpTopic(
         heading = "How a breath goes",
         body = "Opening a chosen app starts a breath. For the first eight seconds there is only the breath. " +
-            "Then you can Leave, open another app you picked as a redirect (set in Defaults), or pause " +
+            "Then you can Leave, open another app you picked as a detour (set in Defaults), or pause " +
             "for 15 minutes. Continue unlocks when the whole breath is done.",
     )
     HelpTopic(

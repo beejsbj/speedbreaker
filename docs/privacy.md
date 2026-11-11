@@ -63,7 +63,7 @@ See [Android’s call-state API](https://developer.android.com/reference/android
 
 The picker queries Android for launchable apps and displays their labels and
 icons. It also identifies the launcher, keyboards, and dialer to exclude them
-from targets. Your selected targets and redirect destinations are saved as app
+from targets. Your selected targets and detour destinations are saved as app
 package names; the app does not upload your installed-app list.
 
 ## What stays on the phone
@@ -72,7 +72,7 @@ Speedbreaker stores these records in its private local app database:
 
 - Your acknowledgment of the onboarding disclosure.
 - Breath length, selected app package names, check-in settings, active schedules,
-  and redirect package names.
+  and detour package names.
 - A running total of the seconds you have breathed and the number of breaths, overall
   and for the current local day. Home shows it, and **Reset breathing total** there sets it back
   to zero. It is never sent anywhere.
@@ -149,7 +149,7 @@ extraction rules.
 
 ## Stop observation or delete data
 
-Disable **Speedbreaker attention pauses** in Android Accessibility settings to
+Disable **Speedbreaker** in Android Accessibility settings to
 stop the service. Your saved settings remain on the phone. Uninstall the app,
 or clear its storage in Android Settings, to remove its local data. Clearing
 storage also resets consent, chosen apps, pause allowances, and the breathing total. There is no

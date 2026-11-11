@@ -63,7 +63,7 @@ internal fun AppPickerScreen(
         title = "Choose apps",
         subtitle = "Pick the apps that pull at you. Each choice is saved as you tap. Your home screen, " +
             "keyboards, the phone app, and Android Settings aren’t listed. An app chosen here stops " +
-            "being a redirect.",
+            "being a detour.",
         query = query,
         onQuery = { query = it },
         onBack = onBack,
@@ -100,7 +100,7 @@ internal fun RedirectPickerScreen(
     val full = draft.size >= Redirects.MAX_COUNT
     PickerFrame(
         title = title,
-        subtitle = "Choose up to four places to go instead, or leave redirects empty.",
+        subtitle = "Choose up to four places to go instead, or leave detours empty.",
         query = query,
         onQuery = { query = it },
         onBack = onBack,

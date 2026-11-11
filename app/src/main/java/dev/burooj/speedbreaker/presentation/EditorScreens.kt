@@ -73,7 +73,7 @@ internal fun DefaultsScreen(
     }
 
     Section(
-        title = "Redirects",
+        title = "Detours",
         footnote = "Up to four optional places to go instead, shown under Continue and Leave.",
     ) {
         RedirectSlots(settings.redirects, onRedirects)
@@ -188,11 +188,11 @@ internal fun AppSettingsScreen(
 
         val redirects = policy.redirects
         Section(
-            title = "Redirects",
+            title = "Detours",
             footnote = when {
-                redirects == null -> "Using the default redirects."
-                redirects.isEmpty() -> "No redirects for this app."
-                else -> "Replaces the default redirects for this app."
+                redirects == null -> "Using the default detours."
+                redirects.isEmpty() -> "No detours for this app."
+                else -> "Replaces the default detours for this app."
             },
         ) {
             ModeSwitch(
@@ -322,7 +322,7 @@ internal fun RedirectSlots(redirects: List<String>, onEdit: (() -> Unit)?) {
     if (onEdit != null) {
         RowDivider()
         NavRow(
-            title = if (filled.isEmpty()) "Choose redirect apps" else "Change redirects",
+            title = if (filled.isEmpty()) "Choose detour apps" else "Change detours",
             summary = "Choose up to four apps, or leave empty",
             onClick = onEdit,
         )

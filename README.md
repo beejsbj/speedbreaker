@@ -29,7 +29,7 @@ have breathed, a calmer Home screen, and in-app updates for the GitHub APK. See 
 - **Choose your own apps.** Nothing is selected for you.
 - **Take a breath.** Twelve seconds by default, adjustable from 8 to 60 seconds.
 - **Decide what comes next.** Continue in the app, Leave for your home screen,
-  or choose from up to four optional redirect apps, with their own icons.
+  or choose from up to four optional detour apps, with their own icons.
 - **Check in again.** By default, another breath follows ten minutes of
   continuous use. Change the interval or turn check-ins off for each app.
 - **Set your hours.** Stay active all day or choose a weekly schedule, with
@@ -46,11 +46,11 @@ checks it, and hands it to Android's installer. An optional daily check is off u
 
 | Take a breath | Choose what comes next | Make it yours |
 | --- | --- | --- |
-| <img src="docs/design/screenshots/overlay-01-breath.png" width="240" alt="Breathing screen before choices unlock"> | <img src="docs/design/screenshots/overlay-03-choices-ready.png" width="240" alt="Continue, Leave, and four configured redirect apps after the breath"> | <img src="docs/design/screenshots/settings-01-home-on.png" width="240" alt="Home screen with your breathing total, selected apps, check-in intervals, and active hours"> |
+| <img src="docs/design/screenshots/overlay-01-breath.png" width="240" alt="Breathing screen before choices unlock"> | <img src="docs/design/screenshots/overlay-03-choices-ready.png" width="240" alt="Continue, Leave, and four configured detour apps after the breath"> | <img src="docs/design/screenshots/settings-01-home-on.png" width="240" alt="Home screen with your breathing total, selected apps, check-in intervals, and active hours"> |
 
 Screens rendered from the app's UI with example settings. App icons appear as
 monograms here; installed apps show their own icons on a phone. You choose your
-own apps and redirects.
+own apps and detours.
 
 ## Install and get started
 
@@ -60,7 +60,7 @@ own apps and redirects.
    install this APK, then follow Android's installer.
 3. Open Speedbreaker, tap **Continue**, read the Accessibility disclosure, and tap
    **I understand — continue**. Home then lists three steps.
-4. Tap **Turn on in Accessibility** and enable **Speedbreaker attention pauses**.
+4. Tap **Turn on in Accessibility** and enable **Speedbreaker**.
 5. Speedbreaker opens again by itself; if it does not, press Back. Tap **Allow Phone permission** and allow it. Breaths
    stay off without it so silent calls are not hidden.
 6. Tap **Choose apps**. Open a chosen app to try it.
@@ -88,7 +88,7 @@ original Android 8 signer. A checksum confirms the file matches; it is not an au
 
 **The first eight seconds intentionally hold the breathing screen.** Home, Back,
 and Recents cannot dismiss it during that time. At eight seconds, Leave,
-configured redirects, and Pause become available; Continue waits until the full
+configured detours, and Pause become available; Continue waits until the full
 breath finishes. Ordinary navigation can leave after eight seconds.
 
 Each chosen app gets two fifteen-minute pauses per local day. **Active pauses**
@@ -100,7 +100,7 @@ Visible apps in split-screen and picture-in-picture count toward check-ins.
 The app yields to Android-reported calls, communication audio, the dialer, the
 lock screen, screen-off, and Android Settings. Calling apps that do not report
 their calls to Android may not be detected while ringing. One Hand Operation+ edge gestures are unavailable while
-the overlay is visible; use Leave, a redirect, or ordinary navigation once
+the overlay is visible; use Leave, a detour, or ordinary navigation once
 choices unlock. You can turn Speedbreaker off in Android Accessibility settings.
 
 ## Privacy and device support
@@ -121,7 +121,7 @@ device transfer of app data are disabled in its configuration.
 
 Version 1.0.1 was checked on a Samsung Galaxy S23+: opening pauses,
 Phone permission setup, a silent incoming call during the initial lock, and
-ending a pause after swiping away its notification, real redirect icons, and
+ending a pause after swiping away its notification, real detour icons, and
 opening the optional support link. Android API 35 emulator
 checks also cover audible/silent calls, touching Answer, ordinary navigation,
 and a fresh breath after the call ends. See the

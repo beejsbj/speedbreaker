@@ -54,7 +54,7 @@ class FirstRunTest {
         compose.onNodeWithText("Three steps to start").assertIsDisplayed()
         compose.onNodeWithContentDescription("Step 1 of 3, next. Turn on Speedbreaker in Accessibility").assertIsDisplayed()
         compose.onNodeWithContentDescription("Step 2 of 3, later. Allow Phone permission").assertExists()
-        compose.onNodeWithText("Speedbreaker attention pauses", substring = true).assertExists()
+        compose.onNodeWithText("find “Speedbreaker”", substring = true).assertExists()
         compose.onNodeWithText("Turn on in Accessibility").assertExists()
         // Later steps stay closed until their turn, and nothing reads as a fault.
         compose.onNodeWithText("make and manage phone calls", substring = true).assertDoesNotExist()
