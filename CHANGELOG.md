@@ -25,7 +25,7 @@ Install over 1.0.5; your settings carry over.
   pulled over a breath in its first eight seconds, and window ids and types (not
   contents, positions or sizes) are read.
 
-Version code: **10**.
+Version code: **10**. [GitHub release](https://github.com/beejsbj/speedbreaker/releases/tag/v1.0.6), source `06e32a7`, APK SHA-256 `aee4d8d527bccbda1e6b823cc59fd6462fcff8b94300efe777a7bae7f67574e0`.
 
 ## 1.0.5 — October 17, 2026
 
