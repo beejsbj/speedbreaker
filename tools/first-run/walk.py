@@ -343,11 +343,16 @@ class Walk:
 
     def phone_permission(self):
         """Phone permission is optional and asked from its row on Home, after breaths already work."""
-        self.shot("home-after-first-breath", "Home after the first breath, taken without Phone permission.", read=False)
+        self.shot("home-after-first-breath", "Home after the first breath, taken without Phone permission.")
         # Keep saying no for as long as the app keeps asking, then take whatever way in it offers.
         refusals, through = 0, None
         for press in range(1, 6):
             self.tap(r"^Phone permission$", scrolls=6, wait=2)
+            # App info can take a moment to come to the front on a slow emulator.
+            for _ in range(6):
+                if "com.android.settings" in self.resumed() or "permissioncontroller" in self.resumed():
+                    break
+                time.sleep(1)
             if "com.android.settings" in self.resumed():
                 self.shot("android-app-info", "Where the row leads once the app has stopped asking.")
                 self.tap_through(r"^Permissions$", r"^Phone$", "App info did not open its permissions.", scrolls=2)

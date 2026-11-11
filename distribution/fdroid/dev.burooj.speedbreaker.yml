@@ -18,8 +18,8 @@ Description: |
 
   Speedbreaker uses an Accessibility service to identify the visible app and
   mediate navigation. The Android Phone permission is used only to check
-  whether Android reports a call; breathing pauses stay off when this access
-  is unavailable. Notifications are used for active pause controls.
+  whether Android reports a call. It is optional: without it a call ringing
+  without a ringtone can be hidden for the length of a pause. Notifications are used for active pause controls.
 
   Settings, selected apps, schedules, and pause state are stored on the device.
   The app has no account, analytics, ads, cloud sync, or Internet permission,

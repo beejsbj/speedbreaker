@@ -77,7 +77,7 @@ class FirstRunTest {
     }
 
     @Test
-    fun phonePermissionIsNotASetupStepAndBreathsDoNotWaitForIt() {
+    fun phonePermissionIsNotASetupStep() {
         show(Protection.On, phoneAllowed = false)
         compose.onNodeWithText("One step left").assertIsDisplayed()
         compose.onNodeWithContentDescription("Step 1 of 2, done. Turn on Speedbreaker in Accessibility").assertIsDisplayed()
@@ -88,7 +88,7 @@ class FirstRunTest {
     fun thePhoneRowSaysWhatIsMissedWithoutItAndAsks() {
         var presses = 0
         show(Protection.On, phoneAllowed = false, onCallAccess = { presses++ })
-        compose.onNodeWithText("rings silently or on vibrate can stay hidden", substring = true).assertExists()
+        compose.onNodeWithText("rings without a ringtone", substring = true).assertExists()
         compose.onNodeWithText("make and manage phone calls", substring = true).assertExists()
         compose.onNodeWithText("Phone permission").performScrollTo().performClick()
         assertEquals(1, presses)

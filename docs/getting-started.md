@@ -48,8 +48,8 @@ individual app approval, not a reason to turn off Play Protect.
 ## Phone permission (optional)
 
 Breaths work without Phone permission. Without it, Speedbreaker notices a call only
-once Android switches to ringtone or call audio, so a call that rings silently or on
-vibrate can stay hidden behind a breath for its length (twelve seconds by default).
+once Android switches to ringtone or call audio, so a call that rings without a ringtone
+(silent, vibrate or Do Not Disturb) can stay hidden behind a breath for its length (twelve seconds by default).
 
 To close that gap, tap **Phone permission** under **Reliability** on Home and allow it.
 Android words its prompt as “make and manage phone calls”; Speedbreaker cannot make

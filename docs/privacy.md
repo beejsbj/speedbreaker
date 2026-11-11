@@ -56,7 +56,7 @@ access, or permission to place or answer calls. It does not read phone numbers,
 caller identity, call history, notification contents, or audio.
 
 Without the permission, breaths still run and the call-state check is skipped. A call
-that rings silently or on vibrate does not change the audio mode, so it is not seen
+that rings without a ringtone (silent, vibrate or Do Not Disturb) does not change the audio mode, so it is not seen
 and can stay hidden behind a breath for the breath’s length. If a detectable
 system-service error occurs, breathing overlays stay off; existing settings and pause
 allowances remain. Android’s APIs cannot identify every failure, and calling apps that do not
@@ -131,7 +131,7 @@ or send them anywhere. See [Device diagnostics](build-and-test.md#device-diagnos
 | Permission or capability | Purpose |
 | --- | --- |
 | Accessibility service | Identify visible apps, show the breathing overlay, and perform the user's navigation choices. You enable it in Android Settings. |
-| Phone state (optional) | Check whether Android reports a ringing, active, dialing, or held call. Without it, breaths run and a call ringing silently or on vibrate is not seen. |
+| Phone state (optional) | Check whether Android reports a ringing, active, dialing, or held call. Without it, breaths run and a call ringing without a ringtone (silent, vibrate or Do Not Disturb) is not seen. |
 | Notifications | Show each active fifteen-minute pause and its **End now** action. Pause requires notifications to be available. |
 | Receive boot completed | Support recovery of locally stored pause state after the phone restarts. |
 | Internet (GitHub build only) | Check GitHub for a newer release and download it, only when you ask or have turned on the daily check. |

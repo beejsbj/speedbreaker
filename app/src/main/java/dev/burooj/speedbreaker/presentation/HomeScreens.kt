@@ -411,7 +411,7 @@ internal fun HomeScreen(
             NavRow(
                 title = "Phone permission",
                 summary = when {
-                    phoneAllowed -> "Allowed. A breath steps aside for any incoming call, even a silent one."
+                    phoneAllowed -> "Allowed. A breath steps aside for a ringing call, even a silent one."
                     phoneNeedsSettings -> PHONE_APP_INFO
                     else -> PHONE_OPTIONAL
                 },
@@ -701,8 +701,8 @@ private fun ColumnScope.AccessibilityActions(onEnableAccessibility: () -> Unit, 
     QuietAction("Open app info", onOpenAppInfo)
 }
 
-private const val PHONE_OPTIONAL = "Optional. Without it, a call that rings silently or on vibrate can stay hidden behind " +
-    "a breath. Android words this as “make and manage phone calls”; Speedbreaker can’t make calls and " +
+private const val PHONE_OPTIONAL = "Optional. Without it, a call that rings without a ringtone (silent, vibrate or Do Not " +
+    "Disturb) can stay hidden behind a breath. Android words this as “make and manage phone calls”; Speedbreaker can’t make calls and " +
     "doesn’t read numbers, call history, or audio."
 
 /** Once Android has stopped showing its prompt, the row says so and leads to app info instead. */
