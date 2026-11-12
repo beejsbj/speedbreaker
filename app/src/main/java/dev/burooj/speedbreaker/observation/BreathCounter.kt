@@ -27,9 +27,13 @@ internal class BreathCounter {
     }
 }
 
-/** How the person would describe the way a breath ended. Anything they did not choose is [BreathEnding.Other]. */
+/**
+ * How the person would describe the way a breath ended. Going Home, Back or to another app once
+ * the first eight seconds allow it is leaving, the same as pressing Leave. Anything they did not
+ * do themselves (a call, the lock screen, a schedule or settings change) is [BreathEnding.Other].
+ */
 internal fun BreakerEnd.asEnding(): BreathEnding = when (this) {
-    BreakerEnd.CHOICE_LEAVE -> BreathEnding.Left
+    BreakerEnd.CHOICE_LEAVE, BreakerEnd.NAV_RELEASE, BreakerEnd.USER_BACK -> BreathEnding.Left
     BreakerEnd.CHOICE_CONTINUE -> BreathEnding.Continued
     BreakerEnd.CHOICE_REDIRECT -> BreathEnding.Detoured
     BreakerEnd.CHOICE_PAUSE -> BreathEnding.TimeOff

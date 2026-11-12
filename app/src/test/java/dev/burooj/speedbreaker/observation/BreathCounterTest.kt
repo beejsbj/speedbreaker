@@ -55,13 +55,18 @@ class BreathCounterTest {
     }
 
     @Test
-    fun onlyTheFourChoicesAreNamed_everyOtherEndIsOther() {
+    fun leavingByButtonOrByNavigatingAwayIsLeft_andWhatThePersonDidNotDoIsOther() {
         assertEquals(BreathEnding.Left, BreakerEnd.CHOICE_LEAVE.asEnding())
+        // Home, Recents or another app, and Back, once the first eight seconds allow them.
+        assertEquals(BreathEnding.Left, BreakerEnd.NAV_RELEASE.asEnding())
+        assertEquals(BreathEnding.Left, BreakerEnd.USER_BACK.asEnding())
         assertEquals(BreathEnding.Continued, BreakerEnd.CHOICE_CONTINUE.asEnding())
         assertEquals(BreathEnding.Detoured, BreakerEnd.CHOICE_REDIRECT.asEnding())
         assertEquals(BreathEnding.TimeOff, BreakerEnd.CHOICE_PAUSE.asEnding())
         val unchosen = BreakerEnd.entries - setOf(
             BreakerEnd.CHOICE_LEAVE,
+            BreakerEnd.NAV_RELEASE,
+            BreakerEnd.USER_BACK,
             BreakerEnd.CHOICE_CONTINUE,
             BreakerEnd.CHOICE_REDIRECT,
             BreakerEnd.CHOICE_PAUSE,

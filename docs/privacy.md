@@ -84,7 +84,8 @@ Speedbreaker stores these records in its private local app database:
 - In versions after 1.0.6, three more running records beside that total, counted from
   your first breath on such a version (and again from zero after a reset):
   - how many breaths ended each way: you left, continued, took a detour, took
-    fifteen minutes off, or the breath ended without a choice;
+    fifteen minutes off, or the breath ended by something other than you (a call, the
+    lock screen, your schedule);
   - for each app currently chosen as a detour, how many times you took it;
   - the time breathed on each of the last seven local days, and the day counting began.
 
