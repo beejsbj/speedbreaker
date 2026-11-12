@@ -45,10 +45,15 @@ overlay keeps its existing `BreakerOverlay` signature.
   reopens the app the moment it is switched on (or Phone is allowed in app
   info), so nobody has to find their way back.
 - **Home** is also the setup checklist. While breaths work and apps are chosen,
-  it opens with the eyebrow, a moss dot and "On" (plus "resting until 9 AM" when
-  every app is outside its schedule, or "Pause 15 min needs notifications"), and the
-  breathing total as the one large serif number ("18 minutes", then "94 breaths ·
-  2 minutes today"; "No breaths yet" before the first). Otherwise its title is the
+  it opens with a card: a moss status pill carrying the breathing mark ("Active · 3
+  apps", or a plain "Resting until 9 AM" with the mark held still when every app is
+  outside its schedule), then the breathing total as the one large serif figure with
+  its unit as a small label ("18 min"), and Breaths and Today as two smaller labelled
+  figures under a rule ("No breaths yet" before the first; a quiet line when Pause
+  needs notifications). Tapping the pill brings the apps into view. Numbers are set
+  as figures, never as sentences. Under it, the "After a breath" card: one thin bar
+  split by how breaths ended, the counts beside their names, and the three detours
+  taken most with "+N more"; it opens **Your breaths**. Otherwise its title is the
   status ("Off for now", "Needs attention", "Ready when you are"), followed by the
   one next action and a one-line total. Then any running pauses, an offered update,
   and Apps. Home says what is happening and nothing else; a round gear in its top
@@ -74,6 +79,11 @@ overlay keeps its existing `BreakerOverlay` signature.
 - **App** — check-in toggle and interval, schedule Default / Always on /
   Custom, detours Default / Custom, a note on what stays global, and
   "Stop breaths for <app>".
+- **Your breaths** is the full page behind that card: the three figures, the split
+  with every ending listed, every chosen detour as a bar with its count (untaken
+  ones at zero), and seven day bars with today in moss. It ends by saying since
+  when it has counted and that it stays on the phone. The stats are descriptive:
+  plain counts, no percentages, no praise, and no ending drawn as better than another.
 - **Help** is one page reached from Settings: how a breath goes, what to
   check when one doesn't appear, checking in, the 15-minute pause, and how to
   switch it off, all readable offline. Two rows open the full guide and the
@@ -165,6 +175,9 @@ export ANDROID_SDK_ROOT=/usr/lib/android-sdk JAVA_HOME=/usr/lib/jvm/java-17-open
 | ![](screenshots/settings-15-home-off-after-use.png) Switched off after use | |
 | ![](screenshots/settings-11-home-first-breath.png) Before the first breath | ![](screenshots/settings-12-home-notifications-blocked.png) Pause needs notifications |
 | ![](screenshots/settings-13-home-resting.png) Resting until the next hours | ![](screenshots/settings-07-home-large-text.png) Home at 160% text |
+| ![](screenshots/settings-22-home-choices-not-counted-yet.png) Just updated: nothing counted yet | ![](screenshots/stats-01-your-breaths.png) Your breaths |
+| ![](screenshots/stats-02-your-breaths-not-counted-yet.png) Your breaths, nothing counted yet | ![](screenshots/stats-04-your-breaths-no-detours.png) No detours chosen |
+| ![](screenshots/stats-03-your-breaths-large-text.png) Your breaths at 160% text | |
 | ![](screenshots/settings-14-settings.png) Settings | ![](screenshots/settings-21-settings-large-text.png) Settings at 160% text |
 | ![](screenshots/settings-18-settings-phone-optional.png) Phone permission, optional, not allowed | ![](screenshots/settings-19-settings-phone-app-info.png) Once Android stops asking |
 | ![](screenshots/settings-03-breath-length.png) Breath length | ![](screenshots/settings-20-schedule.png) Schedule |

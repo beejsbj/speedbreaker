@@ -128,6 +128,14 @@ private val Voice = FontFamily.Serif
 private val Base = Typography()
 
 private val SpeedbreakerTypography = Typography(
+    // The one large figure on Home. Figures are set alone, with their unit as a small label beside them.
+    displayMedium = TextStyle(
+        fontFamily = Voice,
+        fontWeight = FontWeight.Normal,
+        fontSize = 56.sp,
+        lineHeight = 60.sp,
+        letterSpacing = (-0.5).sp,
+    ),
     displaySmall = TextStyle(fontFamily = Voice, fontWeight = FontWeight.Normal, fontSize = 34.sp, lineHeight = 42.sp),
     headlineLarge = TextStyle(fontFamily = Voice, fontWeight = FontWeight.Normal, fontSize = 30.sp, lineHeight = 38.sp),
     headlineMedium = TextStyle(fontFamily = Voice, fontWeight = FontWeight.Normal, fontSize = 26.sp, lineHeight = 34.sp),

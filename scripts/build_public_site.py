@@ -100,7 +100,7 @@ no store availability is claimed.</p><h2>What the pause does</h2>
 <p>The first eight seconds hold ordinary navigation. Settings and Android-reported calls yield.
 Phone permission is optional; without it a call ringing without a ringtone (silent, vibrate or Do Not Disturb) can be hidden for the length of a breath. Calling apps exposing neither Android call state nor communication audio
 may not be detected. You choose every target and optional detour.</p>
-<p>No account, ads, analytics or per-app usage history. Settings, pause state and a resettable total of time breathed stay on the phone.</p>''')
+<p>No account, ads or analytics, and no record of which app a breath was for or when. Settings, pause state and resettable running totals of your breaths stay on the phone.</p>''')
     page("privacy.html", "Privacy policy",
          "What Speedbreaker observes, what stays on your phone, and the permissions it asks for.",
          render_document("docs/privacy.md"))

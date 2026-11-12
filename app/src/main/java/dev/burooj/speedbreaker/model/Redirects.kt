@@ -16,6 +16,13 @@ internal object Redirects {
             values.all { it.isNotBlank() && it !in targets }
 }
 
+/** Every app that is a detour for something: the default set and each app's own, where valid. */
+internal fun Settings.detourDestinations(): Set<String> =
+    (listOf(redirects) + apps.values.mapNotNull { it.redirects })
+        .filter { Redirects.isValid(it, apps.keys) }
+        .flatten()
+        .toSet()
+
 internal fun Settings.effectiveRedirects(packageName: String): List<String> =
     (apps[packageName]?.redirects ?: redirects)
         .takeIf { Redirects.isValid(it, apps.keys) }.orEmpty()

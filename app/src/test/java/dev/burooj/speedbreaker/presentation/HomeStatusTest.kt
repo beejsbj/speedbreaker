@@ -87,18 +87,26 @@ class HomeStatusTest {
     }
 
     @Test
-    fun statusNote_putsRestingAheadOfNotifications() {
-        assertNull(homeStatusNote(null, notificationsAllowed = true))
-        assertEquals("Pause 15 min needs notifications", homeStatusNote(null, notificationsAllowed = false))
-        assertEquals("resting until 9 AM", homeStatusNote("9 AM", notificationsAllowed = false))
+    fun thePillSaysActiveWithTheAppCountOrWhenItRestsUntil() {
+        assertEquals("Active · 3 apps", statusPillText(3, null))
+        assertEquals("Active · 1 app", statusPillText(1, null))
+        assertEquals("Resting until 9 AM", statusPillText(3, "9 AM"))
     }
 
     @Test
-    fun statusTextAndDescription() {
-        assertEquals("On", homeStatusText(null))
-        assertEquals("On · resting until 9 AM", homeStatusText("resting until 9 AM"))
-        assertEquals("Speedbreaker is on", homeStatusDescription(null))
-        assertEquals("Speedbreaker is on, Pause 15 min needs notifications", homeStatusDescription("Pause 15 min needs notifications"))
+    fun thePillIsDescribedInWordsWithWhatATapDoes() {
+        assertEquals("Speedbreaker is active on 3 apps. Shows your apps.", statusPillDescription(3, null))
+        assertEquals("Speedbreaker is on, resting until 9 AM. Shows your apps.", statusPillDescription(1, "9 AM"))
+    }
+
+    @Test
+    fun blockedNotificationsAreAQuietLineAndWaitWhileResting() {
+        assertNull(pauseNote(null, notificationsAllowed = true))
+        assertEquals(
+            "Pause 15 min needs notifications. Allow them in Settings.",
+            pauseNote(null, notificationsAllowed = false),
+        )
+        assertNull(pauseNote("9 AM", notificationsAllowed = false))
     }
 
     private fun setup(protection: Protection, hasApps: Boolean = false, hasBreathed: Boolean = false) =

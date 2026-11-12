@@ -18,6 +18,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import dev.burooj.speedbreaker.enforcement.Breaker
 import dev.burooj.speedbreaker.enforcement.Trigger
 import dev.burooj.speedbreaker.model.AppPolicy
+import dev.burooj.speedbreaker.model.BreathChoices
 import dev.burooj.speedbreaker.model.BreathStats
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.model.TimeWindow
@@ -145,6 +146,17 @@ internal val Gallery: List<GallerySpec> = listOf(
     GallerySpec("settings-13-home-resting") {
         Screen { HomeSample(Protection.On, OnlyInstagram, withBreaths = true, now = RestingNow) }
     },
+    GallerySpec("settings-22-home-choices-not-counted-yet") {
+        Screen { HomeSample(Protection.On, SampleSettings, withBreaths = true, withChoices = false) }
+    },
+    GallerySpec("stats-01-your-breaths", heightDp = 1500) { Screen { StatsSample() } },
+    GallerySpec("stats-02-your-breaths-not-counted-yet", heightDp = 1500) {
+        Screen { StatsSample(choices = BreathChoices()) }
+    },
+    GallerySpec("stats-03-your-breaths-large-text", fontScale = 1.6f, heightDp = 2400) { Screen { StatsSample() } },
+    GallerySpec("stats-04-your-breaths-no-detours", heightDp = 1500) {
+        Screen { StatsSample(settings = OnlyInstagram.copy(redirects = emptyList()), choices = SampleChoices.copy(detours = emptyMap())) }
+    },
 )
 
 /* ---------- Samples ---------- */
@@ -167,6 +179,32 @@ private fun sampleStats(now: Long) = BreathStats(
     totalBreaths = 94,
     todayKey = dev.burooj.speedbreaker.model.localDayKey(now, java.time.ZoneId.systemDefault()),
     todayMs = 2 * 60_000L,
+)
+
+/** 94 breaths' worth of endings, six chosen detours of which four were taken, and a week ending at [ActiveNow]. */
+private val SampleChoices: BreathChoices = BreathChoices(
+    since = "2026-10-01",
+    left = 41,
+    continued = 36,
+    detoured = 12,
+    timeOff = 3,
+    other = 2,
+    detours = mapOf(KINDLE to 6L, NOTES to 3L, DUOLINGO to 2L, MAPS to 1L),
+    days = dev.burooj.speedbreaker.model.weekOf(
+        dev.burooj.speedbreaker.model.localDayKey(ActiveNow, java.time.ZoneId.systemDefault()),
+    ).zip(listOf(96_000L, 156_000L, 60_000L, 204_000L, 138_000L, 0L, 120_000L)).toMap(),
+)
+
+@Composable
+private fun StatsSample(
+    settings: Settings = SampleSettings,
+    choices: BreathChoices = SampleChoices,
+) = StatsScreen(
+    stats = sampleStats(ActiveNow),
+    choices = choices,
+    settings = settings,
+    today = dev.burooj.speedbreaker.model.localDayKey(ActiveNow, java.time.ZoneId.systemDefault()),
+    onBack = {},
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -212,6 +250,7 @@ private fun HomeSample(
     notifications: Boolean = true,
     withBreaths: Boolean = false,
     now: Long = ActiveNow,
+    withChoices: Boolean = withBreaths,
 ) = HomeScreen(
     settings = settings,
     protection = protection,
@@ -224,6 +263,7 @@ private fun HomeSample(
     onApp = {},
     nowEpochMs = now,
     stats = if (withBreaths) sampleStats(now) else BreathStats(),
+    choices = if (withChoices) SampleChoices else BreathChoices(),
 )
 
 @Composable
@@ -277,6 +317,8 @@ private const val KINDLE = "com.amazon.kindle"
 private const val NOTES = "com.samsung.android.app.notes"
 private const val DUOLINGO = "com.duolingo"
 private const val MAPS = "com.google.android.apps.maps"
+private const val SPOTIFY = "com.spotify.music"
+private const val SIGNAL = "org.thoughtcrime.securesms"
 
 private val SampleApps = listOf(
     LaunchableApp("com.android.chrome", "Chrome"),
@@ -287,8 +329,8 @@ private val SampleApps = listOf(
     LaunchableApp(MAPS, "Maps"),
     LaunchableApp(NOTES, "Notes"),
     LaunchableApp(REDDIT, "Reddit"),
-    LaunchableApp("com.spotify.music", "Spotify"),
-    LaunchableApp("org.thoughtcrime.securesms", "Signal"),
+    LaunchableApp(SPOTIFY, "Spotify"),
+    LaunchableApp(SIGNAL, "Signal"),
     LaunchableApp(YOUTUBE, "YouTube"),
 )
 
@@ -326,7 +368,7 @@ private val SampleSettings = Settings(
                 (1..5).associateWith { TimeWindow(18 * 60, 1 * 60) } + (6 to TimeWindow(10 * 60, 1440)),
             ),
         ),
-        REDDIT to AppPolicy(continuousSeconds = null),
+        REDDIT to AppPolicy(continuousSeconds = null, redirects = listOf(SPOTIFY, SIGNAL)),
     ),
     redirects = listOf(KINDLE, NOTES, DUOLINGO, MAPS),
     schedule = Weekdays9to5,
@@ -364,6 +406,10 @@ private fun PreviewHomeOn() = gallery("settings-01-home-on")
 @Preview(name = "Home · off", widthDp = 412, heightDp = 915, showBackground = true)
 @Composable
 private fun PreviewHomeOff() = gallery("setup-02-home-off")
+
+@Preview(name = "Your breaths", widthDp = 412, heightDp = 1500, showBackground = true)
+@Composable
+private fun PreviewStats() = gallery("stats-01-your-breaths")
 
 @Preview(name = "Settings", widthDp = 412, heightDp = 1500, showBackground = true)
 @Composable

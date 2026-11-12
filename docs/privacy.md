@@ -2,7 +2,7 @@
 
 Applies to Android Speedbreaker through **1.0.6**, including its GitHub,
 community (F-Droid) and Google Play builds. Neither store build has been released.
-Last reviewed: **October 17, 2026**; corrected **November 10, 2026** (window data and notification-shade wording); updated **November 11, 2026** (Phone permission is optional). Publisher: **Burooj (beejsbj)**.
+Last reviewed: **October 17, 2026**; corrected **November 10, 2026** (window data and notification-shade wording); updated **November 11, 2026** (Phone permission is optional) and **November 12, 2026** (what versions after 1.0.6 count beside the breathing total). Publisher: **Burooj (beejsbj)**.
 
 Speedbreaker runs on your Android phone. It has no account, analytics, ads,
 cloud sync, billing SDK or developer backend. The community (F-Droid) and Google
@@ -80,15 +80,30 @@ Speedbreaker stores these records in its private local app database:
 - A running total of the seconds you have breathed and the number of breaths, overall
   and for the current local day. Home shows it, and **Reset breathing total** in Settings
   (at the foot of Home through 1.0.6) sets it back to zero. It is never sent anywhere.
+- In versions after 1.0.6, three more running records beside that total, counted from
+  the day you install such a version:
+  - how many breaths ended each way: you left, continued, took a detour, took
+    fifteen minutes off, or the breath ended without a choice;
+  - for each app currently chosen as a detour, how many times you took it;
+  - the time breathed on each of the last seven local days, and the day counting began.
+
+  **Your breaths**, opened from Home, shows them. **Reset breathing total** clears them
+  with the total, and a detour's count is deleted when you remove that app from every
+  detour list. They are never sent anywhere.
 - A rolling pause-state record for each relevant app: the allowance day, how many
   pauses were used, and the active pause's expiry time.
 - GitHub build only, in a private preferences file beside the database: whether
   the automatic update check is on, and the date of the last automatic check.
 
 The breathing total holds four numbers: total time, total breaths, today's date, and
-today's time. It is not per app and has no timestamps, list of breaths, or history, so
-it cannot say which app a breath was for or when it happened. There is no timeline of
-app usage, daily usage total, or archive of pause events.
+today's time. Through 1.0.6 that is the only usage figure, with no per-app count and no
+daily history. Later versions add the records listed above: five counts, a count for each
+chosen detour app, and seven daily totals; a daily total older than seven days is dropped.
+
+In every version there is no list of breaths and no time of day, and nothing records
+which of your chosen apps a breath was for. A detour count says how often you went to
+that app from a breath, not from which app or when. There is no timeline of app usage
+or archive of pause events.
 Pause-state dates and allowances are reconciled as the service runs; an active
 pause can outlast midnight without receiving a new fifteen-minute duration.
 The reflection asks for no input, so no answer is collected or stored.

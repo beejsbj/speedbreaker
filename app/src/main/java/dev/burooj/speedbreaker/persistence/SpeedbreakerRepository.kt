@@ -2,9 +2,12 @@ package dev.burooj.speedbreaker.persistence
 
 import android.content.Context
 import androidx.room.Room
+import dev.burooj.speedbreaker.model.BreathChoices
+import dev.burooj.speedbreaker.model.BreathEnding
 import dev.burooj.speedbreaker.model.BreathStats
 import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.model.Settings
+import dev.burooj.speedbreaker.model.detourDestinations
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +44,9 @@ internal class SpeedbreakerRepository internal constructor(private val dao: Stat
     private val _stats = MutableStateFlow(BreathStats())
     /** Breathing totals are a keepsake, not enforcement state: they never raise [error]. */
     val stats: StateFlow<BreathStats> = _stats.asStateFlow()
+    private val _choices = MutableStateFlow(BreathChoices())
+    /** What followed the breaths. A keepsake like [stats]: it never raises [error] either. */
+    val choices: StateFlow<BreathChoices> = _choices.asStateFlow()
     private val _ready = MutableStateFlow(false)
     val ready: StateFlow<Boolean> = _ready.asStateFlow()
     private val _error = MutableStateFlow<String?>(null)
@@ -61,8 +67,13 @@ internal class SpeedbreakerRepository internal constructor(private val dao: Stat
                     val loadedStats = runCatching {
                         dao.read(STATS_KEY)?.value?.let(SettingsJson::decodeStats)
                     }.getOrNull() ?: BreathStats()
+                    // Absent until the first breath after the version that began counting choices.
+                    val loadedChoices = runCatching {
+                        dao.read(CHOICES_KEY)?.value?.let(SettingsJson::decodeChoices)
+                    }.getOrNull() ?: BreathChoices()
                     _settings.value = loadedSettings
                     _stats.value = loadedStats
+                    _choices.value = loadedChoices
                     _pauses.value = loadedPauses
                     _ready.value = true
                 }
@@ -89,7 +100,10 @@ internal class SpeedbreakerRepository internal constructor(private val dao: Stat
             } catch (error: Throwable) {
                 if (error is CancellationException) throw error
                 _error.value = "Speedbreaker couldn’t save your settings."
+                return
             }
+            // An app that stops being a detour takes its count with it.
+            writeChoices(_choices.value.keepingDetours(checked.detourDestinations()))
         }
     }
 
@@ -108,13 +122,43 @@ internal class SpeedbreakerRepository internal constructor(private val dao: Stat
         }
     }
 
-    /** Adds one finished breath to the running totals. A failed write is dropped silently. */
-    suspend fun recordBreath(shownMs: Long, today: String) {
+    /**
+     * Adds one finished breath to the running totals, with how it ended and, for a detour, where
+     * it went. A failed write is dropped silently.
+     */
+    suspend fun recordBreath(
+        shownMs: Long,
+        today: String,
+        ending: BreathEnding = BreathEnding.Other,
+        detour: String? = null,
+    ) {
         updateStats { it.withBreath(shownMs, today) }
+        stateMutex.withLock {
+            if (!_ready.value) return
+            val stillChosen = detour?.takeIf { it in _settings.value.detourDestinations() }
+            writeChoices(_choices.value.withBreath(shownMs, today, ending, stillChosen))
+        }
     }
 
+    /** Clears the total and everything counted beside it. */
     suspend fun resetStats() {
         updateStats { BreathStats() }
+        stateMutex.withLock {
+            if (!_ready.value) return
+            writeChoices(BreathChoices())
+        }
+    }
+
+    /** Called with stateMutex held. Like the total, a lost write never surfaces or stops enforcement. */
+    private suspend fun writeChoices(updated: BreathChoices) {
+        if (updated == _choices.value) return
+        try {
+            persistAndPublish(StateRecord(CHOICES_KEY, SettingsJson.encodeChoices(updated))) {
+                _choices.value = updated
+            }
+        } catch (error: Throwable) {
+            if (error is CancellationException) throw error
+        }
     }
 
     private suspend fun updateStats(transform: (BreathStats) -> BreathStats) {
@@ -170,6 +214,7 @@ internal class SpeedbreakerRepository internal constructor(private val dao: Stat
         private const val SETTINGS_KEY = "settings"
         private const val PAUSES_KEY = "pauses"
         private const val STATS_KEY = "breath_stats"
+        private const val CHOICES_KEY = "breath_choices"
         @Volatile private var instance: SpeedbreakerRepository? = null
 
         fun get(context: Context): SpeedbreakerRepository = instance ?: synchronized(this) {

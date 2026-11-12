@@ -19,6 +19,7 @@ import dev.burooj.speedbreaker.enforcement.EnforcementEngine
 import dev.burooj.speedbreaker.enforcement.EngineDecision
 import dev.burooj.speedbreaker.enforcement.EngineUpdate
 import dev.burooj.speedbreaker.enforcement.Observation
+import dev.burooj.speedbreaker.model.BreathEnding
 import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.model.localDayKey
@@ -65,6 +66,8 @@ internal class SpeedbreakerService : AccessibilityService() {
     private var lastBreaker: Breaker? = null
     private var suspendedFor: SuspendReason? = null
     private val breathCounter = BreathCounter()
+    /** The detour just pressed, held only while its choice is applied so the count can name it. */
+    private var chosenDetour: String? = null
     private val labelCache = mutableMapOf<String, String>()
 
     /** Why enforcement is held off, for the diagnostic log; never shown or stored. */
@@ -279,7 +282,12 @@ internal class SpeedbreakerService : AccessibilityService() {
         if (choice == Choice.Pause && !notifications.isAvailable()) return
         val settings = safetyPolicy.filter(repository.settings.value)
         val observation = observation(navigationAway = false, forceSafetyYield = false)
-        apply(currentEngine.choose(choice, settings, observation), settings, observation)
+        chosenDetour = (choice as? Choice.Redirect)?.packageName
+        try {
+            apply(currentEngine.choose(choice, settings, observation), settings, observation)
+        } finally {
+            chosenDetour = null
+        }
     }
 
     private fun handleBack() {
@@ -546,16 +554,20 @@ internal class SpeedbreakerService : AccessibilityService() {
     }
 
     /**
-     * A breath counts once, when it ends, by whatever path. Only the running totals are
-     * written, off the main thread by the repository; a failed write never touches enforcement.
+     * A breath counts once, when it ends, by whatever path, along with how it ended and, for a
+     * detour, where it went. Only running totals are written, off the main thread by the
+     * repository; a failed write never touches enforcement.
      */
     private fun countBreath(decision: EngineDecision, epochMs: Long, zoneId: ZoneId) {
         val shownMs = breathCounter.consume(
             decision,
             fallbackBreathSeconds = repository.settings.value.breathSeconds,
         ) ?: return
+        val reason = (decision as? EngineDecision.BreakerEnded)?.reason
+        val ending = reason?.asEnding() ?: BreathEnding.Other
+        val detour = chosenDetour.takeIf { reason == BreakerEnd.CHOICE_REDIRECT }
         val today = localDayKey(epochMs, zoneId)
-        scope.launch { repository.recordBreath(shownMs, today) }
+        scope.launch { repository.recordBreath(shownMs, today, ending, detour) }
     }
 
     private fun tearDownConnection() {

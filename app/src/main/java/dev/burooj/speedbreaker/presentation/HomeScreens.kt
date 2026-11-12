@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -27,6 +29,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.key
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -42,6 +46,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
 import dev.burooj.speedbreaker.R
+import dev.burooj.speedbreaker.model.BreathChoices
 import dev.burooj.speedbreaker.model.BreathStats
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.model.localDayKey
@@ -60,6 +65,7 @@ import dev.burooj.speedbreaker.presentation.components.RowDivider
 import dev.burooj.speedbreaker.presentation.components.Section
 import dev.burooj.speedbreaker.presentation.components.StatusDot
 import dev.burooj.speedbreaker.presentation.components.appCatalog
+import kotlinx.coroutines.launch
 
 /* ---------- First run ---------- */
 
@@ -160,9 +166,10 @@ private fun ColumnScope.DisclosurePage(onAccept: () -> Unit, onDecline: () -> Un
         )
         Promise(
             heading = "What it keeps",
-            body = "Your settings, today’s pauses, and a running total of breaths and time breathed, " +
-                "overall and today, that you can reset. " +
-                "No record of which apps you open or when, no answers, no analytics, no cloud.",
+            body = "Your settings, today’s pauses, and running totals you can reset: breaths and time " +
+                "breathed (overall and for each of the last seven days), how each breath ended, and how " +
+                "often you took each detour. Nothing about which app a breath was for or the time of " +
+                "day, no answers, no analytics, no cloud.",
         )
     }
     Spacer(Modifier.height(40.dp))
@@ -241,8 +248,9 @@ internal enum class Protection {
 /**
  * Home says what is happening: is it working, how much has been breathed, which apps. Whatever a
  * person sets or checks is behind the gear, on Settings. Setup is the same page — undone steps
- * simply lead. While breaths work and apps are chosen, the status and the breathing total are
- * the header; every other state keeps its serif title and repair notice.
+ * simply lead. While breaths work and apps are chosen, the header is the status pill, the
+ * breathing total and what followed the breaths; every other state keeps its serif title and
+ * repair notice.
  */
 @Composable
 internal fun HomeScreen(
@@ -259,6 +267,8 @@ internal fun HomeScreen(
     nowEpochMs: Long = System.currentTimeMillis(),
     onEndPause: (String) -> Unit = {},
     stats: BreathStats = BreathStats(),
+    choices: BreathChoices = BreathChoices(),
+    onStats: () -> Unit = {},
     updateCard: (@Composable () -> Unit)? = null,
 ) {
     val appCount = settings.apps.size
@@ -266,6 +276,8 @@ internal fun HomeScreen(
     val use24Hour = DateFormat.is24HourFormat(LocalContext.current)
     val zone = ZoneId.systemDefault()
     val today = localDayKey(nowEpochMs, zone)
+    val scope = rememberCoroutineScope()
+    val appsSection = remember { BringIntoViewRequester() }
 
     val healthy = protection == Protection.On && appCount > 0
     val setup = setupProgress(protection, hasApps = appCount > 0, hasBreathed = !stats.isEmpty)
@@ -283,17 +295,20 @@ internal fun HomeScreen(
     }
     val header: (@Composable ColumnScope.() -> Unit)? = if (healthy) {
         {
-            val note = homeStatusNote(
-                restingUntil = restingUntil(settings, nowEpochMs, zone, use24Hour),
-                notificationsAllowed = notificationsAllowed,
-            )
-            StatusLine(text = homeStatusText(note), description = homeStatusDescription(note))
-            Spacer(Modifier.height(16.dp))
-            BreathTotal(
+            BreathedHeader(
                 stats = stats,
                 today = today,
+                appCount = appCount,
+                restingUntil = restingUntil(settings, nowEpochMs, zone, use24Hour),
+                notificationsAllowed = notificationsAllowed,
                 firstAppLabel = settings.apps.keys.singleOrNull()?.let(catalog::label),
+                onShowApps = { scope.launch { appsSection.bringIntoView() } },
             )
+            // Nothing has been chosen before the first breath, so the card waits for one.
+            if (!stats.isEmpty) {
+                Spacer(Modifier.height(12.dp))
+                ChoicesCard(choices, settings, onOpen = onStats)
+            }
         }
     } else {
         null
@@ -341,6 +356,7 @@ internal fun HomeScreen(
         // While choosing apps is the open setup step, its button is the way in; a second row would repeat it.
         if (setup?.current != 2) Section(
             title = "Apps",
+            modifier = Modifier.bringIntoViewRequester(appsSection),
             footnote = if (appCount == 0) "Nothing is chosen until you pick it." else null,
         ) {
             settings.apps.entries
@@ -361,47 +377,6 @@ internal fun HomeScreen(
                 leading = { LeadingGlyphCircle() },
             )
         }
-    }
-}
-
-/** A moss dot and a plain word: Speedbreaker is on. The dot is decoration; the words are what TalkBack reads. */
-@Composable
-private fun StatusLine(text: String, description: String) {
-    Row(
-        modifier = Modifier.clearAndSetSemantics { contentDescription = description },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        StatusDot(MaterialTheme.colorScheme.tertiary)
-        Spacer(Modifier.width(10.dp))
-        Text(text, style = MaterialTheme.typography.labelLarge)
-    }
-}
-
-/**
- * How long you have breathed, as the page's one large number, with the breath count and today's
- * time beneath. Before the first breath it says so and names what starts one. Text wraps freely
- * at any size; it is never clipped or shrunk.
- */
-@Composable
-private fun BreathTotal(stats: BreathStats, today: String, firstAppLabel: String?) {
-    val headline: String
-    val subline: String
-    val description: String
-    if (stats.isEmpty) {
-        headline = "No breaths yet"
-        subline = "Open ${firstAppLabel ?: "a chosen app"} and your first one begins."
-        description = "$headline. $subline"
-    } else {
-        headline = formatBreathTotal(stats.totalMs)
-        subline = breathSubline(stats, today)
-        description = "$headline breathed in total. ${subline.replace(" · ", ", ")}."
-    }
-    Column(
-        modifier = Modifier.clearAndSetSemantics { contentDescription = description },
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Text(headline, style = MaterialTheme.typography.displaySmall)
-        Text(subline, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
