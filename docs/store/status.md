@@ -42,7 +42,7 @@ October 11 history.
   testers for 14 days are not available. Play build, listing drafts and declarations
   stay in the repo; the automated Play policy video recorder is no longer pursued.
 - Owner supplied a Ko-fi page, https://ko-fi.com/beejsbj. It is the GitHub/community
-  Home link and the Play direct-tip destination, which stays hidden until verified.
+  support link (a row in Settings; on Home through 1.0.6) and the Play direct-tip destination, which stays hidden until verified.
 - Heavy Android builds/emulators use hosted CI; full Xcode was absent on the Mac.
 
 No store “submitted,” “approved,” or “live” state is inferred from source files,

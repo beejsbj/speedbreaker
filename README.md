@@ -39,9 +39,10 @@ breaths that no longer need Phone permission. See the
 There are no streaks, usage scores, or daily screen-time budgets. Speedbreaker
 works locally, without an account, ads, analytics, or cloud sync.
 
-From 1.0.4 the GitHub APK updates itself when you ask: **Check for updates** at
-the foot of Home asks GitHub for a newer release, and **Update** downloads it,
-checks it, and hands it to Android's installer. An optional daily check is off until you turn it on in Defaults.
+From 1.0.4 the GitHub APK updates itself when you ask: **Check for updates** in
+Settings (the gear on Home; at the foot of Home through 1.0.6) asks GitHub for a newer
+release, and **Update** downloads it, checks it, and hands it to Android's installer.
+An optional daily check is off until you turn it on there.
 
 ## A look inside
 
@@ -64,15 +65,16 @@ own apps and detours.
 4. Tap **Turn on in Accessibility** and enable **Speedbreaker**.
 5. Speedbreaker opens again by itself; if it does not, press Back. Tap **Choose apps**, then
    open a chosen app to try it.
-6. Optional: under **Reliability**, tap **Phone permission** and allow it, so a breath also
+6. Optional: open Settings (the gear on Home) and, under **Reliability**, tap **Phone permission** and allow it, so a breath also
    steps aside for a call that rings without a ringtone (silent, vibrate or Do Not Disturb).
 
 If Android says the Accessibility setting is restricted, open Speedbreaker's
 **App info → ⋮ → Allow restricted settings**, confirm your identity, and return
 to Accessibility. Menu names vary by phone. Keep Play Protect enabled.
 
-Allow notifications (**Reliability → Notifications**) to use the fifteen-minute Pause option. On Samsung,
-check **Reliability → Battery and background** for background-operation guidance.
+Allow notifications (**Settings → Reliability → Notifications**) to use the fifteen-minute Pause option. On Samsung,
+check **Settings → Reliability → Battery and background** for background-operation guidance.
+Through 1.0.6 these rows sit on Home itself.
 See the [setup and troubleshooting guide](docs/getting-started.md) for details.
 
 ### Verify the APK
@@ -112,7 +114,7 @@ Phone permission is optional. It supports a call-state check, without reading nu
 call history, or audio; without it a call ringing without a ringtone (silent, vibrate or Do Not Disturb) can be hidden for
 the length of a breath. The app does not read message text or take screenshots. It keeps
 only a running total of the seconds you have breathed and the breaths you have taken
-(overall and today), shown on Home and resettable there. It never sends them anywhere,
+(overall and today), shown on Home and resettable in Settings. It never sends them anywhere,
 and keeps no per-app or time-stamped history.
 Settings, pause state, and that total stay on the phone. It requests no Usage
 Access or separate “display over other apps” permission. The GitHub APK (1.0.4 and

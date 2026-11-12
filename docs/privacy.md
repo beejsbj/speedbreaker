@@ -49,8 +49,8 @@ holds back or ends a breath, the aggregate result (booleans and the audio-mode
 number) is written to Android's local diagnostic log described below.
 
 Android calls the runtime permission **Phone**. It is optional from 1.0.6 (earlier
-versions kept breaths off without it), and is offered under Reliability on Home,
-not during setup. Speedbreaker uses it
+versions kept breaths off without it), and is offered under Reliability in Settings
+(on Home through 1.0.6), not during setup. Speedbreaker uses it
 only for the call-state check; it does not request contacts, call logs, microphone
 access, or permission to place or answer calls. It does not read phone numbers,
 caller identity, call history, notification contents, or audio.
@@ -78,12 +78,12 @@ Speedbreaker stores these records in its private local app database:
 - Breath length, selected app package names, check-in settings, active schedules,
   and detour package names.
 - A running total of the seconds you have breathed and the number of breaths, overall
-  and for the current local day. Home shows it, and **Reset breathing total** there sets it back
-  to zero. It is never sent anywhere.
+  and for the current local day. Home shows it, and **Reset breathing total** in Settings
+  (at the foot of Home through 1.0.6) sets it back to zero. It is never sent anywhere.
 - A rolling pause-state record for each relevant app: the allowance day, how many
   pauses were used, and the active pause's expiry time.
 - GitHub build only, in a private preferences file beside the database: whether
-  **Check for updates automatically** is on, and the date of the last automatic check.
+  the automatic update check is on, and the date of the last automatic check.
 
 The breathing total holds four numbers: total time, total breaths, today's date, and
 today's time. It is not per app and has no timestamps, list of breaths, or history, so
@@ -99,9 +99,10 @@ This section applies only to the APK downloaded from GitHub Releases (1.0.4 and
 later). The F-Droid (community) and Google Play builds never check for updates and
 cannot reach the network.
 
-Speedbreaker contacts GitHub only when you tap **Check for updates** on Home, or,
-if you turn on **Check for updates automatically** in Defaults (off by default),
-at most once a day when you open the app. It asks
+Speedbreaker contacts GitHub only when you tap **Check for updates**, or, if you turn
+on the automatic check beside it (off by default), at most once a day when you open the
+app. Both are under Updates in Settings; through 1.0.6 the button is at the foot of Home
+and the switch is in Defaults. It asks
 `api.github.com/repos/beejsbj/speedbreaker/releases/latest` for the latest release.
 The request carries no account, token, cookie, device or install identifier; the
 only header Speedbreaker sets is `User-Agent: Speedbreaker/<version>`. It sends

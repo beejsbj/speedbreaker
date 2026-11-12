@@ -3,7 +3,6 @@ package dev.burooj.speedbreaker.presentation
 import android.text.format.DateFormat
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -22,32 +20,24 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.key
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
@@ -57,6 +47,7 @@ import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.model.localDayKey
 import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.presentation.components.AppGlyph
+import dev.burooj.speedbreaker.presentation.components.BarAction
 import dev.burooj.speedbreaker.presentation.components.ContentMaxWidth
 import dev.burooj.speedbreaker.presentation.components.Eyebrow
 import dev.burooj.speedbreaker.presentation.components.Glyphs
@@ -248,10 +239,10 @@ internal enum class Protection {
 }
 
 /**
- * Home reads top-down as: is it working, which apps, how it behaves, what
- * keeps it reliable. Setup is the same page — undone steps simply lead.
- * While breaths work and apps are chosen, the status and the breathing total
- * are the header; every other state keeps its serif title and repair notice.
+ * Home says what is happening: is it working, how much has been breathed, which apps. Whatever a
+ * person sets or checks is behind the gear, on Settings. Setup is the same page — undone steps
+ * simply lead. While breaths work and apps are chosen, the status and the breathing total are
+ * the header; every other state keeps its serif title and repair notice.
  */
 @Composable
 internal fun HomeScreen(
@@ -261,33 +252,20 @@ internal fun HomeScreen(
     notificationsAllowed: Boolean,
     onEnableAccessibility: () -> Unit,
     onOpenAppInfo: () -> Unit,
-    onNotifications: () -> Unit,
     onChooseApps: () -> Unit,
-    onDefaults: () -> Unit,
+    onSettings: () -> Unit,
     onApp: (String) -> Unit,
-    onCallAccess: () -> Unit = {},
-    phoneNeedsSettings: Boolean = false,
-    phoneAllowed: Boolean = true,
     pauses: Map<String, PauseState> = emptyMap(),
     nowEpochMs: Long = System.currentTimeMillis(),
     onEndPause: (String) -> Unit = {},
-    onSupport: () -> Unit = {},
-    onHelp: () -> Unit = {},
-    onPrivacy: () -> Unit = {},
-    supportLabel: String = "Buy me a coffee",
-    supportSummary: String = "Opens ko-fi.com in your browser",
-    supportAvailable: Boolean = true,
     stats: BreathStats = BreathStats(),
-    onResetStats: () -> Unit = {},
     updateCard: (@Composable () -> Unit)? = null,
-    onCheckUpdates: (() -> Unit)? = null,
 ) {
     val appCount = settings.apps.size
     val catalog = appCatalog()
     val use24Hour = DateFormat.is24HourFormat(LocalContext.current)
     val zone = ZoneId.systemDefault()
     val today = localDayKey(nowEpochMs, zone)
-    var confirmingReset by remember { mutableStateOf(false) }
 
     val healthy = protection == Protection.On && appCount > 0
     val setup = setupProgress(protection, hasApps = appCount > 0, hasBreathed = !stats.isEmpty)
@@ -321,7 +299,13 @@ internal fun HomeScreen(
         null
     }
 
-    Page(title = title, onBack = null, eyebrow = "Speedbreaker", header = header) {
+    Page(
+        title = title,
+        onBack = null,
+        eyebrow = "Speedbreaker",
+        action = { BarAction(Glyphs.Settings, "Settings", onSettings) },
+        header = header,
+    ) {
         ActivePausesSection(pauses, nowEpochMs, onEndPause)
 
         if (setup != null) {
@@ -377,100 +361,6 @@ internal fun HomeScreen(
                 leading = { LeadingGlyphCircle() },
             )
         }
-
-        Section(title = "Defaults") {
-            NavRow(
-                title = defaultsTitle(settings),
-                summary = defaultsSummary(settings, use24Hour),
-                onClick = onDefaults,
-            )
-        }
-
-        Section(title = "Reliability") {
-            NavRow(
-                title = "Notifications",
-                summary = if (notificationsAllowed) {
-                    "Allowed. Only used while a 15-minute pause is running."
-                } else {
-                    "Not allowed. The Pause 15 min button needs them."
-                },
-                onClick = onNotifications,
-                leading = {
-                    StatusDot(
-                        // Off is a choice here, not a fault: only the optional Pause needs them.
-                        if (notificationsAllowed) {
-                            MaterialTheme.colorScheme.tertiary
-                        } else {
-                            MaterialTheme.colorScheme.outline
-                        },
-                    )
-                },
-            )
-            RowDivider()
-            // Optional: breaths work without it, so off is a choice here too.
-            NavRow(
-                title = "Phone permission",
-                summary = when {
-                    phoneAllowed -> "Allowed. A breath steps aside for a ringing call, even a silent one."
-                    phoneNeedsSettings -> PHONE_APP_INFO
-                    else -> PHONE_OPTIONAL
-                },
-                onClick = if (phoneAllowed) onOpenAppInfo else onCallAccess,
-                // The app-info wording replaces the summary after a press, so a screen reader has to be told.
-                modifier = if (phoneNeedsSettings && !phoneAllowed) {
-                    Modifier.semantics { liveRegion = LiveRegionMode.Polite }
-                } else {
-                    Modifier
-                },
-                leading = {
-                    StatusDot(
-                        if (phoneAllowed) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline,
-                    )
-                },
-            )
-            RowDivider()
-            NavRow(
-                title = "Battery and background",
-                summary = "If breaths stop appearing after a while, allow background use. " +
-                    "On Samsung, set Battery to Unrestricted.",
-                onClick = onOpenAppInfo,
-                leading = { StatusDot(Color.Transparent) },
-            )
-        }
-
-        Column {
-            HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
-            Spacer(Modifier.height(8.dp))
-            FooterLink("Help", onHelp, description = "Help. How it works and what to check when a breath doesn’t appear")
-            if (supportAvailable) {
-                FooterLink(supportLabel, onSupport, description = "$supportLabel. $supportSummary")
-            }
-            FooterLink("Privacy policy", onPrivacy, description = "Privacy policy. Opens the public policy in your browser")
-            if (onCheckUpdates != null) {
-                FooterLink("Check for updates", onCheckUpdates, description = "Check for updates. Asks GitHub for the latest release")
-            }
-            if (!stats.isEmpty) {
-                FooterLink("Reset breathing total", { confirmingReset = true })
-            }
-        }
-    }
-
-    if (confirmingReset) {
-        AlertDialog(
-            onDismissRequest = { confirmingReset = false },
-            title = { Text("Reset your breathing total?") },
-            text = {
-                Text(
-                    "The total, the breath count and today’s time go back to zero. This stays on " +
-                        "this phone and can’t be undone.",
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { confirmingReset = false; onResetStats() }) { Text("Reset") }
-            },
-            dismissButton = { TextButton(onClick = { confirmingReset = false }) { Text("Keep it") } },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        )
     }
 }
 
@@ -512,26 +402,6 @@ private fun BreathTotal(stats: BreathStats, today: String, firstAppLabel: String
     ) {
         Text(headline, style = MaterialTheme.typography.displaySmall)
         Text(subline, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-/** A quiet text-only action at the foot of Home. */
-@Composable
-private fun FooterLink(text: String, onClick: () -> Unit, description: String = text) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 4.dp),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.semantics { contentDescription = description },
-        )
     }
 }
 
@@ -700,14 +570,6 @@ private fun ColumnScope.AccessibilityActions(onEnableAccessibility: () -> Unit, 
     )
     QuietAction("Open app info", onOpenAppInfo)
 }
-
-private const val PHONE_OPTIONAL = "Optional. Without it, a call that rings without a ringtone (silent, vibrate or Do Not " +
-    "Disturb) can stay hidden behind a breath. Android words this as “make and manage phone calls”; Speedbreaker can’t make calls and " +
-    "doesn’t read numbers, call history, or audio."
-
-/** Once Android has stopped showing its prompt, the row says so and leads to app info instead. */
-private const val PHONE_APP_INFO = "Not allowed, and Android won’t ask again here. Tap to open app info, then " +
-    "Permissions → Phone → Allow. Speedbreaker opens again once it’s allowed."
 
 internal enum class NoticeTone { Calm, Repair }
 

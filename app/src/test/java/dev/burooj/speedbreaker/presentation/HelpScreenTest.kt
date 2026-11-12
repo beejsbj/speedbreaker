@@ -5,7 +5,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.presentation.theme.SpeedbreakerTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -15,36 +14,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Somewhere to go when stuck: reachable from Home, readable offline, and it names the version. */
+/** Somewhere to go when stuck: readable offline, and it names the version. Settings leads to it. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w412dp-h915dp-xxhdpi")
 class HelpScreenTest {
     @get:Rule val compose = createComposeRule()
-
-    @Test
-    fun homeOffersHelp() {
-        var opened = 0
-        compose.setContent {
-            SpeedbreakerTheme {
-                HomeScreen(
-                    settings = Settings(consentAccepted = true),
-                    protection = Protection.Off,
-                    runtimeError = null,
-                    notificationsAllowed = false,
-                    onEnableAccessibility = {},
-                    onOpenAppInfo = {},
-                    onNotifications = {},
-                    onChooseApps = {},
-                    onDefaults = {},
-                    onApp = {},
-                    onHelp = { opened++ },
-                )
-            }
-        }
-        compose.onNodeWithText("Help").performScrollTo().performClick()
-        assertEquals(1, opened)
-    }
 
     @Test
     fun helpAnswersTheStuckQuestionsAndLeadsOnward() {

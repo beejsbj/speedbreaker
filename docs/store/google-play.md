@@ -19,8 +19,8 @@ prepared but inactive until destination and policy eligibility are verified. Pub
 - Website/help: https://beejsbj.github.io/speedbreaker/support.html
 - Source and issue tracker: https://github.com/beejsbj/speedbreaker
 
-The policy/help URLs are deployed and HTTP 200 was verified. Home links to Help
-and the privacy policy. The public developer/support email is
+The policy/help URLs are deployed and HTTP 200 was verified. Settings (the gear on Home) links to Help
+and the privacy policy; the disclosure page links to the policy before consent. The public developer/support email is
 `burooj.bj+playsupport@gmail.com` (owner decision, October 12, recorded in
 [status.md](status.md)).
 Store graphics are generated from original assets; screenshots and the
@@ -34,7 +34,7 @@ All free features are available offline. To review:
 1. Open the app. Read the full Accessibility disclosure. Decline closes the app
    without accepting consent; reopening shows it again. Accepting opens Home.
 2. Open Accessibility settings through Home and enable **Speedbreaker**.
-   Phone permission is optional (Home → Reliability); breaths run without it.
+   Phone permission is optional (Settings → Reliability); breaths run without it.
 3. Pick a harmless app such as Calculator; no targets or detours are preselected.
 4. Check that the current time falls within your chosen schedule, then open the
    target. Observe the breath and navigation hold. After eight seconds Leave,
@@ -104,7 +104,7 @@ manifest inventory before saving the actual form.
 | Data shared | No. No data payload is attached to browser links or redirect intents. External websites operate under their own policies. |
 | Card/payment information, purchase history | Not accessed by the app. No native billing SDK, receipts, payment status or purchase history. Current Play support action is inactive. |
 | Location, contacts, messages, media, health, identifiers/analytics/crash logs | No code or resolved runtime SDK collecting these off-device. |
-| Data deletion | Clear app storage/uninstall deletes local settings, pause records and the breathing total (also resettable on Home); there is no Speedbreaker account or cloud record. External website/payment records are separate. |
+| Data deletion | Clear app storage/uninstall deletes local settings, pause records and the breathing total (also resettable in Settings); there is no Speedbreaker account or cloud record. External website/payment records are separate. |
 | Encryption in transit | No app data transmitted; follow the form's no-collection branch rather than imply a backend. |
 | Independent security review badge | No: code/model reviews are not a certified MASA review. |
 

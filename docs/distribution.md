@@ -104,7 +104,7 @@ distribution entitlement, TestFlight upload or submission is being pursued.
 
 ## Optional developer support
 
-The GitHub and community builds have a quiet **Buy me a coffee** link on Home to
+The GitHub and community builds have a quiet **Buy me a coffee** row in Settings to
 [the developer's Ko-fi page](https://ko-fi.com/beejsbj). It opens externally,
 provides no digital rewards or feature unlocks, and adds no billing SDK or
 permission. It is never shown in the breathing overlay.

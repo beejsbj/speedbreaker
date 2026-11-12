@@ -7,23 +7,18 @@ import org.junit.Test
 
 class SummariesTest {
     @Test
-    fun defaultsSummary_reportsEveryOptionalRedirectCount() {
-        val labels = listOf("no detours", "1 detour", "2 detours", "3 detours", "4 detours")
-        for (count in 0..4) {
-            val settings = dev.burooj.speedbreaker.model.Settings(redirects = (1..count).map { "alt.$it" })
-            assertEquals("Always on · ${labels[count]}", defaultsSummary(settings, use24Hour = true))
-        }
+    fun detoursRowNamesThePlacesOrSaysWhatAnEmptyOneIsFor() {
+        assertEquals("Kindle", detoursSummary(listOf("Kindle")))
+        assertEquals("Kindle, Notes, Maps", detoursSummary(listOf("Kindle", "Notes", "Maps")))
+        assertEquals(
+            "None. Up to four places to go instead, shown under Continue and Leave.",
+            detoursSummary(emptyList()),
+        )
     }
 
     @Test
-    fun defaults_titleIsTheBreathAndSummaryTheRest() {
-        val settings = dev.burooj.speedbreaker.model.Settings(
-            breathSeconds = 20,
-            redirects = listOf("alt.1"),
-            schedule = startingSchedule(),
-        )
-        assertEquals("20-second breath", defaultsTitle(settings))
-        assertEquals("Weekdays · 09:00–17:00 · 1 detour", defaultsSummary(settings, use24Hour = true))
+    fun breathLengthRowShowsTheSeconds() {
+        assertEquals("20 seconds", breathLengthValue(dev.burooj.speedbreaker.model.Settings(breathSeconds = 20)))
     }
 
     @Test

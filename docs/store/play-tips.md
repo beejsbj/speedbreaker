@@ -15,7 +15,7 @@ seam uses `app/src/play/res/values/support.xml`:
 - `play_direct_tip_url` is the Ko-fi page, https://ko-fi.com/beejsbj.
 - `play_direct_tip_verified` is false.
 - Until configured and verified, the support action is hidden. The privacy policy
-  remains accessible on Home and before consent. All app features remain free.
+  remains accessible in Settings and before consent. All app features remain free.
 - Once approved/configured, a valid HTTPS URL opens in the user's browser. No
   app settings, selected packages, activity, identifier or purchase token is
   attached. There is no Ko-fi or native-checkout fallback in Play.

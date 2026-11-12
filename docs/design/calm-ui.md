@@ -38,7 +38,7 @@ overlay keeps its existing `BreakerOverlay` signature.
   seconds do, what it keeps) with accept and decline. Back returns to the first.
 - **First-time setup** is two numbered steps on Home: Accessibility, then apps.
   The title counts them down ("Two steps to start", "One step left"); Phone
-  permission is optional and lives under Reliability; the next step is open with its reason and its
+  permission is optional and lives under Reliability in Settings; the next step is open with its reason and its
   one button, finished steps keep a moss tick. After a first breath the same
   states are repairs and read as the statuses below. The Accessibility button
   asks Android to scroll to and highlight Speedbreaker's entry, and the service
@@ -50,11 +50,20 @@ overlay keeps its existing `BreakerOverlay` signature.
   breathing total as the one large serif number ("18 minutes", then "94 breaths ·
   2 minutes today"; "No breaths yet" before the first). Otherwise its title is the
   status ("Off for now", "Needs attention", "Ready when you are"), followed by the
-  one next action and a one-line total. Then Apps, Defaults (breath length as the
-  row title), Reliability (with the battery tip in the row), and a quiet
-  footer for Help, support, privacy and Reset breathing total.
-- **Defaults** — breath slider with a large readout, detours as four visible
-  slots with zero to four selected destinations, schedule as Always on / Scheduled.
+  one next action and a one-line total. Then any running pauses, an offered update,
+  and Apps. Home says what is happening and nothing else; a round gear in its top
+  bar, beside the eyebrow, opens Settings.
+- **Settings** is one list of everything a person sets or checks, in groups of
+  ordinary rows: Defaults (Breath length with its value, Schedule, Detours by
+  name), Reliability (Notifications, Phone permission, Battery and background,
+  each saying its state), Updates (GitHub build only: Check for updates with the
+  installed version, the automatic check, and the answer to a check beneath
+  them), and About (Help, Privacy policy, support, Reset breathing total), with
+  the version at the foot. Rows that open something carry a chevron; rows that
+  act where they stand do not.
+- **Breath length** and **Schedule** are each one short page: the slider with a
+  large readout, and Always on / Scheduled with the week below. **Detours** opens
+  the picker directly.
 - **Schedule as hours groups.** A week reads as groups of days sharing one set
   of hours ("9 AM to 5 PM · M T W T F", "10 AM to Midnight · S S"). Changing a
   group's hours changes all its days, so there is nothing to copy. Tapping a
@@ -65,7 +74,7 @@ overlay keeps its existing `BreakerOverlay` signature.
 - **App** — check-in toggle and interval, schedule Default / Always on /
   Custom, detours Default / Custom, a note on what stays global, and
   "Stop breaths for <app>".
-- **Help** is one page reached from Home's footer: how a breath goes, what to
+- **Help** is one page reached from Settings: how a breath goes, what to
   check when one doesn't appear, checking in, the 15-minute pause, and how to
   switch it off, all readable offline. Two rows open the full guide and the
   privacy policy in the browser, and the installed version is at the foot.
@@ -148,7 +157,6 @@ export ANDROID_SDK_ROOT=/usr/lib/android-sdk JAVA_HOME=/usr/lib/jvm/java-17-open
 | ![](screenshots/setup-00-loading.png) Loading, mid-morph | |
 | ![](screenshots/setup-01-welcome.png) Welcome: what it does | ![](screenshots/setup-05-disclosure.png) Welcome: the disclosure |
 | ![](screenshots/setup-02-home-off.png) Step 1: Accessibility | ![](screenshots/setup-03-home-ready-no-apps.png) Step 2: apps |
-| ![](screenshots/settings-18-home-phone-optional.png) Phone permission, optional, not allowed | ![](screenshots/settings-19-home-phone-app-info.png) Once Android stops asking |
 | ![](screenshots/setup-04-app-picker.png) Choose apps | |
 
 | Settings | |
@@ -156,9 +164,11 @@ export ANDROID_SDK_ROOT=/usr/lib/android-sdk JAVA_HOME=/usr/lib/jvm/java-17-open
 | ![](screenshots/settings-01-home-on.png) Home | ![](screenshots/settings-02-home-needs-attention.png) Needs attention |
 | ![](screenshots/settings-15-home-off-after-use.png) Switched off after use | |
 | ![](screenshots/settings-11-home-first-breath.png) Before the first breath | ![](screenshots/settings-12-home-notifications-blocked.png) Pause needs notifications |
-| ![](screenshots/settings-13-home-resting.png) Resting until the next hours | ![](screenshots/settings-14-home-full-page.png) Full page with footer |
-| ![](screenshots/settings-03-defaults.png) Defaults | ![](screenshots/settings-04-app.png) One app |
-| ![](screenshots/settings-05-redirect-picker.png) Detour picker | ![](screenshots/settings-07-home-large-text.png) 160% text |
+| ![](screenshots/settings-13-home-resting.png) Resting until the next hours | ![](screenshots/settings-07-home-large-text.png) Home at 160% text |
+| ![](screenshots/settings-14-settings.png) Settings | ![](screenshots/settings-21-settings-large-text.png) Settings at 160% text |
+| ![](screenshots/settings-18-settings-phone-optional.png) Phone permission, optional, not allowed | ![](screenshots/settings-19-settings-phone-app-info.png) Once Android stops asking |
+| ![](screenshots/settings-03-breath-length.png) Breath length | ![](screenshots/settings-20-schedule.png) Schedule |
+| ![](screenshots/settings-04-app.png) One app | ![](screenshots/settings-05-redirect-picker.png) Detour picker |
 | ![](screenshots/settings-08-schedule-hours.png) Hours groups | ![](screenshots/settings-09-time-picker.png) Time dial |
 | ![](screenshots/settings-10-time-typed.png) Typed time | ![](screenshots/settings-16-help.png) Help |
 | ![](screenshots/settings-17-help-large-text.png) Help at 160% text | |

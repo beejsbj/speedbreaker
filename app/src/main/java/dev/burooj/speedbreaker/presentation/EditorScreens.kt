@@ -49,19 +49,16 @@ import kotlin.math.roundToInt
 
 internal typealias PolicyTransform = (AppPolicy) -> AppPolicy
 
-/* ---------- Defaults ---------- */
+/* ---------- Defaults: what every chosen app starts from ---------- */
 
 @Composable
-internal fun DefaultsScreen(
+internal fun BreathLengthScreen(
     settings: Settings,
     onBack: () -> Unit,
     onBreathChange: (Int) -> Unit,
-    onScheduleTransform: (ScheduleTransform) -> Unit,
-    onRedirects: () -> Unit,
-    updatesSection: (@Composable () -> Unit)? = null,
-) = Page(title = "Defaults", onBack = onBack, eyebrow = "Every app") {
+) = Page(title = "Breath length", onBack = onBack, eyebrow = "Every app") {
     Section(
-        title = "Breath",
+        title = null,
         footnote = "The first 8 seconds are always locked. Continue unlocks when the breath ends.",
     ) {
         ValueSlider(
@@ -71,16 +68,16 @@ internal fun DefaultsScreen(
             onCommit = onBreathChange,
         )
     }
+}
 
+@Composable
+internal fun DefaultScheduleScreen(
+    settings: Settings,
+    onBack: () -> Unit,
+    onScheduleTransform: (ScheduleTransform) -> Unit,
+) = Page(title = "Schedule", onBack = onBack, eyebrow = "Every app") {
     Section(
-        title = "Detours",
-        footnote = "Up to four optional places to go instead, shown under Continue and Leave.",
-    ) {
-        RedirectSlots(settings.redirects, onRedirects)
-    }
-
-    Section(
-        title = "Schedule",
+        title = null,
         footnote = if (settings.schedule == null) {
             "Breaths happen at all hours."
         } else {
@@ -102,8 +99,12 @@ internal fun DefaultsScreen(
         )
         settings.schedule?.let { WeekEditor(it, onScheduleTransform) }
     }
-
-    updatesSection?.invoke()
+    Text(
+        text = "An app can keep its own hours instead: open it from Apps on Home.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 4.dp),
+    )
 }
 
 /* ---------- One app ---------- */
@@ -214,7 +215,7 @@ internal fun AppSettingsScreen(
         }
 
         Text(
-            text = "Breath length is set in Defaults. Each app gets two 15-minute pauses a day. " +
+            text = "Breath length is set in Settings. Each app gets two 15-minute pauses a day. " +
                 "After you continue, stepping out for up to 10 seconds doesn’t start a new breath.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

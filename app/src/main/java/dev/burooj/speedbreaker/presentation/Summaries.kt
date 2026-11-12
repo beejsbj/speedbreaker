@@ -72,19 +72,16 @@ internal fun appSummary(policy: AppPolicy, settings: Settings, use24Hour: Boolea
     return "${intervalSummary(policy)} · ${scheduleSummary(schedule, use24Hour).inSentence()}"
 }
 
-/** The Defaults row's title: the breath length, which is what the row mostly sets. */
-internal fun defaultsTitle(settings: Settings): String = "${settings.breathSeconds}-second breath"
+/** The Breath length row's value. */
+internal fun breathLengthValue(settings: Settings): String = "${settings.breathSeconds} seconds"
 
-/** The rest of the defaults, as a line that stands on its own under [defaultsTitle]. */
-internal fun defaultsSummary(settings: Settings, use24Hour: Boolean): String {
-    val count = settings.redirects.size
-    val redirects = when (count) {
-        0 -> "no detours"
-        1 -> "1 detour"
-        else -> "$count detours"
+/** The Detours row: the places by name, or what the empty row is for. */
+internal fun detoursSummary(labels: List<String>): String =
+    if (labels.isEmpty()) {
+        "None. Up to four places to go instead, shown under Continue and Leave."
+    } else {
+        labels.joinToString(", ")
     }
-    return "${scheduleSummary(settings.schedule, use24Hour)} · $redirects"
-}
 
 internal fun allDaySchedule(): WeeklySchedule = WeeklySchedule((1..7).associateWith { ALL_DAY })
 

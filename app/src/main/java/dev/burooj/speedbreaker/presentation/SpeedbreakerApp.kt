@@ -169,7 +169,6 @@ internal fun SpeedbreakerApp() {
                     pauses = pauses,
                     nowEpochMs = nowEpochMs,
                     stats = stats,
-                    onResetStats = { scope.launch { repository.resetStats() } },
                     onEndPause = { packageName ->
                         // Share the notification action's service coordination and durable transaction.
                         context.sendBroadcast(
@@ -180,6 +179,37 @@ internal fun SpeedbreakerApp() {
                     onEnableAccessibility = {
                         openAccessibilitySettings(context)
                         SetupReturn.expect(SetupReturn.Waiting.ServiceOn, SystemClock.elapsedRealtime())
+                    },
+                    onOpenAppInfo = { openAppDetails(context) },
+                    onChooseApps = { route = Route.Apps },
+                    onSettings = { route = Route.Settings },
+                    onApp = { route = Route.App(it) },
+                    updateCard = updates?.homeCard,
+                )
+                currentRoute == Route.Settings -> SettingsScreen(
+                    settings = settings,
+                    notificationsAllowed = notificationsAllowed,
+                    onBack = { route = Route.Home },
+                    onBreathLength = { route = Route.BreathLength },
+                    onSchedule = { route = Route.Schedule },
+                    onDetours = {
+                        redirectRequest = RedirectRequest(
+                            title = "Detours",
+                            selected = settings.redirects,
+                            transformFor = { value -> { current -> current.copy(redirects = value) } },
+                        )
+                    },
+                    onNotifications = {
+                        val canAsk = android.os.Build.VERSION.SDK_INT >= 33 &&
+                            !notificationRequestAttempted &&
+                            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
+                            PackageManager.PERMISSION_GRANTED
+                        if (canAsk) {
+                            notificationRequestAttempted = true
+                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            openNotificationSettings(context)
+                        }
                     },
                     onOpenAppInfo = { openAppDetails(context) },
                     onCallAccess = {
@@ -194,32 +224,19 @@ internal fun SpeedbreakerApp() {
                     },
                     phoneNeedsSettings = phoneNeedsSettings && !phoneAllowed,
                     phoneAllowed = phoneAllowed,
-                    onNotifications = {
-                        val canAsk = android.os.Build.VERSION.SDK_INT >= 33 &&
-                            !notificationRequestAttempted &&
-                            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
-                            PackageManager.PERMISSION_GRANTED
-                        if (canAsk) {
-                            notificationRequestAttempted = true
-                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        } else {
-                            openNotificationSettings(context)
-                        }
-                    },
-                    onChooseApps = { route = Route.Apps },
-                    onDefaults = { route = Route.Defaults },
-                    onApp = { route = Route.App(it) },
-                    onSupport = support.onClick,
                     onHelp = { route = Route.Help },
                     onPrivacy = { openPrivacyPolicy(context) },
+                    onSupport = support.onClick,
                     supportLabel = support.label,
                     supportSummary = support.summary,
                     supportAvailable = support.available,
-                    updateCard = updates?.homeCard,
-                    onCheckUpdates = updates?.onCheck,
+                    canResetStats = !stats.isEmpty,
+                    onResetStats = { scope.launch { repository.resetStats() } },
+                    versionName = remember(context) { installedVersionName(context) },
+                    updatesSection = updates?.settingsSection,
                 )
                 currentRoute == Route.Help -> HelpScreen(
-                    onBack = { route = Route.Home },
+                    onBack = { route = Route.Settings },
                     onGuide = { openSupportPage(context) },
                     onPrivacy = { openPrivacyPolicy(context) },
                     versionName = remember(context) { installedVersionName(context) },
@@ -232,21 +249,17 @@ internal fun SpeedbreakerApp() {
                         update { current -> current.withTarget(app.packageName, selected) }
                     },
                 )
-                currentRoute == Route.Defaults -> DefaultsScreen(
+                currentRoute == Route.BreathLength -> BreathLengthScreen(
                     settings = settings,
-                    onBack = { route = Route.Home },
+                    onBack = { route = Route.Settings },
                     onBreathChange = { breath -> update { current -> current.copy(breathSeconds = breath) } },
+                )
+                currentRoute == Route.Schedule -> DefaultScheduleScreen(
+                    settings = settings,
+                    onBack = { route = Route.Settings },
                     onScheduleTransform = { transform ->
                         update { current -> current.copy(schedule = transform(current.schedule)) }
                     },
-                    onRedirects = {
-                        redirectRequest = RedirectRequest(
-                            title = "Detours",
-                            selected = settings.redirects,
-                            transformFor = { value -> { current -> current.copy(redirects = value) } },
-                        )
-                    },
-                    updatesSection = updates?.defaultsSection,
                 )
                 currentRoute is Route.App -> {
                     val packageName = currentRoute.packageName
@@ -294,7 +307,9 @@ internal fun SpeedbreakerApp() {
 private sealed interface Route {
     data object Home : Route
     data object Apps : Route
-    data object Defaults : Route
+    data object Settings : Route
+    data object BreathLength : Route
+    data object Schedule : Route
     data object Help : Route
     data class App(val packageName: String) : Route
 }

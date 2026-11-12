@@ -81,10 +81,11 @@ internal val Gallery: List<GallerySpec> = listOf(
     GallerySpec("settings-15-home-off-after-use") {
         Screen { HomeSample(Protection.Off, SampleSettings, withBreaths = true) }
     },
-    GallerySpec("settings-03-defaults") {
-        Screen {
-            DefaultsScreen(SampleSettings, onBack = {}, onBreathChange = {}, onScheduleTransform = {}, onRedirects = {})
-        }
+    GallerySpec("settings-03-breath-length") {
+        Screen { BreathLengthScreen(SampleSettings, onBack = {}, onBreathChange = {}) }
+    },
+    GallerySpec("settings-20-schedule") {
+        Screen { DefaultScheduleScreen(SampleSettings, onBack = {}, onScheduleTransform = {}) }
     },
     GallerySpec("settings-04-app") {
         Screen {
@@ -133,17 +134,14 @@ internal val Gallery: List<GallerySpec> = listOf(
     GallerySpec("settings-12-home-notifications-blocked") {
         Screen { HomeSample(Protection.On, SampleSettings, notifications = false, withBreaths = true) }
     },
-    GallerySpec("settings-18-home-phone-optional", heightDp = 1500) {
-        Screen { HomeSample(Protection.On, SampleSettings, withBreaths = true, phoneAllowed = false) }
+    GallerySpec("settings-14-settings", heightDp = 1500) { Screen { SettingsSample() } },
+    GallerySpec("settings-18-settings-phone-optional", heightDp = 1500) {
+        Screen { SettingsSample(phoneAllowed = false) }
     },
-    GallerySpec("settings-19-home-phone-app-info", heightDp = 1500) {
-        Screen {
-            HomeSample(Protection.On, SampleSettings, withBreaths = true, phoneAllowed = false, phoneNeedsSettings = true)
-        }
+    GallerySpec("settings-19-settings-phone-app-info", heightDp = 1500) {
+        Screen { SettingsSample(phoneAllowed = false, phoneNeedsSettings = true) }
     },
-    GallerySpec("settings-14-home-full-page", heightDp = 1500) {
-        Screen { HomeSample(Protection.On, SampleSettings, withBreaths = true) }
-    },
+    GallerySpec("settings-21-settings-large-text", fontScale = 1.6f, heightDp = 2400) { Screen { SettingsSample() } },
     GallerySpec("settings-13-home-resting") {
         Screen { HomeSample(Protection.On, OnlyInstagram, withBreaths = true, now = RestingNow) }
     },
@@ -214,8 +212,6 @@ private fun HomeSample(
     notifications: Boolean = true,
     withBreaths: Boolean = false,
     now: Long = ActiveNow,
-    phoneNeedsSettings: Boolean = false,
-    phoneAllowed: Boolean = true,
 ) = HomeScreen(
     settings = settings,
     protection = protection,
@@ -223,14 +219,32 @@ private fun HomeSample(
     notificationsAllowed = notifications,
     onEnableAccessibility = {},
     onOpenAppInfo = {},
-    onNotifications = {},
     onChooseApps = {},
-    onDefaults = {},
+    onSettings = {},
     onApp = {},
-    phoneNeedsSettings = phoneNeedsSettings,
-    phoneAllowed = phoneAllowed,
     nowEpochMs = now,
     stats = if (withBreaths) sampleStats(now) else BreathStats(),
+)
+
+@Composable
+private fun SettingsSample(
+    phoneNeedsSettings: Boolean = false,
+    phoneAllowed: Boolean = true,
+) = SettingsScreen(
+    settings = SampleSettings,
+    notificationsAllowed = true,
+    onBack = {},
+    onBreathLength = {},
+    onSchedule = {},
+    onDetours = {},
+    onNotifications = {},
+    onOpenAppInfo = {},
+    onHelp = {},
+    onPrivacy = {},
+    phoneNeedsSettings = phoneNeedsSettings,
+    phoneAllowed = phoneAllowed,
+    canResetStats = true,
+    versionName = "1.0.6",
 )
 
 @Composable
@@ -351,9 +365,13 @@ private fun PreviewHomeOn() = gallery("settings-01-home-on")
 @Composable
 private fun PreviewHomeOff() = gallery("setup-02-home-off")
 
-@Preview(name = "Defaults", widthDp = 412, heightDp = 915, showBackground = true)
+@Preview(name = "Settings", widthDp = 412, heightDp = 1500, showBackground = true)
 @Composable
-private fun PreviewDefaults() = gallery("settings-03-defaults")
+private fun PreviewSettings() = gallery("settings-14-settings")
+
+@Preview(name = "Breath length", widthDp = 412, heightDp = 915, showBackground = true)
+@Composable
+private fun PreviewBreathLength() = gallery("settings-03-breath-length")
 
 @Preview(name = "App", widthDp = 412, heightDp = 915, showBackground = true)
 @Composable
