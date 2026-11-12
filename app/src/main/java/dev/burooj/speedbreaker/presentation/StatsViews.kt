@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -32,7 +31,6 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -40,6 +38,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
@@ -224,16 +224,20 @@ private fun FigureRow(figures: List<Pair<String, List<FigurePart>>>, modifier: M
         }
         return
     }
-    Row(modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+    // The hairline is drawn by each later column, so the row needs no intrinsic measuring.
+    val hairline = MaterialTheme.colorScheme.outlineVariant
+    Row(modifier.fillMaxWidth()) {
         figures.forEachIndexed { index, (label, parts) ->
-            if (index > 0) {
-                VerticalDivider(
-                    modifier = Modifier.padding(end = 16.dp),
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                )
+            val divided = if (index == 0) {
+                Modifier
+            } else {
+                Modifier
+                    .drawBehind {
+                        drawLine(hairline, Offset(0f, 0f), Offset(0f, size.height), strokeWidth = 1.dp.toPx())
+                    }
+                    .padding(start = 16.dp)
             }
-            Column(Modifier.weight(1f).padding(end = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(Modifier.weight(1f).then(divided).padding(end = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Eyebrow(label)
                 Figure(parts, MaterialTheme.typography.headlineSmall, MaterialTheme.typography.bodyMedium)
             }
@@ -345,9 +349,9 @@ private fun endingColor(ending: BreathEnding): Color {
         BreathEnding.Left -> colors.tertiary
         BreathEnding.Continued -> colors.primary
         BreathEnding.Detoured -> lerp(colors.tertiary, colors.surfaceContainer, 0.45f)
-        BreathEnding.TimeOff -> lerp(colors.onSurfaceVariant, colors.surfaceContainer, 0.25f)
+        BreathEnding.TimeOff -> colors.onSurfaceVariant
         // The quietest, but still plain to see beside the card.
-        BreathEnding.Other -> colors.outline
+        BreathEnding.Other -> lerp(colors.outline, colors.surfaceContainer, 0.3f)
     }
 }
 
