@@ -3,6 +3,7 @@ package dev.burooj.speedbreaker.observation
 import dev.burooj.speedbreaker.enforcement.BreakerEnd
 import dev.burooj.speedbreaker.enforcement.EngineDecision
 import dev.burooj.speedbreaker.enforcement.Trigger
+import dev.burooj.speedbreaker.model.BreathEnding
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -51,5 +52,20 @@ class BreathCounterTest {
     @Test
     fun otherDecisionsAreIgnored() {
         assertNull(BreathCounter().consume(EngineDecision.TargetHidden("t"), 12))
+    }
+
+    @Test
+    fun onlyTheFourChoicesAreNamed_everyOtherEndIsOther() {
+        assertEquals(BreathEnding.Left, BreakerEnd.CHOICE_LEAVE.asEnding())
+        assertEquals(BreathEnding.Continued, BreakerEnd.CHOICE_CONTINUE.asEnding())
+        assertEquals(BreathEnding.Detoured, BreakerEnd.CHOICE_REDIRECT.asEnding())
+        assertEquals(BreathEnding.TimeOff, BreakerEnd.CHOICE_PAUSE.asEnding())
+        val unchosen = BreakerEnd.entries - setOf(
+            BreakerEnd.CHOICE_LEAVE,
+            BreakerEnd.CHOICE_CONTINUE,
+            BreakerEnd.CHOICE_REDIRECT,
+            BreakerEnd.CHOICE_PAUSE,
+        )
+        unchosen.forEach { assertEquals(BreathEnding.Other, it.asEnding()) }
     }
 }

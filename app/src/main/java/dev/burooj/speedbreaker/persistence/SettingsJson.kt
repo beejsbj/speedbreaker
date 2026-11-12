@@ -1,6 +1,7 @@
 package dev.burooj.speedbreaker.persistence
 
 import dev.burooj.speedbreaker.model.AppPolicy
+import dev.burooj.speedbreaker.model.BreathChoices
 import dev.burooj.speedbreaker.model.BreathStats
 import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.model.Redirects
@@ -149,6 +150,49 @@ internal object SettingsJson {
             todayMs = longField(root, "todayMs", minimum = 0),
         )
     }
+
+    fun encodeChoices(choices: BreathChoices): String = JSONObject().apply {
+        put("since", choices.since)
+        put("left", choices.left)
+        put("continued", choices.continued)
+        put("detoured", choices.detoured)
+        put("timeOff", choices.timeOff)
+        put("other", choices.other)
+        put("detours", JSONObject().apply { choices.detours.forEach { (name, count) -> put(name, count) } })
+        put("days", JSONObject().apply { choices.days.forEach { (day, ms) -> put(day, ms) } })
+    }.toString()
+
+    fun decodeChoices(json: String): BreathChoices {
+        val root = JSONObject(json)
+        requireExactFields(root, "since", "left", "continued", "detoured", "timeOff", "other", "detours", "days")
+        val since = stringField(root, "since")
+        require(since.isEmpty() || isIsoDay(since)) { "Counting day must be empty or an ISO local date." }
+        val detours = objectField(root, "detours")
+        val days = objectField(root, "days")
+        return BreathChoices(
+            since = since,
+            left = longField(root, "left", minimum = 0),
+            continued = longField(root, "continued", minimum = 0),
+            detoured = longField(root, "detoured", minimum = 0),
+            timeOff = longField(root, "timeOff", minimum = 0),
+            other = longField(root, "other", minimum = 0),
+            detours = buildMap {
+                detours.keys().forEach { name ->
+                    require(name.isNotBlank()) { "Detour package name must not be blank." }
+                    put(name, longField(detours, name, minimum = 0))
+                }
+            },
+            days = buildMap {
+                days.keys().forEach { day ->
+                    require(isIsoDay(day)) { "Breath day must be an ISO local date." }
+                    put(day, longField(days, day, minimum = 0))
+                }
+            },
+        )
+    }
+
+    private fun isIsoDay(value: String): Boolean =
+        runCatching { LocalDate.parse(value).toString() == value }.getOrDefault(false)
 
     private fun array(values: List<String>) = JSONArray().apply { values.forEach(::put) }
 

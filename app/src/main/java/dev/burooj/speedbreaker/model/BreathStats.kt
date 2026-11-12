@@ -7,7 +7,7 @@ import java.time.ZoneId
 internal const val MIN_COUNTED_BREATH_MS = 1_000L
 
 /**
- * The only breathing record: running totals, never a list. [todayMs] belongs to [todayKey]
+ * The breathing total: running totals, never a list. [BreathChoices] counts what followed. [todayMs] belongs to [todayKey]
  * (a local ISO date, as pause days use) and reads as zero on any other day.
  */
 internal data class BreathStats(

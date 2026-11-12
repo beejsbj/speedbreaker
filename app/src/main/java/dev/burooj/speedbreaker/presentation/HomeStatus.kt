@@ -22,20 +22,32 @@ internal fun restingUntil(settings: Settings, nowEpochMs: Long, zone: ZoneId, us
 }
 
 /**
- * The note after "On" while Speedbreaker is able to breathe. Resting is the current truth, so it
- * leads; blocked notifications only stop Pause, and Settings' Notifications row is where to allow them.
+ * The words in Home's status pill while Speedbreaker is able to breathe. Resting is the current
+ * truth, so it replaces the app count.
  */
-internal fun homeStatusNote(restingUntil: String?, notificationsAllowed: Boolean): String? = when {
-    restingUntil != null -> "resting until $restingUntil"
-    !notificationsAllowed -> "Pause 15 min needs notifications"
-    else -> null
-}
+internal fun statusPillText(appCount: Int, restingUntil: String?): String =
+    if (restingUntil != null) "Resting until $restingUntil" else "Active · ${appsPhrase(appCount)}"
 
-internal fun homeStatusText(note: String?): String = if (note == null) "On" else "On · $note"
+/** What TalkBack hears: the mark is decoration, so the words carry the meaning. The tap has its own label. */
+internal fun statusPillDescription(appCount: Int, restingUntil: String?): String =
+    if (restingUntil != null) {
+        "Speedbreaker is on, resting until $restingUntil"
+    } else {
+        "Speedbreaker is active on ${appsPhrase(appCount)}"
+    }
 
-/** What TalkBack hears: the dot is decoration, so the words carry the meaning. */
-internal fun homeStatusDescription(note: String?): String =
-    if (note == null) "Speedbreaker is on" else "Speedbreaker is on, $note"
+private fun appsPhrase(count: Int): String = if (count == 1) "1 app" else "$count apps"
+
+/**
+ * Blocked notifications only stop Pause, so they are a quiet line under the figures and not a
+ * fault. While resting there is no breath to pause, so the line waits.
+ */
+internal fun pauseNote(restingUntil: String?, notificationsAllowed: Boolean): String? =
+    if (restingUntil == null && !notificationsAllowed) {
+        "Pause 15 min needs notifications. Allow them in Settings."
+    } else {
+        null
+    }
 
 /** Which of the two first-time steps are done; [current] is the one to do next. */
 internal data class SetupProgress(val accessibility: Boolean, val apps: Boolean) {

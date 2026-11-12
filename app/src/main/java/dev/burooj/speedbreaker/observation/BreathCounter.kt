@@ -1,6 +1,8 @@
 package dev.burooj.speedbreaker.observation
 
+import dev.burooj.speedbreaker.enforcement.BreakerEnd
 import dev.burooj.speedbreaker.enforcement.EngineDecision
+import dev.burooj.speedbreaker.model.BreathEnding
 import dev.burooj.speedbreaker.model.countedBreathMs
 
 /**
@@ -23,4 +25,13 @@ internal class BreathCounter {
         }
         else -> null
     }
+}
+
+/** How the person would describe the way a breath ended. Anything they did not choose is [BreathEnding.Other]. */
+internal fun BreakerEnd.asEnding(): BreathEnding = when (this) {
+    BreakerEnd.CHOICE_LEAVE -> BreathEnding.Left
+    BreakerEnd.CHOICE_CONTINUE -> BreathEnding.Continued
+    BreakerEnd.CHOICE_REDIRECT -> BreathEnding.Detoured
+    BreakerEnd.CHOICE_PAUSE -> BreathEnding.TimeOff
+    else -> BreathEnding.Other
 }

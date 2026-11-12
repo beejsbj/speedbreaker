@@ -39,11 +39,21 @@ which supersedes the earlier exactly-four requirement for the next candidate.
 minutes immediately. The active pause and today's token count persist locally;
 End now on Home or the notification resumes enforcement.
 
-**Breathing total**: the only usage figure kept, shown on Home as its headline
-("18 minutes", with the breath count and today's time beneath) and resettable
-there through "Reset breathing total": total and today's time a breath was on screen (capped at its configured
-length, counted once when it ends, ignored under one second) and the breath count.
-Four numbers, no per-app or time-stamped history, never sent anywhere.
+**Breathing total**: shown on Home as its one large figure ("18 min", with the breath
+count and today's time as smaller labelled figures beneath) and reset in Settings through
+"Reset breathing total": total and today's time a breath was on screen (capped at its
+configured length, counted once when it ends, ignored under one second) and the breath
+count. Four numbers, never sent anywhere.
+
+**Ending**: how a counted breath ended, in five kinds: Left, Continued, Took a detour,
+Took 15 min off (the Pause 15 min button), and Ended another way (no choice: a call, the
+lock screen, Home or Back once the lock allows). Counted beside the breathing total from
+the version after 1.0.6, with no field for the target app and never with a time.
+
+**Your breaths**: the page behind Home's "After a breath" card. It shows the endings,
+how often each chosen detour app was taken, and the time breathed on each of the last
+seven days. A detour's count goes when the app is no longer a detour anywhere; the reset
+clears all of it.
 
 **Active schedule**: the optional hours when a target's policy applies.
 A per-app schedule replaces the global schedule. Outside it, enforcement and

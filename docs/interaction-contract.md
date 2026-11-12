@@ -50,12 +50,12 @@ Build a rough, runnable phone-scale prototype of Speedbreaker's settled interact
 * Request neither Usage Access nor a separate overlay permission.
 * Show prominent Samsung battery/background guidance without blocking setup.
 * If Accessibility is disabled, show a prominent inactive/repair state, never imply protection is active, keep settings editable, and link directly to Android Accessibility settings.
-* Persist only settings, current-local-day pause state, and a running breathing total (total and current-local-day breath time, plus breath count; see the October 16 breathing-total correction). No per-app or time-stamped usage history, analytics, reflection data, or cloud path exists in V1.
+* Persist only settings, current-local-day pause state, and a running breathing total (total and current-local-day breath time, plus breath count; see the October 16 breathing-total correction; amended again by the November 12 breathing-statistics correction). No per-app or time-stamped usage history, analytics, reflection data, or cloud path exists in V1.
 * V1 is a sideloaded APK for Burooj's Galaxy S23+; Play Store acceptance is not a pre-trial gate.
 
 ## Explicitly absent
 
-Cumulative usage, daily usage budgets or resets, over-budget state, escalating 5/10/20/40 ladders, mercy allowance, Usage Access, per-app usage counters or time-stamped history (the single breathing total is allowed), multiple schedule windows per day, and time-dependent strictness profiles.
+Cumulative usage, daily usage budgets or resets, over-budget state, escalating 5/10/20/40 ladders, mercy allowance, Usage Access, per-app usage counters or time-stamped history (the single breathing total is allowed; counts of endings and chosen detours and seven daily totals were allowed on November 12), multiple schedule windows per day, and time-dependent strictness profiles.
 
 Future note only: V2 may allow stricter policy during selected windows, such as a longer breath and shorter continuous-use interval before sleep. Do not add hidden V1 state or settings for it.
 
@@ -248,3 +248,64 @@ This supersedes the October 17 placement of everything on Home, and the footer:
 What is stored, what is sent, breath timing, safety, pauses and schedules are unchanged.
 How the breathing total is presented is still open: "I think the breathing total could
 be more prettier presented stats."
+
+## November 12 breathing-statistics owner correction
+
+Burooj on November 12, 2026, after the Home and Settings split, tracked as
+[#65](https://github.com/beejsbj/speedbreaker/issues/65):
+
+* "I think the breathing total could be more prettier presented stats."
+* "maybe like a visualization of the data as well, instead of just raw number. And then
+  maybe even showing the detours like which apps I chose to detour to as a counter or
+  something? How many times did I choose to leave? How many times I choose to continue?"
+* On the status line: "I don't like that "on". Could we be visualized better?"
+* On the figures: "I also don't like 18 "minutes", "breadths", and two "minutes
+  today". Like the text makes it feel a bit amateur".
+* On Home's weight: "there should be quite a lot of as much as A on home, but not that
+  much, but also a detailed page as well", "detours taken can be smaller", "We can keep
+  the weak bars in the detailed view", "we can start from zero".
+* The choice of header: "I like one figure labelled and the status pills dot can instead
+  be the breathing mark. Clicking on the status pill that says Active3 Apps scrolls me
+  down to the show me the list of apps."
+
+This amends the October 16 rule that only four aggregates are stored, and the non-goals
+above that exclude per-app counters and history. It was his decision, made after being
+told which lines it reverses.
+
+What is now stored beside the breathing total, in a second local record:
+
+* Five counts of how counted breaths ended: Left, Continued, Took a detour, Took 15 min
+  off (the Pause 15 min button), and Ended another way (no choice: safety, the lock
+  screen, Home, Back or another app once the lock allows, schedule, reset).
+* For each app that is a detour somewhere (the default set or any app's own), how many
+  times it was taken. The count is by destination only. When an app stops being a detour
+  everywhere, its count is deleted; the count of detours taken stays.
+* Milliseconds breathed on each of the seven local days ending with the latest breath,
+  and the local day counting began.
+
+Still not stored, in any version: a field naming the chosen app a breath was for, any time
+of day, a list of breaths, or a day older than seven days (dropped when the app next
+starts or counts a breath). One inference remains and is stated in the privacy policy: an
+app that is a detour for only one chosen app has a count that is also a count for that pair. Counting starts from zero at the update;
+the existing total and breath count are kept, so at first the endings add up to less than
+the breath count. **Reset breathing total** clears both records. A failed write to either
+never affects enforcement.
+
+How it is shown:
+
+* Home, while breaths work: a status pill with the breathing mark ("Active · 3 apps", or
+  "Resting until 9 AM" with the mark still), the total as one large figure with a small
+  unit, Breaths and Today as labelled figures, then the "After a breath" card (a thin
+  split bar, the counts, the three most-taken detours and "+N more"). The pill brings the
+  apps into view; the card opens Your breaths.
+* Your breaths: the figures, every ending with its count, every chosen detour with its
+  count, and seven day bars.
+* While breaths are off or no app is chosen, the total is one row after the repair
+  ("Your breaths", "18 minutes breathed so far."), and it still opens the page.
+* The statistics are descriptive. No percentages, streaks, scores, goals or praise, and
+  no ending is coloured or worded as better than another. The mark holds still when the
+  system's animations are off.
+
+The welcome disclosure, privacy policy, README, glossary and store description say this.
+People who accepted the earlier disclosure are not shown the new wording again.
+

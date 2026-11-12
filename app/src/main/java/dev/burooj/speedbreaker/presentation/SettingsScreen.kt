@@ -154,7 +154,7 @@ internal fun SettingsScreen(
                 RowDivider()
                 ActionRow(
                     title = "Reset breathing total",
-                    summary = "Sets the total, the breath count and today’s time back to zero",
+                    summary = "Sets the total and everything counted with it back to zero",
                     onClick = { confirmingReset = true },
                 )
             }
@@ -176,8 +176,8 @@ internal fun SettingsScreen(
             title = { Text("Reset your breathing total?") },
             text = {
                 Text(
-                    "The total, the breath count and today’s time go back to zero. This stays on " +
-                        "this phone and can’t be undone.",
+                    "The total, the breath count, what followed your breaths, your detour counts and " +
+                        "the week all go back to zero. This stays on this phone and can’t be undone.",
                 )
             },
             confirmButton = {

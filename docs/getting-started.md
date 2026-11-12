@@ -72,7 +72,8 @@ Speedbreaker, the launcher, keyboards, and safety-related system apps are
 excluded from the picker. Nothing is selected on a fresh installation.
 
 With Accessibility connected, the home screen shows **One step left**
-until you choose an app, then **On** with how long you have breathed so far. Open
+until you choose an app, then an **Active** pill with how long you have breathed so far
+(a plain **On** line through 1.0.6). Open
 one of those apps to try the breath.
 
 The defaults are a twelve-second breath, check-ins every ten minutes of

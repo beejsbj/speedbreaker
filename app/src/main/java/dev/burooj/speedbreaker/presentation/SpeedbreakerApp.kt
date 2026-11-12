@@ -32,11 +32,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.burooj.speedbreaker.observation.PauseNotifications
 import dev.burooj.speedbreaker.observation.PauseEndReceiver
 import dev.burooj.speedbreaker.observation.CallSafety
+import dev.burooj.speedbreaker.model.BreathChoices
 import dev.burooj.speedbreaker.model.Settings
+import dev.burooj.speedbreaker.model.localDayKey
 import dev.burooj.speedbreaker.observation.ServiceStatus
 import dev.burooj.speedbreaker.observation.SetupReturn
 import dev.burooj.speedbreaker.persistence.SpeedbreakerRepository
 import dev.burooj.speedbreaker.presentation.theme.SpeedbreakerTheme
+import java.time.ZoneId
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -52,6 +55,7 @@ internal fun SpeedbreakerApp() {
         val settings by repository.settings.collectAsStateWithLifecycle()
         val pauses by repository.pauses.collectAsStateWithLifecycle()
         val stats by repository.stats.collectAsStateWithLifecycle()
+        val choices by repository.choices.collectAsStateWithLifecycle()
         val ready by repository.ready.collectAsStateWithLifecycle()
         val repositoryError by repository.error.collectAsStateWithLifecycle()
         val connected by ServiceStatus.connected.collectAsStateWithLifecycle()
@@ -169,6 +173,8 @@ internal fun SpeedbreakerApp() {
                     pauses = pauses,
                     nowEpochMs = nowEpochMs,
                     stats = stats,
+                    choices = choices,
+                    onStats = { route = Route.Stats },
                     onEndPause = { packageName ->
                         // Share the notification action's service coordination and durable transaction.
                         context.sendBroadcast(
@@ -185,6 +191,13 @@ internal fun SpeedbreakerApp() {
                     onSettings = { route = Route.Settings },
                     onApp = { route = Route.App(it) },
                     updateCard = updates?.homeCard,
+                )
+                currentRoute == Route.Stats -> StatsScreen(
+                    stats = stats,
+                    choices = choices,
+                    settings = settings,
+                    today = localDayKey(nowEpochMs, ZoneId.systemDefault()),
+                    onBack = { route = Route.Home },
                 )
                 currentRoute == Route.Settings -> SettingsScreen(
                     settings = settings,
@@ -230,7 +243,8 @@ internal fun SpeedbreakerApp() {
                     supportLabel = support.label,
                     supportSummary = support.summary,
                     supportAvailable = support.available,
-                    canResetStats = !stats.isEmpty,
+                    // Either record alone is still something to clear.
+                    canResetStats = !stats.isEmpty || choices != BreathChoices(),
                     onResetStats = { scope.launch { repository.resetStats() } },
                     versionName = remember(context) { installedVersionName(context) },
                     updatesSection = updates?.settingsSection,
@@ -307,6 +321,7 @@ internal fun SpeedbreakerApp() {
 private sealed interface Route {
     data object Home : Route
     data object Apps : Route
+    data object Stats : Route
     data object Settings : Route
     data object BreathLength : Route
     data object Schedule : Route
