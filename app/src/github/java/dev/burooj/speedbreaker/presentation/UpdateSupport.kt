@@ -42,7 +42,8 @@ import dev.burooj.speedbreaker.observation.ServiceStatus
 import dev.burooj.speedbreaker.presentation.components.ActionRow
 import dev.burooj.speedbreaker.presentation.components.PrimaryAction
 import dev.burooj.speedbreaker.presentation.components.QuietAction
-import dev.burooj.speedbreaker.presentation.components.RowDivider
+import dev.burooj.speedbreaker.presentation.components.Glyphs
+import dev.burooj.speedbreaker.presentation.components.RowIcon
 import dev.burooj.speedbreaker.presentation.components.Section
 import dev.burooj.speedbreaker.presentation.components.ToggleRow
 import dev.burooj.speedbreaker.updates.UpdateController
@@ -138,13 +139,14 @@ private fun UpdatesSection(controller: UpdateController) {
                     "Asks GitHub for the latest release.",
                 ).joinToString(" "),
                 onClick = { controller.check() },
+                leading = { RowIcon(Glyphs.Refresh) },
             )
-            RowDivider()
             ToggleRow(
                 title = "Check automatically",
                 summary = "Asks GitHub once a day when you open Speedbreaker",
                 checked = enabled,
                 onCheckedChange = controller::setAutoCheck,
+                leading = { RowIcon(Glyphs.Clock) },
             )
         }
         UpdateCard(controller, showCheckAnswers = true)

@@ -12,7 +12,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -23,7 +22,8 @@ import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.presentation.components.ActionRow
 import dev.burooj.speedbreaker.presentation.components.NavRow
 import dev.burooj.speedbreaker.presentation.components.Page
-import dev.burooj.speedbreaker.presentation.components.RowDivider
+import dev.burooj.speedbreaker.presentation.components.Glyphs
+import dev.burooj.speedbreaker.presentation.components.RowIcon
 import dev.burooj.speedbreaker.presentation.components.Section
 import dev.burooj.speedbreaker.presentation.components.StatusDot
 import dev.burooj.speedbreaker.presentation.components.appCatalog
@@ -67,20 +67,25 @@ internal fun SettingsScreen(
             footnote = "What every chosen app starts from. An app can keep its own schedule and " +
                 "detours: open it from Apps on Home.",
         ) {
-            NavRow(title = "Breath length", value = breathLengthValue(settings), onClick = onBreathLength)
-            RowDivider()
+            NavRow(
+                title = "Breath length",
+                value = breathLengthValue(settings),
+                onClick = onBreathLength,
+                leading = { RowIcon(Glyphs.Breath) },
+            )
             NavRow(
                 title = "Schedule",
                 summary = scheduleSummary(settings.schedule, use24Hour),
                 onClick = onSchedule,
+                leading = { RowIcon(Glyphs.Clock) },
             )
-            RowDivider()
             NavRow(
                 title = "Detours",
                 summary = detoursSummary(
                     settings.redirects.takeIf { Redirects.isValid(it) }.orEmpty().map(catalog::label),
                 ),
                 onClick = onDetours,
+                leading = { RowIcon(Glyphs.Detour) },
             )
         }
 
@@ -93,18 +98,10 @@ internal fun SettingsScreen(
                     "Not allowed. The Pause 15 min button needs them."
                 },
                 onClick = onNotifications,
-                leading = {
-                    StatusDot(
-                        // Off is a choice here, not a fault: only the optional Pause needs them.
-                        if (notificationsAllowed) {
-                            MaterialTheme.colorScheme.tertiary
-                        } else {
-                            MaterialTheme.colorScheme.outline
-                        },
-                    )
-                },
+                leading = { RowIcon(Glyphs.Bell) },
+                // Off is a choice here, not a fault: only the optional Pause needs them.
+                trailing = { StateDot(on = notificationsAllowed) },
             )
-            RowDivider()
             // Optional: breaths work without it, so off is a choice here too.
             NavRow(
                 title = "Phone permission",
@@ -120,19 +117,15 @@ internal fun SettingsScreen(
                 } else {
                     Modifier
                 },
-                leading = {
-                    StatusDot(
-                        if (phoneAllowed) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline,
-                    )
-                },
+                leading = { RowIcon(Glyphs.Phone) },
+                trailing = { StateDot(on = phoneAllowed) },
             )
-            RowDivider()
             NavRow(
                 title = "Battery and background",
                 summary = "If breaths stop appearing after a while, allow background use. " +
                     "On Samsung, set Battery to Unrestricted.",
                 onClick = onOpenAppInfo,
-                leading = { StatusDot(Color.Transparent) },
+                leading = { RowIcon(Glyphs.Battery) },
             )
         }
 
@@ -143,19 +136,28 @@ internal fun SettingsScreen(
                 title = "Help",
                 summary = "How it works, and what to check when a breath doesn’t appear",
                 onClick = onHelp,
+                leading = { RowIcon(Glyphs.Help) },
             )
-            RowDivider()
-            NavRow(title = "Privacy policy", summary = "Opens in your browser", onClick = onPrivacy)
+            NavRow(
+                title = "Privacy policy",
+                summary = "Opens in your browser",
+                onClick = onPrivacy,
+                leading = { RowIcon(Glyphs.Shield) },
+            )
             if (supportAvailable) {
-                RowDivider()
-                NavRow(title = supportLabel, summary = supportSummary, onClick = onSupport)
+                NavRow(
+                    title = supportLabel,
+                    summary = supportSummary,
+                    onClick = onSupport,
+                    leading = { RowIcon(Glyphs.Heart) },
+                )
             }
             if (canResetStats) {
-                RowDivider()
                 ActionRow(
                     title = "Reset breathing total",
                     summary = "Sets the total and everything counted with it back to zero",
                     onClick = { confirmingReset = true },
+                    leading = { RowIcon(Glyphs.Reset) },
                 )
             }
         }
@@ -187,6 +189,15 @@ internal fun SettingsScreen(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         )
     }
+}
+
+/** Moss when the optional thing is allowed, plain when it is not: a state, never a fault. */
+@Composable
+private fun StateDot(on: Boolean) {
+    StatusDot(
+        color = if (on) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.outline,
+        modifier = Modifier.padding(start = 12.dp),
+    )
 }
 
 private const val PHONE_OPTIONAL = "Optional. Without it, a call that rings without a ringtone (silent, vibrate or Do Not " +

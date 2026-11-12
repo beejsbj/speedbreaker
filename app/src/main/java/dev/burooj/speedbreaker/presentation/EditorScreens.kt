@@ -41,8 +41,8 @@ import dev.burooj.speedbreaker.presentation.components.ConnectedChoice
 import dev.burooj.speedbreaker.presentation.components.NavRow
 import dev.burooj.speedbreaker.presentation.components.Page
 import dev.burooj.speedbreaker.presentation.components.QuietAction
-import dev.burooj.speedbreaker.presentation.components.RowDivider
 import dev.burooj.speedbreaker.presentation.components.Section
+import dev.burooj.speedbreaker.presentation.components.Tile
 import dev.burooj.speedbreaker.presentation.components.ToggleRow
 import dev.burooj.speedbreaker.presentation.components.appCatalog
 import kotlin.math.roundToInt
@@ -61,12 +61,14 @@ internal fun BreathLengthScreen(
         title = null,
         footnote = "The first 8 seconds are always locked. Continue unlocks when the breath ends.",
     ) {
-        ValueSlider(
-            current = settings.breathSeconds,
-            range = 8..60,
-            unit = "seconds",
-            onCommit = onBreathChange,
-        )
+        Tile {
+            ValueSlider(
+                current = settings.breathSeconds,
+                range = 8..60,
+                unit = "seconds",
+                onCommit = onBreathChange,
+            )
+        }
     }
 }
 
@@ -97,7 +99,7 @@ internal fun DefaultScheduleScreen(
                 }
             },
         )
-        settings.schedule?.let { WeekEditor(it, onScheduleTransform) }
+        settings.schedule?.let { Tile { WeekEditor(it, onScheduleTransform) } }
     }
     Text(
         text = "An app can keep its own hours instead: open it from Apps on Home.",
@@ -134,16 +136,17 @@ internal fun AppSettingsScreen(
                 },
             )
             policy.continuousSeconds?.let { seconds ->
-                RowDivider()
-                ValueSlider(
-                    current = (seconds / 60).coerceIn(1, 120),
-                    range = 1..120,
-                    unit = "minutes",
-                    prefix = "Every",
-                    onCommit = { minutes ->
-                        onPolicyTransform { current -> current.copy(continuousSeconds = minutes * 60) }
-                    },
-                )
+                Tile {
+                    ValueSlider(
+                        current = (seconds / 60).coerceIn(1, 120),
+                        range = 1..120,
+                        unit = "minutes",
+                        prefix = "Every",
+                        onCommit = { minutes ->
+                            onPolicyTransform { current -> current.copy(continuousSeconds = minutes * 60) }
+                        },
+                    )
+                }
             }
         }
 
@@ -179,9 +182,11 @@ internal fun AppSettingsScreen(
                 },
             )
             if (scheduleMode == 2 && schedule != null) {
-                WeekEditor(schedule) { transform ->
-                    onPolicyTransform { current ->
-                        current.copy(schedule = transform(current.schedule) ?: allDaySchedule())
+                Tile {
+                    WeekEditor(schedule) { transform ->
+                        onPolicyTransform { current ->
+                            current.copy(schedule = transform(current.schedule) ?: allDaySchedule())
+                        }
                     }
                 }
             }
@@ -271,20 +276,21 @@ private fun ValueSlider(
     }
 }
 
-/** A mode choice as an Expressive connected button group. */
+/** A mode choice as an Expressive connected button group, on its own tile. */
 @Composable
 private fun ModeSwitch(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
-    ConnectedChoice(options, selected, onSelect, Modifier.padding(16.dp))
+    Tile { ConnectedChoice(options, selected, onSelect, Modifier.padding(16.dp)) }
 }
 
 /**
- * Up to four redirect places, then the edit row.
+ * Up to four redirect places on one tile, then the edit row.
  * With [onEdit] null the slots are read-only (an inherited set).
  */
 @Composable
 internal fun RedirectSlots(redirects: List<String>, onEdit: (() -> Unit)?) {
     val catalog = appCatalog()
     val filled = redirects.takeIf { Redirects.isValid(it) }.orEmpty()
+    Tile {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -320,8 +326,8 @@ internal fun RedirectSlots(redirects: List<String>, onEdit: (() -> Unit)?) {
             }
         }
     }
+    }
     if (onEdit != null) {
-        RowDivider()
         NavRow(
             title = if (filled.isEmpty()) "Choose detour apps" else "Change detours",
             summary = "Choose up to four apps, or leave empty",

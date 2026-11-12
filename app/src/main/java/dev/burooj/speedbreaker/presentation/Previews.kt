@@ -10,6 +10,7 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.burooj.speedbreaker.presentation.components.Section
+import dev.burooj.speedbreaker.presentation.components.Tile
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -120,7 +121,7 @@ internal val Gallery: List<GallerySpec> = listOf(
     GallerySpec("settings-08-schedule-hours") {
         Screen {
             Column(Modifier.safeDrawingPadding().padding(20.dp)) {
-                Section(title = "Schedule") { WeekEditor(SplitWeek, onTransform = {}) }
+                Section(title = "Schedule") { Tile { WeekEditor(SplitWeek, onTransform = {}) } }
             }
         }
     },
