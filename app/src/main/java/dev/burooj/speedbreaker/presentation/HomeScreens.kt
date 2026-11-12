@@ -61,9 +61,9 @@ import dev.burooj.speedbreaker.presentation.components.NavRow
 import dev.burooj.speedbreaker.presentation.components.Page
 import dev.burooj.speedbreaker.presentation.components.PrimaryAction
 import dev.burooj.speedbreaker.presentation.components.QuietAction
-import dev.burooj.speedbreaker.presentation.components.RowDivider
 import dev.burooj.speedbreaker.presentation.components.Section
 import dev.burooj.speedbreaker.presentation.components.StatusDot
+import dev.burooj.speedbreaker.presentation.components.Tile
 import dev.burooj.speedbreaker.presentation.components.appCatalog
 import kotlinx.coroutines.launch
 
@@ -371,7 +371,6 @@ internal fun HomeScreen(
                         onClick = { onApp(packageName) },
                         leading = { AppGlyph(packageName, label) },
                     )
-                    RowDivider()
                 }
             NavRow(
                 title = if (appCount == 0) "Choose apps" else "Add or remove apps",
@@ -459,19 +458,22 @@ private fun SetupSteps(
 ) {
     val serviceName = stringResource(R.string.accessibility_service_label)
     Section(title = null) {
-        SetupStep(1, "Turn on Speedbreaker in Accessibility", progress.accessibility, progress.current == 1) {
-            StepText(
-                "This is how Speedbreaker sees which app is on screen and shows the breath. On the next " +
-                    "screen, find “$serviceName” (often under Installed apps or Downloaded apps) and " +
-                    "switch it on. Android shows its full-control warning for every app of this kind. " +
-                    "Speedbreaker then opens again by itself.",
-            )
-            AccessibilityActions(onEnableAccessibility, onOpenAppInfo)
+        Tile {
+            SetupStep(1, "Turn on Speedbreaker in Accessibility", progress.accessibility, progress.current == 1) {
+                StepText(
+                    "This is how Speedbreaker sees which app is on screen and shows the breath. On the next " +
+                        "screen, find “$serviceName” (often under Installed apps or Downloaded apps) and " +
+                        "switch it on. Android shows its full-control warning for every app of this kind. " +
+                        "Speedbreaker then opens again by itself.",
+                )
+                AccessibilityActions(onEnableAccessibility, onOpenAppInfo)
+            }
         }
-        RowDivider()
-        SetupStep(2, "Choose your apps", progress.apps, progress.current == 2) {
-            StepText("Pick the apps that pull at you. Opening one starts a breath.")
-            PrimaryAction("Choose apps", onChooseApps, Modifier.fillMaxWidth())
+        Tile {
+            SetupStep(2, "Choose your apps", progress.apps, progress.current == 2) {
+                StepText("Pick the apps that pull at you. Opening one starts a breath.")
+                PrimaryAction("Choose apps", onChooseApps, Modifier.fillMaxWidth())
+            }
         }
     }
 }

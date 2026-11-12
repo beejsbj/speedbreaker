@@ -62,6 +62,7 @@ import dev.burooj.speedbreaker.presentation.components.Eyebrow
 import dev.burooj.speedbreaker.presentation.components.Glyphs
 import dev.burooj.speedbreaker.presentation.components.Page
 import dev.burooj.speedbreaker.presentation.components.Section
+import dev.burooj.speedbreaker.presentation.components.Tile
 import dev.burooj.speedbreaker.presentation.components.appCatalog
 
 /* ---------- Home's header ---------- */
@@ -423,26 +424,30 @@ internal fun StatsScreen(
     val detours = detourTallies(settings, choices, catalog::label)
     Page(title = "Your breaths", onBack = onBack, eyebrow = "Speedbreaker") {
         Section(title = null) {
-            FigureRow(
-                figures = listOf(
-                    "Breathed" to breathFigure(stats.totalMs),
-                    "Breaths" to listOf(FigurePart(formatCount(stats.totalBreaths))),
-                    "Today" to breathFigure(stats.todayMsOn(today)),
-                ),
-                modifier = Modifier
-                    .padding(20.dp)
-                    .clearAndSetSemantics { contentDescription = breathedDescription(stats, today) },
-            )
+            Tile {
+                FigureRow(
+                    figures = listOf(
+                        "Breathed" to breathFigure(stats.totalMs),
+                        "Breaths" to listOf(FigurePart(formatCount(stats.totalBreaths))),
+                        "Today" to breathFigure(stats.todayMsOn(today)),
+                    ),
+                    modifier = Modifier
+                        .padding(20.dp)
+                        .clearAndSetSemantics { contentDescription = breathedDescription(stats, today) },
+                )
+            }
         }
 
         Section(
             title = "After a breath",
             footnote = if (choices.total == 0L) "What you choose is counted from your next breath." else null,
         ) {
-            Column(Modifier.padding(20.dp)) {
-                SplitBar(choices, height = 16.dp)
-                Spacer(Modifier.height(16.dp))
-                Legend(endingCounts(choices, everyEnding = true), columns = 1)
+            Tile {
+                Column(Modifier.padding(20.dp)) {
+                    SplitBar(choices, height = 16.dp)
+                    Spacer(Modifier.height(16.dp))
+                    Legend(endingCounts(choices, everyEnding = true), columns = 1)
+                }
             }
         }
 
@@ -450,23 +455,26 @@ internal fun StatsScreen(
             title = "Detours taken",
             footnote = if (detours.isEmpty()) null else "A detour you remove everywhere takes its count with it.",
         ) {
-            if (detours.isEmpty()) {
-                Text(
-                    text = "No detours are chosen. Add some under Settings → Detours.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(20.dp),
-                )
-            } else {
-                val most = detours.maxOf { it.count }
-                Column(Modifier.padding(vertical = 8.dp)) {
-                    detours.forEach { DetourBar(it, most) }
+            // One tile for the whole list: the bars are read against each other, as one chart.
+            Tile {
+                if (detours.isEmpty()) {
+                    Text(
+                        text = "No detours are chosen. Add some under Settings → Detours.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(20.dp),
+                    )
+                } else {
+                    val most = detours.maxOf { it.count }
+                    Column(Modifier.padding(vertical = 8.dp)) {
+                        detours.forEach { DetourBar(it, most) }
+                    }
                 }
             }
         }
 
         Section(title = "This week", footnote = "Time breathed each day.") {
-            WeekBars(weekBars(choices, today), Modifier.padding(20.dp))
+            Tile { WeekBars(weekBars(choices, today), Modifier.padding(20.dp)) }
         }
 
         val since = countedSince(choices)

@@ -13,7 +13,6 @@ import androidx.compose.ui.unit.dp
 import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.presentation.components.AppGlyph
 import dev.burooj.speedbreaker.presentation.components.QuietAction
-import dev.burooj.speedbreaker.presentation.components.RowDivider
 import dev.burooj.speedbreaker.presentation.components.RowFrame
 import dev.burooj.speedbreaker.presentation.components.RowText
 import dev.burooj.speedbreaker.presentation.components.Section
@@ -33,9 +32,8 @@ internal fun ActivePausesSection(
     val timeFormat = DateFormat.getTimeFormat(LocalContext.current)
     Section(title = "Active pauses", footnote = "No breaths for these apps until the time shown. Ending one early still uses it up.") {
         active.entries.sortedBy { catalog.label(it.key).lowercase() }
-            .forEachIndexed { index, (packageName, pause) ->
+            .forEach { (packageName, pause) ->
                 key(packageName) {
-                    if (index > 0) RowDivider()
                     val label = catalog.label(packageName)
                     RowFrame(leading = { AppGlyph(packageName, label) }) {
                         // Stacking keeps the action reachable with large text and narrow screens.

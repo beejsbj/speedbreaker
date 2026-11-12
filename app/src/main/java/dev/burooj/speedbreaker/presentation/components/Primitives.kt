@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -218,7 +219,11 @@ internal fun Eyebrow(text: String, modifier: Modifier = Modifier, color: Color =
     )
 }
 
-/** A titled group of rows on a single soft surface. */
+/**
+ * A titled group, after Expressive's segmented lists: each row or [Tile] is its own soft surface
+ * with a hair of space between them. The group's outer corners are large and the corners where
+ * tiles meet are small, so a group still reads as one thing.
+ */
 @Composable
 internal fun Section(
     title: String?,
@@ -230,13 +235,11 @@ internal fun Section(
         if (title != null) {
             Eyebrow(title, Modifier.padding(start = 4.dp, bottom = 10.dp).semantics { heading() })
         }
-        Surface(
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(content = content)
-        }
+        Column(
+            modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large),
+            verticalArrangement = Arrangement.spacedBy(SegmentGap),
+            content = content,
+        )
         if (footnote != null) {
             Text(
                 text = footnote,
@@ -248,6 +251,22 @@ internal fun Section(
     }
 }
 
+private val SegmentGap = 2.dp
+private val TileShape = RoundedCornerShape(6.dp)
+
+/** One segment of a [Section] for anything that is not a row: a slider, a chart, a step. */
+@Composable
+internal fun Tile(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        shape = TileShape,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(content = content)
+    }
+}
+
+/** A hairline between parts of one [Tile]. Rows in a [Section] need none: the gap separates them. */
 @Composable
 internal fun RowDivider() {
     HorizontalDivider(
@@ -295,8 +314,9 @@ internal fun ActionRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     summary: String? = null,
+    leading: (@Composable () -> Unit)? = null,
 ) {
-    RowFrame(modifier.clickable(role = Role.Button, onClick = onClick)) {
+    RowFrame(modifier.clickable(role = Role.Button, onClick = onClick), leading) {
         RowText(title, summary, Modifier.weight(1f))
     }
 }
@@ -338,8 +358,12 @@ internal fun RowFrame(
     content: @Composable RowScope.() -> Unit,
 ) {
     Row(
-        modifier = modifier
+        // Its own tile, painted before the click so the ripple stays inside the tile's corners.
+        modifier = Modifier
             .fillMaxWidth()
+            .clip(TileShape)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .then(modifier)
             .heightIn(min = 64.dp)
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -437,6 +461,25 @@ internal fun QuietAction(
     }
 }
 
+/** A row's line glyph on a quiet round ground, so a list can be scanned by shape as well as by word. */
+@Composable
+internal fun RowIcon(glyph: ImageVector, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            glyph,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
 @Composable
 internal fun StatusDot(color: Color, modifier: Modifier = Modifier, size: Dp = 10.dp) {
     Box(modifier.size(size).clip(CircleShape).background(color))
@@ -473,6 +516,71 @@ internal object Glyphs {
             lineTo(5.94f, 8.5f); lineTo(4.33f, 6.22f); lineTo(6.22f, 4.33f); lineTo(8.5f, 5.94f); close()
             moveTo(12f, 9.1f)
             arcTo(2.9f, 2.9f, 0f, true, true, 11.99f, 9.1f)
+        }
+    }
+    val Breath: ImageVector by lazy {
+        line("Breath") {
+            moveTo(12f, 3.5f); arcTo(8.5f, 8.5f, 0f, true, true, 11.99f, 3.5f)
+            moveTo(12f, 9.5f); arcTo(2.5f, 2.5f, 0f, true, true, 11.99f, 9.5f)
+        }
+    }
+    val Detour: ImageVector by lazy {
+        line("Detour") {
+            moveTo(5f, 19f); lineTo(5f, 12.5f); quadTo(5f, 8.5f, 9f, 8.5f); lineTo(18.5f, 8.5f)
+            moveTo(14.8f, 4.8f); lineTo(18.5f, 8.5f); lineTo(14.8f, 12.2f)
+        }
+    }
+    val Bell: ImageVector by lazy {
+        line("Bell") {
+            moveTo(6.5f, 16.5f); lineTo(6.5f, 10.5f); arcTo(5.5f, 5.5f, 0f, false, true, 17.5f, 10.5f)
+            lineTo(17.5f, 16.5f); lineTo(19f, 18f); lineTo(5f, 18f); close()
+            moveTo(10.5f, 20.8f); lineTo(13.5f, 20.8f)
+        }
+    }
+    val Phone: ImageVector by lazy {
+        line("Phone") {
+            moveTo(4f, 11f); curveTo(6.5f, 5.8f, 17.5f, 5.8f, 20f, 11f); lineTo(18f, 13.8f)
+            lineTo(14.6f, 12.2f); lineTo(14.6f, 9.9f); curveTo(13f, 9.3f, 11f, 9.3f, 9.4f, 9.9f)
+            lineTo(9.4f, 12.2f); lineTo(6f, 13.8f); close()
+            moveTo(7.5f, 18.5f); lineTo(16.5f, 18.5f)
+        }
+    }
+    val Battery: ImageVector by lazy {
+        line("Battery") {
+            moveTo(4f, 8.5f); lineTo(17.5f, 8.5f); lineTo(17.5f, 15.5f); lineTo(4f, 15.5f); close()
+            moveTo(20.2f, 11f); lineTo(20.2f, 13f)
+            moveTo(7f, 11.3f); lineTo(7f, 12.7f); moveTo(10f, 11.3f); lineTo(10f, 12.7f)
+        }
+    }
+    val Refresh: ImageVector by lazy {
+        line("Refresh") {
+            moveTo(17f, 7.1f); arcTo(7f, 7f, 0f, true, false, 19f, 12f)
+            moveTo(17.3f, 3.4f); lineTo(17.3f, 7.4f); lineTo(13.3f, 7.4f)
+        }
+    }
+    val Reset: ImageVector by lazy {
+        line("Reset") {
+            moveTo(7f, 7.1f); arcTo(7f, 7f, 0f, true, true, 5f, 12f)
+            moveTo(6.7f, 3.4f); lineTo(6.7f, 7.4f); lineTo(10.7f, 7.4f)
+        }
+    }
+    val Help: ImageVector by lazy {
+        line("Help") {
+            moveTo(12f, 3.5f); arcTo(8.5f, 8.5f, 0f, true, true, 11.99f, 3.5f)
+            moveTo(9.6f, 9.7f); curveTo(9.6f, 7f, 14.4f, 7f, 14.4f, 9.7f); curveTo(14.4f, 11.4f, 12f, 11.3f, 12f, 13.4f)
+            moveTo(12f, 16.4f); lineTo(12f, 16.5f)
+        }
+    }
+    val Shield: ImageVector by lazy {
+        line("Shield") {
+            moveTo(12f, 3.5f); lineTo(18.5f, 6f); lineTo(18.5f, 11.5f); curveTo(18.5f, 16f, 15.5f, 19f, 12f, 20.5f)
+            curveTo(8.5f, 19f, 5.5f, 16f, 5.5f, 11.5f); lineTo(5.5f, 6f); close()
+        }
+    }
+    val Heart: ImageVector by lazy {
+        line("Heart") {
+            moveTo(12f, 19.5f); curveTo(6f, 15.5f, 4f, 12.5f, 4f, 9.5f); curveTo(4f, 5.5f, 9.5f, 4.5f, 12f, 8.2f)
+            curveTo(14.5f, 4.5f, 20f, 5.5f, 20f, 9.5f); curveTo(20f, 12.5f, 18f, 15.5f, 12f, 19.5f); close()
         }
     }
     val Close: ImageVector by lazy {

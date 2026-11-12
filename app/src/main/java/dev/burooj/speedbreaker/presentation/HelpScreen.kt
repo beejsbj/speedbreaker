@@ -14,7 +14,6 @@ import androidx.compose.ui.unit.dp
 import dev.burooj.speedbreaker.R
 import dev.burooj.speedbreaker.presentation.components.NavRow
 import dev.burooj.speedbreaker.presentation.components.Page
-import dev.burooj.speedbreaker.presentation.components.RowDivider
 import dev.burooj.speedbreaker.presentation.components.Section
 
 /**
@@ -72,7 +71,6 @@ internal fun HelpScreen(
             summary = "Opens in your browser",
             onClick = onGuide,
         )
-        RowDivider()
         NavRow(title = "Privacy policy", summary = "Opens in your browser", onClick = onPrivacy)
     }
     if (versionName != null) {

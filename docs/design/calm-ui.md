@@ -114,7 +114,8 @@ haptics, One Hand Operation compatibility.
 
 ## Material 3 Expressive, restrained
 
-Four Expressive behaviors, chosen because they act on feel rather than look:
+Four Expressive behaviors, chosen because they act on feel rather than look, and
+two that change how lists look:
 
 - **Spring motion** — the standard scheme's springs (`theme/Motion.kt`)
   replace timed curves for the unlock: the orb draws back on a slow spatial
@@ -126,6 +127,13 @@ Four Expressive behaviors, chosen because they act on feel rather than look:
   shared actions square off slightly under the finger and spring back.
   Continue and Leave morph identically.
 - **Connected button groups** replace segmented buttons for mode choices.
+- **Segmented lists** — a group is a stack of separate tiles with a hair of space
+  between them, large corners on the outside of the group and small ones where
+  tiles meet. A row is a tile; anything else in a group (a slider, a chart, a
+  setup step) sits on a tile of its own. Hairlines remain only inside one tile.
+- **Row icons** — Settings rows lead with a hand-drawn line glyph on a quiet round
+  ground, drawn like the gear (no icon library). Where a row has an optional
+  state, a dot at its end is moss when allowed and plain when not.
 - **Shape-morphing loading indicator** on "Opening your settings…", slow and
   in ink.
 
