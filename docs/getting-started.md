@@ -37,7 +37,7 @@ On phones whose Settings supports it, the entry is scrolled into view and highli
 
 If Android shows **Restricted setting** or **Controlled by Restricted Setting**:
 
-1. Open **Settings → Apps → Speedbreaker**, or use **Open app info** in the app.
+1. Open Android's **Settings → Apps → Speedbreaker**, or use **Open app info** in the app.
 2. Open the **⋮** menu and choose **Allow restricted settings**.
 3. Complete the phone's identity check yourself.
 4. Return to Accessibility and enable **Speedbreaker**.
@@ -88,8 +88,10 @@ continuous use, and active hours all day, every day. No detours are configured.
 | One app's detours | An app → **Detours → Custom** | Replace the default set with one to four apps, or leave the custom set empty to show none for that app. Choose Default to inherit again. |
 | Stop breaths for one app | An app → **Stop breaths for…** | Remove it from the chosen apps. |
 
-Settings is the gear at the top of Home. Through 1.0.6 these three sit together on one
-**Defaults** page, opened from Home.
+In the rest of this guide, **Settings** means Speedbreaker's own, behind the gear at the
+top of Home. Versions through 1.0.6 have no Settings page: breath length, detours and
+hours sit together on one **Defaults** page, and Reliability, Help and Check for updates
+are on Home itself.
 
 Schedules use the phone's local time. Days without a scheduled window are off.
 Outside the effective schedule, the app opens freely; entering an active window

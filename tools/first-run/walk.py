@@ -32,9 +32,11 @@ ACTIVITY = f"{PACKAGE}/.MainActivity"
 SERVICE = f"{PACKAGE}/{PACKAGE}.observation.SpeedbreakerService"
 # The filled button's colour (Palette.NightIvory); the app is always dark.
 FILLED = (0xEC, 0xE5, 0xD6)
+# Rows only Settings has; "Settings" alone is both that page's title and the gear on Home.
+# The first is on screen when the page opens; the others once it is scrolled to Reliability.
+SETTINGS_TOP = r"^Breath length$"
+SETTINGS_ROW = r"^(Breath length|Phone permission|Battery and background)$"
 # Harmless apps an emulator image usually carries, as (picker label, package).
-# A row only Settings has; "Settings" alone is both that page's title and the gear on Home.
-SETTINGS_ROW = r"^Breath length$"
 TARGETS = [
     ("Clock", "com.google.android.deskclock"),
     ("Calendar", "com.google.android.calendar"),
@@ -313,7 +315,8 @@ class Walk:
         self.scroll()
         self.shot("help-scrolled", "Help, scrolled.")
         self.shell("input", "keyevent", "KEYCODE_BACK")
-        self.expect(self.wait_for(r"^Privacy policy$", 15), f"Back from Help did not return to Settings: {self.texts()}")
+        # Settings opens at its top again, so look for its first row, not the one that led to Help.
+        self.expect(self.wait_for(SETTINGS_TOP, 15), f"Back from Help did not return to Settings: {self.texts()}")
         self.shell("input", "keyevent", "KEYCODE_BACK")
         self.expect(self.wait_for(r"^Two steps to start$", 15), f"Back from Settings did not return Home: {self.texts()}")
         self.shell("am", "force-stop", PACKAGE)
@@ -322,7 +325,9 @@ class Walk:
         self.expect(self.find(r"I understand|^Continue$") is None, "The welcome pages showed again after consent.")
 
     def open_settings(self):
-        """Home's gear. Its description and the page's title are both "Settings", so a row tells them apart."""
+        """Home's gear. Its description and the page's title are both "Settings", so a row tells them apart.
+
+        Settings may already be open and scrolled, so any of its rows counts as being there."""
         if self.find(SETTINGS_ROW) is None:
             self.tap(r"^Settings$", wait=2)
         self.expect(self.wait_for(SETTINGS_ROW, 15), f"Settings did not open: {self.texts()}")

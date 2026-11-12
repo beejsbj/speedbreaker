@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -27,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.liveRegion
@@ -112,7 +115,21 @@ private fun UpdatesSection(controller: UpdateController) {
     val context = LocalContext.current
     val enabled by controller.autoCheck.collectAsStateWithLifecycle()
     val installed = remember(context) { installedVersionName(context) }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    val state by controller.state.collectAsStateWithLifecycle()
+    val group = remember { BringIntoViewRequester() }
+    // The answer lands under the rows, which may be at the foot of the screen when the button is
+    // pressed. Follow each new step once (not every download tick, and not on arriving here).
+    val step = state::class
+    var seen by remember { mutableStateOf(step) }
+    LaunchedEffect(step) {
+        if (step == seen) return@LaunchedEffect
+        seen = step
+        if (state != UpdateState.Idle) {
+            withFrameNanos { }
+            group.bringIntoView()
+        }
+    }
+    Column(Modifier.bringIntoViewRequester(group), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Section(title = "Updates") {
             ActionRow(
                 title = "Check for updates",

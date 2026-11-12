@@ -23,7 +23,7 @@ internal fun restingUntil(settings: Settings, nowEpochMs: Long, zone: ZoneId, us
 
 /**
  * The note after "On" while Speedbreaker is able to breathe. Resting is the current truth, so it
- * leads; blocked notifications only stop Pause, and the Reliability row marks them.
+ * leads; blocked notifications only stop Pause, and Settings' Notifications row is where to allow them.
  */
 internal fun homeStatusNote(restingUntil: String?, notificationsAllowed: Boolean): String? = when {
     restingUntil != null -> "resting until $restingUntil"
