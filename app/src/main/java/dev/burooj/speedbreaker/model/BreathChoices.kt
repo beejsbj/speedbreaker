@@ -4,6 +4,7 @@ import java.time.LocalDate
 
 /** How a counted breath ended, in the words Home uses for it. */
 internal enum class BreathEnding {
+    /** The Leave button, or Home, Back or another app once the first eight seconds allow it. */
     Left,
     Continued,
     Detoured,
@@ -11,7 +12,7 @@ internal enum class BreathEnding {
     /** Pause 15 min: breaths off for that one app for a while. */
     TimeOff,
 
-    /** No choice was made: a call, the lock screen, Home or Back once the first eight seconds had passed. */
+    /** Nothing the person did: a call, the lock screen, a schedule or settings change. */
     Other,
 }
 

@@ -275,8 +275,11 @@ told which lines it reverses.
 What is now stored beside the breathing total, in a second local record:
 
 * Five counts of how counted breaths ended: Left, Continued, Took a detour, Took 15 min
-  off (the Pause 15 min button), and Ended another way (no choice: safety, the lock
-  screen, Home, Back or another app once the lock allows, schedule, reset).
+  off (the Pause 15 min button), and Ended another way (nothing the person did: safety,
+  the lock screen, schedule, a settings change, reset). Left covers the Leave button and
+  going Home, Back or to another app once the first eight seconds allow it. Burooj
+  confirmed on November 12 that the eight-second hold itself is right as it is ("Its
+  right.") and chose to count those exits as Left.
 * For each app that is a detour somewhere (the default set or any app's own), how many
   times it was taken. The count is by destination only. When an app stops being a detour
   everywhere, its count is deleted; the count of detours taken stays.
