@@ -24,9 +24,11 @@ class BreathStatsRepositoryTest {
         }
     }
 
-    private suspend fun loaded(dao: StateDao) = SpeedbreakerRepository(dao).also {
-        withTimeout(5_000) { it.ready.first { ready -> ready } }
-    }
+    /** Loaded as if opened on [today], so the day totals these tests write stay within its week. */
+    private suspend fun loaded(dao: StateDao, today: String = "2026-11-12") =
+        SpeedbreakerRepository(dao, today = { today }).also {
+            withTimeout(5_000) { it.ready.first { ready -> ready } }
+        }
 
     @Test(timeout = 15_000)
     fun existingInstallsWithoutAStatsRow_startAtZero() = runBlocking {
@@ -185,5 +187,54 @@ class BreathStatsRepositoryTest {
         repository.recordBreath(8_000, "2026-11-12", BreathEnding.Continued)
         assertEquals(1L, repository.choices.value.total)
         assertNull(repository.error.value)
+    }
+
+    @Test(timeout = 15_000)
+    fun openingTheAppMoreThanAWeekLater_dropsTheOldDayTotalsFromDisk() = runBlocking {
+        val dao = MapDao()
+        val repository = loaded(dao)
+        repository.recordBreath(8_000, "2026-11-10", BreathEnding.Left)
+        repository.recordBreath(8_000, "2026-11-12", BreathEnding.Left)
+
+        val later = loaded(dao, today = "2026-11-18")
+        assertEquals(mapOf("2026-11-12" to 8_000L), later.choices.value.days)
+        assertEquals(
+            mapOf("2026-11-12" to 8_000L),
+            SettingsJson.decodeChoices(dao.rows.getValue("breath_choices").value).days,
+        )
+        // The counts are not history by day, and stay.
+        assertEquals(2L, later.choices.value.left)
+        assertEquals(emptyMap<String, Long>(), loaded(dao, today = "2026-12-25").choices.value.days)
+    }
+
+    @Test(timeout = 15_000)
+    fun aDetourCountLeftBehindByAFailedWrite_isClearedOnTheNextOpenOrBreath() = runBlocking {
+        val dao = MapDao()
+        val repository = loaded(dao)
+        repository.setSettings(Settings(consentAccepted = true, redirects = listOf("kindle", "notes")))
+        repository.recordBreath(8_000, "2026-11-12", BreathEnding.Detoured, "kindle")
+        // Settings saved without Kindle, but the count's own row still names it.
+        dao.rows["settings"] = StateRecord(
+            "settings",
+            SettingsJson.encodeSettings(Settings(consentAccepted = true, redirects = listOf("notes"))),
+        )
+
+        val reopened = loaded(dao)
+        assertEquals(emptyMap<String, Long>(), reopened.choices.value.detours)
+        assertEquals(
+            emptyMap<String, Long>(),
+            SettingsJson.decodeChoices(dao.rows.getValue("breath_choices").value).detours,
+        )
+        assertEquals(1L, reopened.choices.value.detoured)
+    }
+
+    @Test(timeout = 15_000)
+    fun aResetBetweenBreaths_neverLeavesTheTotalAndTheEndingsApart() = runBlocking {
+        val repository = loaded(MapDao())
+        repository.recordBreath(8_000, "2026-11-12", BreathEnding.Left)
+        repository.resetStats()
+        repository.recordBreath(8_000, "2026-11-12", BreathEnding.Continued)
+        assertEquals(repository.stats.value.totalBreaths, repository.choices.value.total)
+        assertEquals(1L, repository.choices.value.continued)
     }
 }

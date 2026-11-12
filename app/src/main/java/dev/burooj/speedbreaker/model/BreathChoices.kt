@@ -61,8 +61,13 @@ internal data class BreathChoices(
             } else {
                 detours
             },
-            days = (days + (today to (days[today] ?: 0L) + shownMs)).withinWeekOf(today),
-        )
+        ).withinWeekOf(today).let { week -> week.copy(days = week.days + (today to (week.days[today] ?: 0L) + shownMs)) }
+    }
+
+    /** Forgets every day total outside the seven local days ending on [today]. */
+    fun withinWeekOf(today: String): BreathChoices {
+        val kept = weekOf(today).toSet()
+        return if (days.keys.all { it in kept }) this else copy(days = days.filterKeys { it in kept })
     }
 
     /** Forgets the count of any app that is no longer a detour anywhere. */
@@ -71,11 +76,6 @@ internal data class BreathChoices(
 
     /** The seven local days ending on [today], oldest first, with the milliseconds breathed on each. */
     fun week(today: String): List<Pair<String, Long>> = weekOf(today).map { it to (days[it] ?: 0L) }
-
-    private fun Map<String, Long>.withinWeekOf(today: String): Map<String, Long> {
-        val kept = weekOf(today).toSet()
-        return filterKeys { it in kept }
-    }
 }
 
 internal const val WEEK_DAYS = 7

@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
@@ -34,8 +33,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,13 +43,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -134,12 +134,17 @@ internal fun BreathedHeader(
 @Composable
 private fun StatusPill(text: String, description: String, resting: Boolean, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
+    // Fully round on one line; at large text it wraps to two and keeps its corners clear of the words.
+    val shape = RoundedCornerShape(20.dp)
     Surface(
-        onClick = onClick,
-        shape = CircleShape,
+        shape = shape,
         color = if (resting) colors.surfaceContainerHighest else colors.tertiaryContainer,
         contentColor = if (resting) colors.onSurfaceVariant else colors.onTertiaryContainer,
-        modifier = Modifier.semantics { contentDescription = description },
+        modifier = Modifier
+            .minimumInteractiveComponentSize()
+            .clip(shape)
+            .clickable(onClickLabel = "Show your apps", role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = description },
     ) {
         Row(
             modifier = Modifier.padding(start = 8.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
@@ -160,22 +165,22 @@ private fun StatusPill(text: String, description: String, resting: Boolean, onCl
 internal fun BreathingMark(modifier: Modifier = Modifier, still: Boolean = false, color: Color = LocalContentColor.current) {
     val animationsOff = remember { !ValueAnimator.areAnimatorsEnabled() }
     val held = still || animationsOff || LocalStillBreath.current
-    val swell = if (held) {
-        1f
+    val swell: State<Float>? = if (held) {
+        null
     } else {
-        val transition = rememberInfiniteTransition(label = "status mark")
-        val value by transition.animateFloat(
+        rememberInfiniteTransition(label = "status mark").animateFloat(
             initialValue = 0.76f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(tween(MARK_HALF_BREATH_MS, easing = FastOutSlowInEasing), RepeatMode.Reverse),
             label = "swell",
         )
-        value
     }
     Canvas(modifier) {
+        // Read while drawing, so each frame redraws the mark without recomposing Home.
+        val scale = swell?.value ?: 1f
         val outer = size.minDimension / 2f
-        drawCircle(color.copy(alpha = 0.16f), radius = outer * swell)
-        drawCircle(color.copy(alpha = 0.85f), radius = outer * 0.6f * swell, style = Stroke(width = 1.2.dp.toPx()))
+        drawCircle(color.copy(alpha = 0.16f), radius = outer * scale)
+        drawCircle(color.copy(alpha = 0.85f), radius = outer * 0.6f * scale, style = Stroke(width = 1.2.dp.toPx()))
         drawCircle(color, radius = outer * 0.18f)
     }
 }
@@ -206,6 +211,19 @@ private fun Figure(parts: List<FigurePart>, valueStyle: TextStyle, unitStyle: Te
 /** Labelled lesser figures side by side, a hairline between them. */
 @Composable
 private fun FigureRow(figures: List<Pair<String, List<FigurePart>>>, modifier: Modifier = Modifier) {
+    // Three across needs room: at large text or on a narrow screen they stack, label over figure.
+    val narrow = figures.size > 2 && LocalConfiguration.current.screenWidthDp < 380
+    if (narrow || (largeText() && figures.size > 2)) {
+        Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            figures.forEach { (label, parts) ->
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Eyebrow(label)
+                    Figure(parts, MaterialTheme.typography.headlineSmall, MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+        return
+    }
     Row(modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
         figures.forEachIndexed { index, (label, parts) ->
             if (index > 0) {
@@ -266,7 +284,8 @@ internal fun ChoicesCard(choices: BreathChoices, settings: Settings, onOpen: () 
             } else {
                 Legend(endingCounts(choices, everyEnding = false), columns = if (largeText()) 1 else 2)
             }
-            val taken = detours.filter { it.count > 0 }.take(HOME_DETOUR_CHIPS)
+            val everyTaken = detours.filter { it.count > 0 }
+            val taken = everyTaken.take(HOME_DETOUR_CHIPS)
             if (taken.isNotEmpty()) {
                 Spacer(Modifier.height(14.dp))
                 HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
@@ -276,13 +295,18 @@ internal fun ChoicesCard(choices: BreathChoices, settings: Settings, onOpen: () 
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     taken.forEach { DetourChip(it) }
-                    val more = detours.size - taken.size
+                    val more = everyTaken.size - taken.size
                     if (more > 0) {
                         Text(
                             text = "+$more more",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.align(Alignment.CenterVertically).padding(start = 4.dp),
+                            modifier = Modifier
+                                .align(Alignment.CenterVertically)
+                                .padding(start = 4.dp)
+                                .clearAndSetSemantics {
+                                    contentDescription = "and $more more ${if (more == 1) "detour" else "detours"} taken"
+                                },
                         )
                     }
                 }
@@ -299,7 +323,9 @@ private fun DetourChip(tally: DetourTally) {
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        modifier = Modifier.clearAndSetSemantics { contentDescription = "${tally.label} ${formatCount(tally.count)}" },
+        modifier = Modifier.clearAndSetSemantics {
+            contentDescription = "Detour to ${tally.label}, ${formatCount(tally.count)}"
+        },
     ) {
         Row(
             modifier = Modifier.padding(start = 4.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
@@ -319,8 +345,9 @@ private fun endingColor(ending: BreathEnding): Color {
         BreathEnding.Left -> colors.tertiary
         BreathEnding.Continued -> colors.primary
         BreathEnding.Detoured -> lerp(colors.tertiary, colors.surfaceContainer, 0.45f)
-        BreathEnding.TimeOff -> colors.outline
-        BreathEnding.Other -> colors.outlineVariant
+        BreathEnding.TimeOff -> lerp(colors.onSurfaceVariant, colors.surfaceContainer, 0.25f)
+        // The quietest, but still plain to see beside the card.
+        BreathEnding.Other -> colors.outline
     }
 }
 
@@ -351,7 +378,11 @@ private fun Legend(entries: List<Pair<BreathEnding, Long>>, columns: Int) {
         entries.chunked(columns).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                 row.forEach { (ending, count) ->
-                    Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    // One stop for a screen reader: "Left, 41".
+                    Row(
+                        modifier = Modifier.weight(1f).semantics(mergeDescendants = true) {},
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Box(Modifier.size(10.dp).clip(RoundedCornerShape(3.dp)).background(endingColor(ending)))
                         Spacer(Modifier.width(10.dp))
                         Text(
@@ -466,39 +497,37 @@ private fun DetourBar(tally: DetourTally, most: Long) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AppGlyph(tally.packageName, tally.label, size = 28.dp)
-        Spacer(Modifier.width(12.dp))
-        Text(
-            text = tally.label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (tally.count == 0L) colors.onSurfaceVariant else colors.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(0.42f),
-        )
-        Box(
-            Modifier
-                .weight(0.58f)
-                .height(10.dp)
-                .clip(CircleShape)
-                .background(colors.surfaceContainerHighest),
-        ) {
-            if (tally.count > 0 && most > 0) {
-                Box(
-                    Modifier
-                        .fillMaxWidth(tally.count.toFloat() / most)
-                        .fillMaxHeight()
-                        .clip(CircleShape)
-                        .background(endingColor(BreathEnding.Detoured)),
+        Spacer(Modifier.width(14.dp))
+        // The name gets the full width above its bar, so a long one is not cut short.
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = tally.label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (tally.count == 0L) colors.onSurfaceVariant else colors.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = formatCount(tally.count),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (tally.count == 0L) colors.onSurfaceVariant else colors.onSurface,
+                    modifier = Modifier.padding(start = 12.dp),
                 )
             }
+            Box(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(colors.surfaceContainerHighest)) {
+                if (tally.count > 0 && most > 0) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth(tally.count.toFloat() / most)
+                            .fillMaxHeight()
+                            .clip(CircleShape)
+                            .background(endingColor(BreathEnding.Detoured)),
+                    )
+                }
+            }
         }
-        Text(
-            text = formatCount(tally.count),
-            style = MaterialTheme.typography.labelLarge,
-            color = if (tally.count == 0L) colors.onSurfaceVariant else colors.onSurface,
-            textAlign = TextAlign.End,
-            modifier = Modifier.widthIn(min = 36.dp).padding(start = 12.dp),
-        )
     }
 }
 

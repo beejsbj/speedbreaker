@@ -28,12 +28,12 @@ internal fun restingUntil(settings: Settings, nowEpochMs: Long, zone: ZoneId, us
 internal fun statusPillText(appCount: Int, restingUntil: String?): String =
     if (restingUntil != null) "Resting until $restingUntil" else "Active · ${appsPhrase(appCount)}"
 
-/** What TalkBack hears: the mark is decoration, so the words carry the meaning, and what a tap does. */
+/** What TalkBack hears: the mark is decoration, so the words carry the meaning. The tap has its own label. */
 internal fun statusPillDescription(appCount: Int, restingUntil: String?): String =
     if (restingUntil != null) {
-        "Speedbreaker is on, resting until $restingUntil. Shows your apps."
+        "Speedbreaker is on, resting until $restingUntil"
     } else {
-        "Speedbreaker is active on ${appsPhrase(appCount)}. Shows your apps."
+        "Speedbreaker is active on ${appsPhrase(appCount)}"
     }
 
 private fun appsPhrase(count: Int): String = if (count == 1) "1 app" else "$count apps"

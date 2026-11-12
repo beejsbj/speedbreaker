@@ -92,12 +92,14 @@ internal fun detourTallies(settings: Settings, choices: BreathChoices, label: (S
 /** How many detours Home names before "+N more". */
 internal const val HOME_DETOUR_CHIPS = 3
 
-/** One day of the week on the full page. */
+/** One day of the week on the full page: its initial under the bar, its full name read aloud. */
 internal data class DayBar(val letter: String, val name: String, val ms: Long, val isToday: Boolean)
+
+private val WEEKDAY_FULL_NAMES = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
 /** The seven days ending [today], oldest first. */
 internal fun weekBars(choices: BreathChoices, today: String): List<DayBar> = choices.week(today).map { (day, ms) ->
-    val name = runCatching { WEEKDAY_NAMES[LocalDate.parse(day).dayOfWeek.value - 1] }.getOrDefault("")
+    val name = runCatching { WEEKDAY_FULL_NAMES[LocalDate.parse(day).dayOfWeek.value - 1] }.getOrDefault("")
     DayBar(letter = name.take(1), name = name, ms = ms, isToday = day == today)
 }
 

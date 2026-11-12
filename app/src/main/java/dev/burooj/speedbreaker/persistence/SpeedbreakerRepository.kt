@@ -8,6 +8,8 @@ import dev.burooj.speedbreaker.model.BreathStats
 import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.model.detourDestinations
+import dev.burooj.speedbreaker.model.localDayKey
+import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +26,11 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /** Process-local facade over the only persisted product data. */
-internal class SpeedbreakerRepository internal constructor(private val dao: StateDao) {
+internal class SpeedbreakerRepository internal constructor(
+    private val dao: StateDao,
+    /** The local day, for dropping day totals that have aged past a week. */
+    private val today: () -> String = { localDayKey(System.currentTimeMillis(), ZoneId.systemDefault()) },
+) {
     private constructor(context: Context) : this(
         Room.databaseBuilder(
             context.applicationContext,
@@ -76,6 +82,9 @@ internal class SpeedbreakerRepository internal constructor(private val dao: Stat
                     _choices.value = loadedChoices
                     _pauses.value = loadedPauses
                     _ready.value = true
+                    // Nothing stays past its time: a day older than a week, or the count of an app
+                    // whose removal as a detour was saved but whose count was not cleared then.
+                    writeChoices(tidied(loadedChoices, loadedSettings))
                 }
             } catch (error: Throwable) {
                 if (error is CancellationException) throw error
@@ -103,7 +112,7 @@ internal class SpeedbreakerRepository internal constructor(private val dao: Stat
                 return
             }
             // An app that stops being a detour takes its count with it.
-            writeChoices(_choices.value.keepingDetours(checked.detourDestinations()))
+            writeChoices(tidied(_choices.value, checked))
         }
     }
 
@@ -124,7 +133,8 @@ internal class SpeedbreakerRepository internal constructor(private val dao: Stat
 
     /**
      * Adds one finished breath to the running totals, with how it ended and, for a detour, where
-     * it went. A failed write is dropped silently.
+     * it went. Both records change under one lock, so a reset or a shutdown cannot fall between
+     * them. A failed write is dropped silently.
      */
     suspend fun recordBreath(
         shownMs: Long,
@@ -132,20 +142,34 @@ internal class SpeedbreakerRepository internal constructor(private val dao: Stat
         ending: BreathEnding = BreathEnding.Other,
         detour: String? = null,
     ) {
-        updateStats { it.withBreath(shownMs, today) }
         stateMutex.withLock {
             if (!_ready.value) return
-            val stillChosen = detour?.takeIf { it in _settings.value.detourDestinations() }
-            writeChoices(_choices.value.withBreath(shownMs, today, ending, stillChosen))
+            writeStats(_stats.value.withBreath(shownMs, today))
+            val chosen = _settings.value.detourDestinations()
+            writeChoices(
+                _choices.value.keepingDetours(chosen).withBreath(shownMs, today, ending, detour?.takeIf { it in chosen }),
+            )
         }
     }
 
     /** Clears the total and everything counted beside it. */
     suspend fun resetStats() {
-        updateStats { BreathStats() }
         stateMutex.withLock {
             if (!_ready.value) return
+            writeStats(BreathStats())
             writeChoices(BreathChoices())
+        }
+    }
+
+    /** Called with stateMutex held. Losing a count must never stop enforcement or surface an error. */
+    private suspend fun writeStats(updated: BreathStats) {
+        if (updated == _stats.value) return
+        try {
+            persistAndPublish(StateRecord(STATS_KEY, SettingsJson.encodeStats(updated))) {
+                _stats.value = updated
+            }
+        } catch (error: Throwable) {
+            if (error is CancellationException) throw error
         }
     }
 
@@ -161,20 +185,10 @@ internal class SpeedbreakerRepository internal constructor(private val dao: Stat
         }
     }
 
-    private suspend fun updateStats(transform: (BreathStats) -> BreathStats) {
-        stateMutex.withLock {
-            if (!_ready.value) return
-            val updated = transform(_stats.value)
-            try {
-                persistAndPublish(StateRecord(STATS_KEY, SettingsJson.encodeStats(updated))) {
-                    _stats.value = updated
-                }
-            } catch (error: Throwable) {
-                if (error is CancellationException) throw error
-                // Losing a count must never stop enforcement or surface an error.
-            }
-        }
-    }
+    /** Drops what must not be kept: counts of apps no longer a detour, and days older than a week. */
+    private fun tidied(choices: BreathChoices, settings: Settings): BreathChoices = runCatching {
+        choices.keepingDetours(settings.detourDestinations()).withinWeekOf(today())
+    }.getOrDefault(choices)
 
     /** Notification fallback when the Accessibility service is disconnected. */
     suspend fun endPause(packageName: String, nowEpochMs: Long): Boolean = stateMutex.withLock {

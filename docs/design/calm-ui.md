@@ -55,7 +55,7 @@ overlay keeps its existing `BreakerOverlay` signature.
   split by how breaths ended, the counts beside their names, and the three detours
   taken most with "+N more"; it opens **Your breaths**. Otherwise its title is the
   status ("Off for now", "Needs attention", "Ready when you are"), followed by the
-  one next action and a one-line total. Then any running pauses, an offered update,
+  one next action and the total as one row that still opens Your breaths. Then any running pauses, an offered update,
   and Apps. Home says what is happening and nothing else; a round gear in its top
   bar, beside the eyebrow, opens Settings.
 - **Settings** is one list of everything a person sets or checks, in groups of

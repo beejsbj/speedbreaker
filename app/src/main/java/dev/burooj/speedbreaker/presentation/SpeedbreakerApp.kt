@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.burooj.speedbreaker.observation.PauseNotifications
 import dev.burooj.speedbreaker.observation.PauseEndReceiver
 import dev.burooj.speedbreaker.observation.CallSafety
+import dev.burooj.speedbreaker.model.BreathChoices
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.model.localDayKey
 import dev.burooj.speedbreaker.observation.ServiceStatus
@@ -242,7 +243,8 @@ internal fun SpeedbreakerApp() {
                     supportLabel = support.label,
                     supportSummary = support.summary,
                     supportAvailable = support.available,
-                    canResetStats = !stats.isEmpty,
+                    // Either record alone is still something to clear.
+                    canResetStats = !stats.isEmpty || choices != BreathChoices(),
                     onResetStats = { scope.launch { repository.resetStats() } },
                     versionName = remember(context) { installedVersionName(context) },
                     updatesSection = updates?.settingsSection,

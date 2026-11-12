@@ -116,8 +116,8 @@ the length of a breath. The app does not read message text or take screenshots. 
 only running totals: the seconds you have breathed and the breaths you have taken
 (overall and today) and, in versions after 1.0.6, how those breaths ended, how often you
 took each detour, and the time breathed on each of the last seven days. Home shows them
-and Settings resets them. It never sends them anywhere, and records neither which app a
-breath was for nor the time of day.
+and Settings resets them. It never sends them anywhere, and keeps no list of breaths and
+no time of day.
 Settings, pause state, and those totals stay on the phone. It requests no Usage
 Access or separate “display over other apps” permission. The GitHub APK (1.0.4 and
 later) has Internet and install permissions for its updater only: it contacts GitHub

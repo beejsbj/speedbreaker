@@ -62,7 +62,7 @@ class BreathStatsScreensTest {
     fun homeLeadsWithAStatusPillAndFiguresReadAsWords() {
         showHome()
         compose.onNodeWithText("Active · 1 app").assertExists()
-        compose.onNodeWithContentDescription("Speedbreaker is active on 1 app. Shows your apps.").assertExists()
+        compose.onNodeWithContentDescription("Speedbreaker is active on 1 app").assertExists()
         compose.onNodeWithContentDescription("18 minutes breathed in total. 94 breaths, 2 minutes today.").assertExists()
         // The old sentence-style line is gone.
         compose.onNodeWithText("94 breaths · 2 minutes today").assertDoesNotExist()
@@ -91,12 +91,38 @@ class BreathStatsScreensTest {
     @Test
     fun homeNamesTheThreeMostTakenDetoursAndCountsTheRest() {
         showHome()
-        compose.onNodeWithContentDescription("kindle 6").assertExists()
-        compose.onNodeWithContentDescription("maps 4").assertExists()
-        compose.onNodeWithContentDescription("duolingo 2").assertExists()
-        compose.onNodeWithContentDescription("notes 1").assertDoesNotExist()
-        // Five apps are a detour somewhere: three named, two more.
-        compose.onNodeWithText("+2 more").assertExists()
+        compose.onNodeWithContentDescription("Detour to kindle, 6").assertExists()
+        compose.onNodeWithContentDescription("Detour to maps, 4").assertExists()
+        compose.onNodeWithContentDescription("Detour to duolingo, 2").assertExists()
+        compose.onNodeWithContentDescription("Detour to notes, 1").assertDoesNotExist()
+        // Four detours were taken: three named, one more. The untaken fifth is not counted here.
+        compose.onNodeWithContentDescription("and 1 more detour taken").assertExists()
+    }
+
+    @Test
+    fun withThreeOrFewerDetoursTakenThereIsNoMore() {
+        showHome(choices = choices.copy(detours = mapOf("kindle" to 6L)))
+        compose.onNodeWithContentDescription("Detour to kindle, 6").assertExists()
+        compose.onNodeWithContentDescription("more detour", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun countsKeptWithoutATotalStillShowTheirCard() {
+        // The two records are written separately, so one can outlive the other.
+        showHome(stats = BreathStats())
+        compose.onNodeWithText("After a breath").assertExists()
+        compose.onNodeWithText("Left").assertExists()
+    }
+
+    @Test
+    fun whileBreathsAreOffTheTotalIsOneRowThatStillOpensTheFullPage() {
+        var opened = 0
+        showHome(protection = Protection.Off, onStats = { opened++ })
+        compose.onNodeWithText("Off for now").assertExists()
+        compose.onNodeWithText("After a breath").assertDoesNotExist()
+        compose.onNodeWithText("18 minutes breathed so far.").assertExists()
+        compose.onNodeWithText("Your breaths").performScrollTo().performClick()
+        assertEquals(1, opened)
     }
 
     @Test
@@ -169,12 +195,13 @@ class BreathStatsScreensTest {
         stats: BreathStats = this.stats,
         choices: BreathChoices = this.choices,
         notificationsAllowed: Boolean = true,
+        protection: Protection = Protection.On,
         onStats: () -> Unit = {},
     ) = compose.setContent {
         SpeedbreakerTheme {
             HomeScreen(
                 settings = settings,
-                protection = Protection.On,
+                protection = protection,
                 runtimeError = null,
                 notificationsAllowed = notificationsAllowed,
                 onEnableAccessibility = {},

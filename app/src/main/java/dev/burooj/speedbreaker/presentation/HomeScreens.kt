@@ -167,9 +167,9 @@ private fun ColumnScope.DisclosurePage(onAccept: () -> Unit, onDecline: () -> Un
         Promise(
             heading = "What it keeps",
             body = "Your settings, today’s pauses, and running totals you can reset: breaths and time " +
-                "breathed (overall and for each of the last seven days), how each breath ended, and how " +
-                "often you took each detour. Nothing about which app a breath was for or the time of " +
-                "day, no answers, no analytics, no cloud.",
+                "breathed, the time breathed on each of the last seven days, how many breaths ended " +
+                "each way, and how often you took each detour. No list of breaths, no time of day, " +
+                "no answers, no analytics, no cloud.",
         )
     }
     Spacer(Modifier.height(40.dp))
@@ -305,7 +305,7 @@ internal fun HomeScreen(
                 onShowApps = { scope.launch { appsSection.bringIntoView() } },
             )
             // Nothing has been chosen before the first breath, so the card waits for one.
-            if (!stats.isEmpty) {
+            if (!stats.isEmpty || choices.total > 0) {
                 Spacer(Modifier.height(12.dp))
                 ChoicesCard(choices, settings, onOpen = onStats)
             }
@@ -341,14 +341,16 @@ internal fun HomeScreen(
             )
         }
 
-        // Repairs lead the page, so the total shrinks to one line after them.
-        if (protection != Protection.On && !stats.isEmpty) {
-            Text(
-                text = compactBreathLine(stats),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp),
-            )
+        // Repairs lead the page, so the total shrinks to one row after them. It still opens the
+        // full page: what was counted stays readable while breaths are off.
+        if (!healthy && (!stats.isEmpty || choices.total > 0)) {
+            Section(title = null) {
+                NavRow(
+                    title = "Your breaths",
+                    summary = if (stats.isEmpty) null else compactBreathLine(stats),
+                    onClick = onStats,
+                )
+            }
         }
 
         updateCard?.invoke()

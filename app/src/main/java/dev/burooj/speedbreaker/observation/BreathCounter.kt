@@ -9,15 +9,6 @@ import dev.burooj.speedbreaker.model.countedBreathMs
  * Turns the engine's ordered start/end decisions into counted breath time. The engine stays
  * pure; this remembers only the configured length of the breath now showing.
  */
-/** How the person would describe the way a breath ended. Anything they did not choose is [BreathEnding.Other]. */
-internal fun BreakerEnd.asEnding(): BreathEnding = when (this) {
-    BreakerEnd.CHOICE_LEAVE -> BreathEnding.Left
-    BreakerEnd.CHOICE_CONTINUE -> BreathEnding.Continued
-    BreakerEnd.CHOICE_REDIRECT -> BreathEnding.Detoured
-    BreakerEnd.CHOICE_PAUSE -> BreathEnding.TimeOff
-    else -> BreathEnding.Other
-}
-
 internal class BreathCounter {
     private var breathSeconds: Int? = null
 
@@ -34,4 +25,13 @@ internal class BreathCounter {
         }
         else -> null
     }
+}
+
+/** How the person would describe the way a breath ended. Anything they did not choose is [BreathEnding.Other]. */
+internal fun BreakerEnd.asEnding(): BreathEnding = when (this) {
+    BreakerEnd.CHOICE_LEAVE -> BreathEnding.Left
+    BreakerEnd.CHOICE_CONTINUE -> BreathEnding.Continued
+    BreakerEnd.CHOICE_REDIRECT -> BreathEnding.Detoured
+    BreakerEnd.CHOICE_PAUSE -> BreathEnding.TimeOff
+    else -> BreathEnding.Other
 }

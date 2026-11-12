@@ -94,9 +94,9 @@ class HomeStatusTest {
     }
 
     @Test
-    fun thePillIsDescribedInWordsWithWhatATapDoes() {
-        assertEquals("Speedbreaker is active on 3 apps. Shows your apps.", statusPillDescription(3, null))
-        assertEquals("Speedbreaker is on, resting until 9 AM. Shows your apps.", statusPillDescription(1, "9 AM"))
+    fun thePillIsDescribedInWords() {
+        assertEquals("Speedbreaker is active on 3 apps", statusPillDescription(3, null))
+        assertEquals("Speedbreaker is on, resting until 9 AM", statusPillDescription(1, "9 AM"))
     }
 
     @Test

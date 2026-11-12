@@ -48,7 +48,7 @@ count. Four numbers, never sent anywhere.
 **Ending**: how a counted breath ended, in five kinds: Left, Continued, Took a detour,
 Took 15 min off (the Pause 15 min button), and Ended another way (no choice: a call, the
 lock screen, Home or Back once the lock allows). Counted beside the breathing total from
-the version after 1.0.6, never per target app and never with a time.
+the version after 1.0.6, with no field for the target app and never with a time.
 
 **Your breaths**: the page behind Home's "After a breath" card. It shows the endings,
 how often each chosen detour app was taken, and the time breathed on each of the last

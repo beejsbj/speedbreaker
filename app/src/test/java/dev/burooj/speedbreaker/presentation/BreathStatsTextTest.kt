@@ -108,7 +108,8 @@ class BreathStatsTextTest {
         assertEquals(listOf(0L, 0L, 0L, 0L, 60_000L, 0L, 120_000L), bars.map { it.ms })
         assertEquals(listOf(false, false, false, false, false, false, true), bars.map { it.isToday })
         assertEquals(
-            "Time breathed each day. Fri none, Sat none, Sun none, Mon none, Tue 1 minute, Wed none, Today 2 minutes",
+            "Time breathed each day. Friday none, Saturday none, Sunday none, Monday none, Tuesday 1 minute, " +
+                "Wednesday none, Today 2 minutes",
             weekDescription(bars),
         )
     }

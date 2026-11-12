@@ -50,12 +50,12 @@ Build a rough, runnable phone-scale prototype of Speedbreaker's settled interact
 * Request neither Usage Access nor a separate overlay permission.
 * Show prominent Samsung battery/background guidance without blocking setup.
 * If Accessibility is disabled, show a prominent inactive/repair state, never imply protection is active, keep settings editable, and link directly to Android Accessibility settings.
-* Persist only settings, current-local-day pause state, and a running breathing total (total and current-local-day breath time, plus breath count; see the October 16 breathing-total correction). No per-app or time-stamped usage history, analytics, reflection data, or cloud path exists in V1.
+* Persist only settings, current-local-day pause state, and a running breathing total (total and current-local-day breath time, plus breath count; see the October 16 breathing-total correction; amended again by the November 12 breathing-statistics correction). No per-app or time-stamped usage history, analytics, reflection data, or cloud path exists in V1.
 * V1 is a sideloaded APK for Burooj's Galaxy S23+; Play Store acceptance is not a pre-trial gate.
 
 ## Explicitly absent
 
-Cumulative usage, daily usage budgets or resets, over-budget state, escalating 5/10/20/40 ladders, mercy allowance, Usage Access, per-app usage counters or time-stamped history (the single breathing total is allowed), multiple schedule windows per day, and time-dependent strictness profiles.
+Cumulative usage, daily usage budgets or resets, over-budget state, escalating 5/10/20/40 ladders, mercy allowance, Usage Access, per-app usage counters or time-stamped history (the single breathing total is allowed; counts of endings and chosen detours and seven daily totals were allowed on November 12), multiple schedule windows per day, and time-dependent strictness profiles.
 
 Future note only: V2 may allow stricter policy during selected windows, such as a longer breath and shorter continuous-use interval before sleep. Do not add hidden V1 state or settings for it.
 
@@ -283,8 +283,10 @@ What is now stored beside the breathing total, in a second local record:
 * Milliseconds breathed on each of the seven local days ending with the latest breath,
   and the local day counting began.
 
-Still not stored, in any version: which chosen app a breath was for, any time of day, a
-list of breaths, or a day older than seven days. Counting starts from zero at the update;
+Still not stored, in any version: a field naming the chosen app a breath was for, any time
+of day, a list of breaths, or a day older than seven days (dropped when the app next
+starts or counts a breath). One inference remains and is stated in the privacy policy: an
+app that is a detour for only one chosen app has a count that is also a count for that pair. Counting starts from zero at the update;
 the existing total and breath count are kept, so at first the endings add up to less than
 the breath count. **Reset breathing total** clears both records. A failed write to either
 never affects enforcement.
@@ -298,6 +300,8 @@ How it is shown:
   apps into view; the card opens Your breaths.
 * Your breaths: the figures, every ending with its count, every chosen detour with its
   count, and seven day bars.
+* While breaths are off or no app is chosen, the total is one row after the repair
+  ("Your breaths", "18 minutes breathed so far."), and it still opens the page.
 * The statistics are descriptive. No percentages, streaks, scores, goals or praise, and
   no ending is coloured or worded as better than another. The mark holds still when the
   system's animations are off.
