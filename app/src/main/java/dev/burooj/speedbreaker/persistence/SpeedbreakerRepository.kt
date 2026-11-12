@@ -80,11 +80,14 @@ internal class SpeedbreakerRepository internal constructor(
                     _settings.value = loadedSettings
                     _stats.value = loadedStats
                     _choices.value = loadedChoices
-                    _pauses.value = loadedPauses
-                    _ready.value = true
                     // Nothing stays past its time: a day older than a week, or the count of an app
                     // whose removal as a detour was saved but whose count was not cleared then.
-                    writeChoices(tidied(loadedChoices, loadedSettings))
+                    // Done before anything can read the record, and shown tidied even if the write fails.
+                    val tidy = tidied(loadedChoices, loadedSettings)
+                    writeChoices(tidy)
+                    _choices.value = tidy
+                    _pauses.value = loadedPauses
+                    _ready.value = true
                 }
             } catch (error: Throwable) {
                 if (error is CancellationException) throw error
