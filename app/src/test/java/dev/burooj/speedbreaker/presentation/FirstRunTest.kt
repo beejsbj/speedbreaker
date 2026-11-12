@@ -78,40 +78,37 @@ class FirstRunTest {
 
     @Test
     fun phonePermissionIsNotASetupStep() {
-        show(Protection.On, phoneAllowed = false)
+        show(Protection.On)
         compose.onNodeWithText("One step left").assertIsDisplayed()
         compose.onNodeWithContentDescription("Step 1 of 2, done. Turn on Speedbreaker in Accessibility").assertIsDisplayed()
+        compose.onNodeWithText("Phone permission").assertDoesNotExist()
         compose.onNodeWithText("Breaths are off", substring = true).assertDoesNotExist()
     }
 
     @Test
-    fun thePhoneRowSaysWhatIsMissedWithoutItAndAsks() {
-        var presses = 0
-        show(Protection.On, phoneAllowed = false, onCallAccess = { presses++ })
-        compose.onNodeWithText("rings without a ringtone", substring = true).assertExists()
-        compose.onNodeWithText("make and manage phone calls", substring = true).assertExists()
-        compose.onNodeWithText("Phone permission").performScrollTo().performClick()
-        assertEquals(1, presses)
+    fun homeKeepsToWhatIsHappeningAndTheGearLeadsToTheRest() {
+        var opened = 0
+        show(
+            Protection.On,
+            settings = Settings(consentAccepted = true, apps = mapOf("test.app" to AppPolicy())),
+            stats = BreathStats(totalMs = 60_000, totalBreaths = 5),
+            onSettings = { opened++ },
+        )
+        compose.onNodeWithText("APPS").assertExists()
+        compose.onNodeWithText("RELIABILITY").assertDoesNotExist()
+        compose.onNodeWithText("DEFAULTS").assertDoesNotExist()
+        compose.onNodeWithText("Help").assertDoesNotExist()
+        compose.onNodeWithText("Reset breathing total").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Settings").performClick()
+        assertEquals(1, opened)
     }
 
     @Test
-    fun aWithheldPromptIsExplainedInsteadOfLeavingADeadRow() {
-        var presses = 0
-        show(Protection.On, phoneAllowed = false, phoneNeedsSettings = true, onCallAccess = { presses++ })
-        compose.onNodeWithText("Permissions → Phone → Allow", substring = true).assertExists()
-        compose.onNodeWithText("Phone permission").performScrollTo().performClick()
-        assertEquals(1, presses)
-    }
-
-    @Test
-    fun anAllowedPhoneRowSaysSoAndLeadsToAppInfo() {
-        var asked = 0
-        var appInfo = 0
-        show(Protection.On, onCallAccess = { asked++ }, onOpenAppInfo = { appInfo++ })
-        compose.onNodeWithText("even a silent one", substring = true).assertExists()
-        compose.onNodeWithText("Phone permission").performScrollTo().performClick()
-        assertEquals(0, asked)
-        assertEquals(1, appInfo)
+    fun theGearIsThereBeforeSetupIsDone() {
+        var opened = 0
+        show(Protection.Off, onSettings = { opened++ })
+        compose.onNodeWithContentDescription("Settings").performClick()
+        assertEquals(1, opened)
     }
 
     @Test
@@ -130,10 +127,7 @@ class FirstRunTest {
         protection: Protection,
         settings: Settings = Settings(consentAccepted = true),
         stats: BreathStats = BreathStats(),
-        phoneNeedsSettings: Boolean = false,
-        phoneAllowed: Boolean = true,
-        onCallAccess: () -> Unit = {},
-        onOpenAppInfo: () -> Unit = {},
+        onSettings: () -> Unit = {},
     ) = compose.setContent {
         SpeedbreakerTheme {
             HomeScreen(
@@ -142,14 +136,10 @@ class FirstRunTest {
                 runtimeError = null,
                 notificationsAllowed = true,
                 onEnableAccessibility = {},
-                onOpenAppInfo = onOpenAppInfo,
-                onNotifications = {},
+                onOpenAppInfo = {},
                 onChooseApps = {},
-                onDefaults = {},
+                onSettings = onSettings,
                 onApp = {},
-                onCallAccess = onCallAccess,
-                phoneNeedsSettings = phoneNeedsSettings,
-                phoneAllowed = phoneAllowed,
                 stats = stats,
             )
         }

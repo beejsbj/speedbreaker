@@ -32,22 +32,22 @@ internal fun HelpScreen(
     HelpTopic(
         heading = "How a breath goes",
         body = "Opening a chosen app starts a breath. For the first eight seconds there is only the breath. " +
-            "Then you can Leave, open another app you picked as a detour (set in Defaults), or pause " +
+            "Then you can Leave, open another app you picked as a detour (set in Settings), or pause " +
             "for 15 minutes. Continue unlocks when the whole breath is done.",
     )
     HelpTopic(
         heading = "If a breath doesn’t appear",
         body = "Check that Home says On, that the app is listed under Apps, and that its Schedule (in " +
-            "Defaults, or on the app’s page) covers this hour. There is no breath during a 15-minute " +
+            "Settings, or on the app’s page) covers this hour. There is no breath during a 15-minute " +
             "pause, during a call, when you step out for up to 10 seconds after Continue, or while the " +
             "app is still on screen in a small window. If breaths stop after the phone has sat idle, " +
-            "see Battery and background on Home.",
+            "see Battery and background in Settings.",
     )
     HelpTopic(
         heading = "Calls",
         body = "A breath steps aside when you’re on a call or a ringtone is playing. A call that rings " +
             "without one (silent, vibrate or Do Not Disturb) is only seen with Phone permission, which " +
-            "is optional: allow it under Phone permission on Home. Android words it as “make and manage phone calls”; Speedbreaker can’t " +
+            "is optional: allow it under Phone permission in Settings. Android words it as “make and manage phone calls”; Speedbreaker can’t " +
             "make calls and doesn’t read numbers, call history, or audio.",
     )
     HelpTopic(
@@ -59,7 +59,7 @@ internal fun HelpScreen(
         heading = "Pause 15 min",
         body = "At the top of a breath, once the first eight seconds pass. It stops breaths for that one " +
             "app for fifteen minutes; each app gets two a day. It needs notifications: a running pause " +
-            "shows one with End now, and Home lists it too. Allow them under Notifications on Home.",
+            "shows one with End now, and Home lists it too. Allow them under Notifications in Settings.",
     )
     HelpTopic(
         heading = "Switch it off",

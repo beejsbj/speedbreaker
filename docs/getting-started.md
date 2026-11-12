@@ -51,7 +51,8 @@ Breaths work without Phone permission. Without it, Speedbreaker notices a call o
 once Android switches to ringtone or call audio, so a call that rings without a ringtone
 (silent, vibrate or Do Not Disturb) can stay hidden behind a breath for its length (twelve seconds by default).
 
-To close that gap, tap **Phone permission** under **Reliability** on Home and allow it.
+To close that gap, open Settings (the gear on Home), tap **Phone permission** under
+**Reliability** and allow it. Through 1.0.6 the Reliability rows are on Home itself.
 Android words its prompt as “make and manage phone calls”; Speedbreaker cannot make
 calls. The permission lets it detect ringing calls, including silent ones, even when
 their controls appear in a system notification. It checks whether a call exists; it
@@ -79,13 +80,16 @@ continuous use, and active hours all day, every day. No detours are configured.
 
 | To change… | Open… | What to expect |
 | --- | --- | --- |
-| Breath length | **Defaults → Breath** | 8–60 seconds, shared by all chosen apps. The first eight seconds always hold the overlay. |
+| Breath length | **Settings → Breath length** | 8–60 seconds, shared by all chosen apps. The first eight seconds always hold the overlay. |
 | Repeat check-ins | An app → **Check in again** | Turn off, or choose an interval from 1 to 120 minutes. A breath on opening still applies. |
-| Detour destinations | **Defaults → Detours** | Choose one to four eligible apps and save, or leave detours empty. Chosen target apps cannot be detours. |
-| Active hours | **Defaults → Schedule → Scheduled** | One active window per day, including overnight windows. Review the initial weekday 9 AM–5 PM schedule. |
+| Detour destinations | **Settings → Detours** | Choose one to four eligible apps and save, or leave detours empty. Chosen target apps cannot be detours. |
+| Active hours | **Settings → Schedule → Scheduled** | One active window per day, including overnight windows. Review the initial weekday 9 AM–5 PM schedule. |
 | One app's hours | An app → **Schedule** | Follow the default, stay always on, or set custom hours that replace the default. |
 | One app's detours | An app → **Detours → Custom** | Replace the default set with one to four apps, or leave the custom set empty to show none for that app. Choose Default to inherit again. |
 | Stop breaths for one app | An app → **Stop breaths for…** | Remove it from the chosen apps. |
+
+Settings is the gear at the top of Home. Through 1.0.6 these three sit together on one
+**Defaults** page, opened from Home.
 
 Schedules use the phone's local time. Days without a scheduled window are off.
 Outside the effective schedule, the app opens freely; entering an active window
@@ -143,14 +147,14 @@ schedule is currently active. Call-state access must be allowed, and Android
 must not be reporting a call or communication audio. A fifteen-minute Pause suppresses intervention;
 a quick return after Continue can also resume a session without another breath.
 
-On Samsung, use **Reliability → Battery and background** to open Speedbreaker's
+On Samsung, use **Settings → Reliability → Battery and background** to open Speedbreaker's
 app info, then set **Battery → Unrestricted** if available. Background behavior
 varies by phone; extended idle reliability has not been verified on release
 1.0.1. If breaths keep going missing, report the phone model and exact conditions.
 
 ### Pause is unavailable
 
-Open **Reliability → Notifications** and allow Speedbreaker's
+Open **Settings → Reliability → Notifications** and allow Speedbreaker's
 notifications, including the active-pauses channel. Pause is unavailable when
 notifications are blocked, or when that app has used both daily allowances.
 Turning notifications off also ends active pauses when the service observes
@@ -159,7 +163,7 @@ the change. Breathing interventions work without notification permission.
 ### Detour buttons are missing
 
 The detour row is optional and appears with one to four valid destinations.
-Choose up to four apps in Defaults, or in that app's Custom detours, and save.
+Choose up to four apps under **Settings → Detours**, or in that app's Custom detours, and save.
 An empty Custom set shows none for that app; Default inherits the global set. An
 app selected as a target cannot also be a detour.
 
@@ -179,11 +183,11 @@ through Android's installer. Releases with the same package and compatible
 signing identity can update the existing app while retaining settings. Check
 the version and Accessibility connection after updating.
 
-From 1.0.4 the GitHub APK can also update itself. **Check for updates** at the foot
-of Home asks GitHub whether a newer release exists. If one does, tap **Update**:
+From 1.0.4 the GitHub APK can also update itself. **Check for updates** in Settings
+(at the foot of Home through 1.0.6) asks GitHub whether a newer release exists. If one does, tap **Update**:
 Speedbreaker downloads it, checks it against the release's checksum, and hands it
 to Android's installer, which asks you to confirm. An optional automatic check is
-off until you turn it on in Defaults; it then asks GitHub at most once a day, and
+off until you turn it on beside that button; it then asks GitHub at most once a day, and
 only when you open Speedbreaker, never in the background. Versions 1.0.3
 and earlier have no updater; install a newer APK over them by hand once.
 

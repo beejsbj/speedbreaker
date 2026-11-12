@@ -82,5 +82,5 @@ material failures and repeat affected checks before accepting the production
 build. Record Burooj's actual verdict; elapsed time alone is not acceptance.
 
 The app keeps no per-app or time-stamped usage history; its only record is the
-resettable breathing total on Home. Test evidence therefore comes from controlled
+breathing total on Home, resettable in Settings. Test evidence therefore comes from controlled
 observations and Burooj's report, not hidden telemetry or historical counters.

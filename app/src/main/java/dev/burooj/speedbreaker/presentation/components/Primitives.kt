@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -29,9 +30,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -130,6 +133,8 @@ internal fun AppGlyph(
 /**
  * A settings page: quiet top bar, serif title, and a single scrolling column. A page may pass a
  * null [title] and its own [header] instead; the eyebrow then carries the heading semantics.
+ * A page with no way back can put one [action] at the end of the bar; its eyebrow then sits
+ * in the bar beside it.
  */
 @Composable
 internal fun Page(
@@ -137,10 +142,13 @@ internal fun Page(
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
     eyebrow: String? = null,
+    action: (@Composable () -> Unit)? = null,
     header: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     if (onBack != null) BackHandler(onBack = onBack)
+    val eyebrowInBar = eyebrow != null && onBack == null && action != null
+    val eyebrowHeading = if (title == null) Modifier.semantics { heading() } else Modifier
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -155,19 +163,27 @@ internal fun Page(
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 32.dp),
         ) {
-            Box(Modifier.heightIn(min = 56.dp).fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+            Row(Modifier.heightIn(min = 56.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 if (onBack != null) {
-                    IconButton(onClick = onBack, modifier = Modifier.padding(start = 0.dp)) {
+                    IconButton(onClick = onBack) {
                         Icon(Glyphs.Back, contentDescription = "Back")
                     }
                 }
+                if (eyebrowInBar) {
+                    Eyebrow(eyebrow.orEmpty(), Modifier.weight(1f).then(eyebrowHeading))
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
+                action?.invoke()
             }
-            if (eyebrow != null) {
+            if (eyebrowInBar) {
+                Spacer(Modifier.height(12.dp))
+            } else if (eyebrow != null) {
                 Eyebrow(
                     eyebrow,
                     Modifier
                         .padding(top = 8.dp, bottom = if (title == null) 14.dp else 6.dp)
-                        .then(if (title == null) Modifier.semantics { heading() } else Modifier),
+                        .then(eyebrowHeading),
                 )
             }
             if (title != null) {
@@ -175,7 +191,7 @@ internal fun Page(
                     text = title,
                     style = MaterialTheme.typography.headlineLarge,
                     modifier = Modifier
-                        .padding(top = if (eyebrow == null) 8.dp else 0.dp, bottom = 24.dp)
+                        .padding(top = if (eyebrow == null || eyebrowInBar) 8.dp else 0.dp, bottom = 24.dp)
                         .semantics { heading() },
                 )
             }
@@ -269,6 +285,19 @@ internal fun NavRow(
             tint = MaterialTheme.colorScheme.outline,
             modifier = Modifier.padding(start = 8.dp).size(18.dp),
         )
+    }
+}
+
+/** A row that does something where it stands, so it carries no chevron. */
+@Composable
+internal fun ActionRow(
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    summary: String? = null,
+) {
+    RowFrame(modifier.clickable(role = Role.Button, onClick = onClick)) {
+        RowText(title, summary, Modifier.weight(1f))
     }
 }
 
@@ -366,6 +395,20 @@ internal fun PrimaryAction(
     }
 }
 
+/** A round tonal button for the one thing a page keeps in its top bar. */
+@Composable
+internal fun BarAction(glyph: ImageVector, description: String, onClick: () -> Unit) {
+    FilledTonalIconButton(
+        onClick = onClick,
+        colors = IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+    ) {
+        Icon(glyph, contentDescription = description, modifier = Modifier.size(22.dp))
+    }
+}
+
 /** A soft, tonal action for everything that is not the one thing to do next. */
 @Composable
 internal fun QuietAction(
@@ -417,6 +460,20 @@ internal object Glyphs {
     }
     val Plus: ImageVector by lazy {
         line("Plus") { moveTo(12f, 5f); lineTo(12f, 19f); moveTo(5f, 12f); lineTo(19f, 12f) }
+    }
+    val Settings: ImageVector by lazy {
+        line("Settings") {
+            moveTo(10.19f, 5.24f); lineTo(10.66f, 2.49f); lineTo(13.34f, 2.49f); lineTo(13.81f, 5.24f)
+            lineTo(15.5f, 5.94f); lineTo(17.78f, 4.33f); lineTo(19.67f, 6.22f); lineTo(18.06f, 8.5f)
+            lineTo(18.76f, 10.19f); lineTo(21.51f, 10.66f); lineTo(21.51f, 13.34f); lineTo(18.76f, 13.81f)
+            lineTo(18.06f, 15.5f); lineTo(19.67f, 17.78f); lineTo(17.78f, 19.67f); lineTo(15.5f, 18.06f)
+            lineTo(13.81f, 18.76f); lineTo(13.34f, 21.51f); lineTo(10.66f, 21.51f); lineTo(10.19f, 18.76f)
+            lineTo(8.5f, 18.06f); lineTo(6.22f, 19.67f); lineTo(4.33f, 17.78f); lineTo(5.94f, 15.5f)
+            lineTo(5.24f, 13.81f); lineTo(2.49f, 13.34f); lineTo(2.49f, 10.66f); lineTo(5.24f, 10.19f)
+            lineTo(5.94f, 8.5f); lineTo(4.33f, 6.22f); lineTo(6.22f, 4.33f); lineTo(8.5f, 5.94f); close()
+            moveTo(12f, 9.1f)
+            arcTo(2.9f, 2.9f, 0f, true, true, 11.99f, 9.1f)
+        }
     }
     val Close: ImageVector by lazy {
         line("Close") { moveTo(6f, 6f); lineTo(18f, 18f); moveTo(18f, 6f); lineTo(6f, 18f) }

@@ -36,14 +36,16 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.burooj.speedbreaker.observation.ServiceStatus
+import dev.burooj.speedbreaker.presentation.components.ActionRow
 import dev.burooj.speedbreaker.presentation.components.PrimaryAction
 import dev.burooj.speedbreaker.presentation.components.QuietAction
+import dev.burooj.speedbreaker.presentation.components.RowDivider
 import dev.burooj.speedbreaker.presentation.components.Section
 import dev.burooj.speedbreaker.presentation.components.ToggleRow
 import dev.burooj.speedbreaker.updates.UpdateController
 import dev.burooj.speedbreaker.updates.UpdateState
 
-/** The GitHub build's updater: a Home card, the footer check, and the automatic-check toggle. */
+/** The GitHub build's updater: a card on Home, and the Updates group on Settings. */
 @Composable
 internal fun rememberUpdateSurface(): UpdateSurface? {
     val context = LocalContext.current
@@ -69,17 +71,26 @@ internal fun rememberUpdateSurface(): UpdateSurface? {
 
     return remember(controller) {
         UpdateSurface(
-            homeCard = { UpdateCard(controller) },
-            onCheck = { controller.check() },
-            defaultsSection = { AutoCheckSection(controller) },
+            homeCard = { UpdateCard(controller, showCheckAnswers = false) },
+            settingsSection = { UpdatesSection(controller) },
         )
     }
 }
 
+/**
+ * The answer to a check that was asked for ("Checking…", "You have the latest version", or that
+ * GitHub couldn't be reached) belongs beside the button on Settings; Home only shows the card
+ * when [showCheckAnswers] is off and there is an update to offer or one under way.
+ */
 @Composable
-private fun UpdateCard(controller: UpdateController) {
+private fun UpdateCard(controller: UpdateController, showCheckAnswers: Boolean) {
     val context = LocalContext.current
     val state by controller.state.collectAsStateWithLifecycle()
+    if (!showCheckAnswers && state.isCheckAnswer()) {
+        // An answer nobody stayed to read would otherwise sit unseen and hold back the daily check.
+        LaunchedEffect(state) { if (state != UpdateState.Checking) controller.dismiss() }
+        return
+    }
     UpdateCardContent(
         state = state,
         onUpdate = controller::update,
@@ -89,16 +100,37 @@ private fun UpdateCard(controller: UpdateController) {
     )
 }
 
+private fun UpdateState.isCheckAnswer(): Boolean = when (this) {
+    UpdateState.Checking, is UpdateState.UpToDate -> true
+    // A failed check names no release and no installed version; a failed install names at least one.
+    is UpdateState.Failed -> release == null && installed.isEmpty()
+    else -> false
+}
+
 @Composable
-private fun AutoCheckSection(controller: UpdateController) {
+private fun UpdatesSection(controller: UpdateController) {
+    val context = LocalContext.current
     val enabled by controller.autoCheck.collectAsStateWithLifecycle()
-    Section(title = "Updates") {
-        ToggleRow(
-            title = "Check for updates automatically",
-            summary = "Asks GitHub once a day when you open Speedbreaker",
-            checked = enabled,
-            onCheckedChange = controller::setAutoCheck,
-        )
+    val installed = remember(context) { installedVersionName(context) }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Section(title = "Updates") {
+            ActionRow(
+                title = "Check for updates",
+                summary = listOfNotNull(
+                    installed?.let { "You have $it." },
+                    "Asks GitHub for the latest release.",
+                ).joinToString(" "),
+                onClick = { controller.check() },
+            )
+            RowDivider()
+            ToggleRow(
+                title = "Check automatically",
+                summary = "Asks GitHub once a day when you open Speedbreaker",
+                checked = enabled,
+                onCheckedChange = controller::setAutoCheck,
+            )
+        }
+        UpdateCard(controller, showCheckAnswers = true)
     }
 }
 

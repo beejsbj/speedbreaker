@@ -33,6 +33,8 @@ SERVICE = f"{PACKAGE}/{PACKAGE}.observation.SpeedbreakerService"
 # The filled button's colour (Palette.NightIvory); the app is always dark.
 FILLED = (0xEC, 0xE5, 0xD6)
 # Harmless apps an emulator image usually carries, as (picker label, package).
+# A row only Settings has; "Settings" alone is both that page's title and the gear on Home.
+SETTINGS_ROW = r"^Breath length$"
 TARGETS = [
     ("Clock", "com.google.android.deskclock"),
     ("Calendar", "com.google.android.calendar"),
@@ -302,18 +304,28 @@ class Walk:
         self.tap(r"I understand", scrolls=3, wait=3)
         self.expect(self.wait_for(r"^Two steps to start$", 15), f"Home did not open on setup: {self.texts()}")
         self.shot("home-before-setup", "Home straight after accepting: two steps.")
-        # Help is opened here, before the service is on, because reading a screen later disturbs it.
+        # Settings and Help are opened here, before the service is on, because reading a screen later disturbs it.
+        self.open_settings()
+        self.shot("settings", "Settings, behind the gear on Home.")
         self.tap(r"^Help$", scrolls=6, wait=2)
         self.expect(self.wait_for(r"^HOW A BREATH GOES$", 15), f"Help did not open: {self.texts()}")
-        self.shot("help", "Help, reached from the foot of Home.")
+        self.shot("help", "Help, reached from Settings.")
         self.scroll()
         self.shot("help-scrolled", "Help, scrolled.")
         self.shell("input", "keyevent", "KEYCODE_BACK")
-        self.expect(self.wait_for(r"^Two steps to start$", 15), f"Back from Help did not return Home: {self.texts()}")
+        self.expect(self.wait_for(r"^Privacy policy$", 15), f"Back from Help did not return to Settings: {self.texts()}")
+        self.shell("input", "keyevent", "KEYCODE_BACK")
+        self.expect(self.wait_for(r"^Two steps to start$", 15), f"Back from Settings did not return Home: {self.texts()}")
         self.shell("am", "force-stop", PACKAGE)
         self.open_app(wait=4)
         self.expect(self.wait_for(r"Turn on in Accessibility", 30), f"Home did not return: {self.texts()}")
         self.expect(self.find(r"I understand|^Continue$") is None, "The welcome pages showed again after consent.")
+
+    def open_settings(self):
+        """Home's gear. Its description and the page's title are both "Settings", so a row tells them apart."""
+        if self.find(SETTINGS_ROW) is None:
+            self.tap(r"^Settings$", wait=2)
+        self.expect(self.wait_for(SETTINGS_ROW, 15), f"Settings did not open: {self.texts()}")
 
     def resumed(self):
         return "\n".join(line for line in self.foreground().splitlines() if "ResumedActivity" in line)
@@ -342,13 +354,14 @@ class Walk:
         self.expect(self.wait_for_log("service connected", 30), "The service never connected.")
 
     def phone_permission(self):
-        """Phone permission is optional and asked from its row on Home, after breaths already work."""
+        """Phone permission is optional and asked from its row in Settings, after breaths already work."""
         self.shot("home-after-first-breath", "Home after the first breath, taken without Phone permission.", read=False)
-        # Finding the row means reading the screen, which switches the service off and on and moves
-        # Home's rows under the tap. So the service is held off while the row is pressed (the prompt
+        # Finding the row means reading the screen, which switches the service off and on and can
+        # move what is under the tap. So the service is held off while the row is pressed (the prompt
         # does not need it) and put back for the trip to app info, which does.
         self.shell("settings", "put", "secure", "enabled_accessibility_services", "null")
         time.sleep(3)
+        self.open_settings()
         # Keep saying no for as long as the app keeps asking, then take whatever way in it offers.
         refusals, through = 0, None
         for press in range(1, 6):
@@ -385,7 +398,8 @@ class Walk:
         self.expect(refusals == 2, f"The app sent a person to app info after {refusals} refusal(s), not 2.")
         self.expect("granted=true" in self.permission_line("READ_PHONE_STATE"), "Phone permission was not granted.")
         time.sleep(3)
-        self.expect(self.find(r"even a silent one", scrolls=6) is not None, "Home does not show Phone as allowed.")
+        self.open_settings()
+        self.expect(self.find(r"even a silent one", scrolls=6) is not None, "Settings does not show Phone as allowed.")
         self.shot("phone-allowed", "The Phone row once it is allowed.")
 
     def permission_line(self, name):

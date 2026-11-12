@@ -216,3 +216,35 @@ Internet permission and no updater code.
 Settings, breath timing, safety, pauses, schedules, the breathing total and all
 local-data rules are unchanged. The installed-over update flow on a phone is
 unverified until Burooj tests a build that has a newer release to update to.
+
+## November 12 Home and Settings owner correction
+
+Burooj on November 11, 2026, about the single page the app opened on: "it feels like
+a settings page and a home page almost and then inside defaults exists the check for
+updates I mean automatic updates and then at the bottom in this another uh presentation
+typographical hierarchies, check the button for check for updates. I think this stuff
+needs to be modernized." Shown three structures (Home and Settings behind a gear; three bottom
+tabs; one tidied page), he chose the first: "I agree with A."
+
+This supersedes the October 17 placement of everything on Home, and the footer:
+
+* Home says what is happening: the status, the breathing total, running pauses, an
+  offered update, the setup steps or the repair for a fault, and the chosen apps. A
+  gear in its top bar opens Settings.
+* Settings holds everything a person sets or checks, as ordinary rows in four groups:
+  Defaults (Breath length, Schedule, Detours), Reliability (Notifications, Phone
+  permission, Battery and background), Updates (GitHub build only) and About (Help,
+  Privacy policy, support, Reset breathing total). The quiet text links at the foot of
+  Home are gone.
+* The single Defaults page is split: Breath length and Schedule each have a page, and
+  Detours opens the picker. "Default" keeps its meaning on an app's own page.
+* **Check for updates** and the automatic-check switch sit together under Updates. The
+  answer to a check ("Checking…", "You have the latest version", or that GitHub could
+  not be reached) shows beneath them; Home only shows the update card when there is an
+  update to offer or one under way.
+* A fault never hides behind the gear: Accessibility off, a failed connection, and
+  "Pause 15 min needs notifications" still show on Home.
+
+What is stored, what is sent, breath timing, safety, pauses and schedules are unchanged.
+How the breathing total is presented is still open: "I think the breathing total could
+be more prettier presented stats."

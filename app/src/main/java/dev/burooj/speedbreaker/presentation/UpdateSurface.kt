@@ -8,10 +8,8 @@ import androidx.compose.runtime.Composable
  * contain no network code. It lives in the app UI only, never in the breathing overlay.
  */
 internal class UpdateSurface(
-    /** A calm card on Home, empty while nothing is happening. */
+    /** A calm card on Home once there is an update to offer or one under way; empty otherwise. */
     val homeCard: @Composable () -> Unit,
-    /** The Home footer's "Check for updates". */
-    val onCheck: () -> Unit,
-    /** The automatic-check toggle at the foot of Defaults. */
-    val defaultsSection: @Composable () -> Unit,
+    /** Settings' Updates group: the check, its answer, and the automatic-check toggle. */
+    val settingsSection: @Composable () -> Unit,
 )
