@@ -19,9 +19,10 @@ that same pause back during continuous use.
 Android 8.0 or newer. Installed from an APK; not currently on Google Play,
 F-Droid, or iOS.
 
-The current version is **1.0.6**. Recent versions added a total of the time you
-have breathed, in-app updates for the GitHub APK, a guided two-step setup, and
-breaths that no longer need Phone permission. See the
+The current version is **1.0.7**. Recent versions added a total of the time you
+have breathed, in-app updates for the GitHub APK, a guided two-step setup, breaths
+that no longer need Phone permission, a separate Settings page, and counts of what
+you chose after each breath. See the
 [latest release](https://github.com/beejsbj/speedbreaker/releases/latest) and the
 [changelog](CHANGELOG.md).
 
@@ -114,7 +115,7 @@ Phone permission is optional. It supports a call-state check, without reading nu
 call history, or audio; without it a call ringing without a ringtone (silent, vibrate or Do Not Disturb) can be hidden for
 the length of a breath. The app does not read message text or take screenshots. It keeps
 only running totals: the seconds you have breathed and the breaths you have taken
-(overall and today) and, in versions after 1.0.6, how those breaths ended, how often you
+(overall and today) and, from 1.0.7, how those breaths ended, how often you
 took each detour, and the time breathed on each of the last seven days. Home shows them
 and Settings resets them. It never sends them anywhere, and keeps no list of breaths and
 no time of day.

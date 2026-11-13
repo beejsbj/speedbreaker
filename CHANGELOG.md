@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.0.7 — November 12, 2026
+
+Install over 1.0.6; your settings and your breathing total carry over.
+
+- **Home and Settings are now two pages.** Home says what is happening: whether
+  Speedbreaker is active, how much you have breathed, and your apps. A gear at the top
+  opens **Settings**, which holds everything you set or check: Breath length, Schedule
+  and Detours; Notifications, Phone permission and the battery tip; updates; Help,
+  Privacy policy and Reset breathing total. The quiet links at the foot of Home are gone.
+- **A new look for Home.** A moss pill with a slowly breathing mark says "Active · 3
+  apps" (or "Resting until 9 AM"); tapping it brings your apps into view. The total is
+  one large figure, with Breaths and Today beside it.
+- **See what you did after a breath.** A new card on Home counts how many breaths ended
+  with you leaving, continuing, taking a detour, or taking 15 minutes off, and names the
+  detours you took most. It opens **Your breaths**, with every detour and the time you
+  breathed on each of the last seven days. Counting starts at zero when you install this
+  version, so at first these add up to less than your breath count.
+- **Lists are easier to scan.** Each row is its own tile, and Settings rows have icons.
+- **Check for updates** and the automatic check now sit together under **Settings →
+  Updates** (GitHub APK only), and the answer to a check appears right under them.
+
+**Privacy:** to show the new card, Speedbreaker now keeps a few more running totals on
+your phone: how many breaths ended each way, how often you took each chosen detour, and
+the time breathed on each of the last seven days. No list of breaths and no time of day
+is kept, a detour you remove takes its count with it, and **Reset breathing total**
+clears all of it. Nothing is sent anywhere. If an app is a detour for only one of your
+chosen apps, its count is also a count for that pair. The
+[privacy policy](docs/privacy.md) has the details.
+
+Version code: **11**.
+
 ## 1.0.6 — November 11, 2026
 
 Install over 1.0.5; your settings carry over.
