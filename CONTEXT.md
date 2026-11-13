@@ -49,7 +49,7 @@ count. Four numbers, never sent anywhere.
 Took 15 min off (the Pause 15 min button), and Ended another way (nothing you did: a call,
 the lock screen, a schedule or settings change). Left covers the Leave button and going
 Home, Back or to another app once the first eight seconds allow it. Counted beside the breathing total from
-the version after 1.0.6, with no field for the target app and never with a time.
+1.0.7, with no field for the target app and never with a time.
 
 **Your breaths**: the page behind Home's "After a breath" card. It shows the endings,
 how often each chosen detour app was taken, and the time breathed on each of the last

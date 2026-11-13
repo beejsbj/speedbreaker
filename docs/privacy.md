@@ -1,9 +1,8 @@
 # Privacy policy
 
-Applies to Android Speedbreaker through **1.0.6**, including its GitHub,
+Applies to Android Speedbreaker through **1.0.7**, including its GitHub,
 community (F-Droid) and Google Play builds. Neither store build has been released.
-Passages marked "versions after 1.0.6" describe the next version, which is not released yet.
-Last reviewed: **October 17, 2026**; corrected **November 10, 2026** (window data and notification-shade wording); updated **November 11, 2026** (Phone permission is optional) and **November 12, 2026** (what versions after 1.0.6 count beside the breathing total). Publisher: **Burooj (beejsbj)**.
+Last reviewed: **October 17, 2026**; corrected **November 10, 2026** (window data and notification-shade wording); updated **November 11, 2026** (Phone permission is optional) and **November 12, 2026** (what 1.0.7 and later count beside the breathing total). Publisher: **Burooj (beejsbj)**.
 
 Speedbreaker runs on your Android phone. It has no account, analytics, ads,
 cloud sync, billing SDK or developer backend. The community (F-Droid) and Google
@@ -81,8 +80,8 @@ Speedbreaker stores these records in its private local app database:
 - A running total of the seconds you have breathed and the number of breaths, overall
   and for the current local day. Home shows it, and **Reset breathing total** in Settings
   (at the foot of Home through 1.0.6) sets it back to zero. It is never sent anywhere.
-- In versions after 1.0.6, three more running records beside that total, counted from
-  your first breath on such a version (and again from zero after a reset):
+- From 1.0.7, three more running records beside that total, counted from your first
+  breath on such a version (and again from zero after a reset):
   - how many breaths ended each way: you left, continued, took a detour, took
     fifteen minutes off, or the breath ended by something other than you (a call, the
     lock screen, your schedule);
@@ -100,7 +99,7 @@ Speedbreaker stores these records in its private local app database:
 
 The breathing total holds four numbers: total time, total breaths, today's date, and
 today's time. Through 1.0.6 that is the only usage figure, with no per-app count and no
-daily history. Later versions add the records listed above: five counts, a count for each
+daily history. 1.0.7 and later add the records listed above: five counts, a count for each
 chosen detour app, and seven daily totals.
 
 In every version these totals hold no list of breaths and no time of day, and no field
