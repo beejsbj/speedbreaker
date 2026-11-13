@@ -1,6 +1,6 @@
 # Privacy policy
 
-Applies to Android Speedbreaker through **1.0.8**, including its GitHub,
+Applies to Android Speedbreaker through **1.0.9**, including its GitHub,
 community (F-Droid) and Google Play builds. Neither store build has been released.
 Last reviewed: **October 17, 2026**; corrected **November 10, 2026** (window data and notification-shade wording); updated **November 11, 2026** (Phone permission is optional) and **November 12, 2026** (what 1.0.7 and later count beside the breathing total). Publisher: **Burooj (beejsbj)**.
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.9 — November 13, 2026
+
+Install over 1.0.8; your settings and your totals carry over.
+
+- **Room between the disclosure's buttons.** "I understand" and "Not now" no longer
+  touch, and Privacy policy is a plain link beneath them.
+
+Version code: **13**.
+
 ## 1.0.8 — November 13, 2026
 
 Install over 1.0.7; your settings and your totals carry over.
