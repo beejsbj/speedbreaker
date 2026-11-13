@@ -19,7 +19,7 @@ that same pause back during continuous use.
 Android 8.0 or newer. Installed from an APK; not currently on Google Play,
 F-Droid, or iOS.
 
-The current version is **1.0.7**. Recent versions added a total of the time you
+The current version is **1.0.8**. Recent versions added a total of the time you
 have breathed, in-app updates for the GitHub APK, a guided two-step setup, breaths
 that no longer need Phone permission, a separate Settings page, and counts of what
 you chose after each breath. See the
