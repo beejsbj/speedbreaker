@@ -29,7 +29,7 @@ clears all of it. Nothing is sent anywhere. If an app is a detour for only one o
 chosen apps, its count is also a count for that pair. The
 [privacy policy](docs/privacy.md) has the details.
 
-Version code: **11**.
+Version code: **11**. [GitHub release](https://github.com/beejsbj/speedbreaker/releases/tag/v1.0.7), source `6fba5f6`, APK SHA-256 `29bc194429f47bb30aba843ebfa514d7e23adae84988d19bf3e25f5d118f0399`.
 
 ## 1.0.6 — November 11, 2026
 
