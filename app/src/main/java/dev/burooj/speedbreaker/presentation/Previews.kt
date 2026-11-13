@@ -59,7 +59,7 @@ internal val Gallery: List<GallerySpec> = listOf(
     GallerySpec("overlay-08-reduced-motion-breath") { OverlaySample(elapsedMs = 3_000, motionEnabled = false) },
     GallerySpec("setup-00-loading") { Screen { LoadingScreen() } },
     GallerySpec("setup-01-welcome") { Screen { WelcomeScreen(onAccept = {}) } },
-    GallerySpec("setup-05-disclosure", heightDp = 1100) {
+    GallerySpec("setup-05-disclosure") {
         Screen { WelcomeScreen(startOnDisclosure = true, onAccept = {}) }
     },
     GallerySpec("setup-02-home-off") { Screen { HomeSample(Protection.Off, FreshInstall, notifications = false) } },

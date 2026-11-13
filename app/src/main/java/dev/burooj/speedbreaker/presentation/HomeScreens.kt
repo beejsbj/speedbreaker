@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -58,10 +59,13 @@ import dev.burooj.speedbreaker.presentation.components.Eyebrow
 import dev.burooj.speedbreaker.presentation.components.Glyphs
 import dev.burooj.speedbreaker.presentation.components.MorphingLoader
 import dev.burooj.speedbreaker.presentation.components.NavRow
+import dev.burooj.speedbreaker.presentation.components.RowFrame
+import dev.burooj.speedbreaker.presentation.components.RowIcon
+import dev.burooj.speedbreaker.presentation.components.RowText
+import dev.burooj.speedbreaker.presentation.components.Section
 import dev.burooj.speedbreaker.presentation.components.Page
 import dev.burooj.speedbreaker.presentation.components.PrimaryAction
 import dev.burooj.speedbreaker.presentation.components.QuietAction
-import dev.burooj.speedbreaker.presentation.components.Section
 import dev.burooj.speedbreaker.presentation.components.StatusDot
 import dev.burooj.speedbreaker.presentation.components.Tile
 import dev.burooj.speedbreaker.presentation.components.appCatalog
@@ -145,37 +149,45 @@ private fun ColumnScope.DisclosurePage(onAccept: () -> Unit, onDecline: () -> Un
         style = MaterialTheme.typography.displaySmall,
         modifier = Modifier.semantics { heading() },
     )
-    Spacer(Modifier.height(16.dp))
+    Spacer(Modifier.height(12.dp))
     Text(
-        text = "Speedbreaker works through Android’s Accessibility service. This is what it does with it.",
+        text = "Speedbreaker uses Android’s Accessibility service. Here is what that means.",
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    Spacer(Modifier.height(36.dp))
-    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
-        Promise(
-            heading = "What it sees",
-            body = "Which app is on screen, including system screens, so it can show the breath before " +
-                "the apps you chose. It doesn’t read what is on the screen or what you type. " +
-                "This stays on your phone and is not shared.",
+    Spacer(Modifier.height(24.dp))
+    Section(title = null) {
+        DisclosureItem(
+            icon = Glyphs.Breath,
+            title = "It sees which app is open",
+            body = "That’s how it knows when to start a breath. It doesn’t read what’s on the screen " +
+                "or what you type, and nothing leaves your phone.",
         )
-        Promise(
-            heading = "The first eight seconds",
-            body = "Back, Home, Recents, and the notification shade don’t close a breath. A call that " +
-                "Android reports, the dialer, the lock screen, or Android Settings ends it at once.",
+        DisclosureItem(
+            icon = Glyphs.Clock,
+            title = "The first eight seconds are held",
+            body = "Back, Home, Recents and the notification shade won’t close a breath. A call, " +
+                "the lock screen or Android Settings ends it at once.",
         )
-        Promise(
-            heading = "What it keeps",
-            body = "Your settings, today’s pauses, and running totals you can reset: breaths and time " +
-                "breathed, the time breathed on each of the last seven days, how many breaths ended " +
-                "each way, and how often you took each detour. No list of breaths, no time of day, " +
-                "no answers, no analytics, no cloud.",
+        DisclosureItem(
+            icon = Glyphs.Shield,
+            title = "It keeps a few totals",
+            body = "Your settings and running totals of your breaths stay on this phone and can be " +
+                "reset. No analytics, no cloud.",
         )
     }
-    Spacer(Modifier.height(40.dp))
+    Spacer(Modifier.height(24.dp))
     PrimaryAction("I understand — continue", onAccept, Modifier.fillMaxWidth())
     QuietAction("Not now — close", onDecline, Modifier.fillMaxWidth())
     QuietAction("Privacy policy", onPrivacy, Modifier.fillMaxWidth())
+}
+
+/** One disclosed fact as a settings-style tile: a glyph, a plain title, a sentence or two beneath. */
+@Composable
+private fun DisclosureItem(icon: ImageVector, title: String, body: String) {
+    RowFrame(leading = { RowIcon(icon) }) {
+        RowText(title = title, summary = body)
+    }
 }
 
 @Composable

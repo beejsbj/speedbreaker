@@ -34,8 +34,9 @@ overlay keeps its existing `BreakerOverlay` signature.
 ## Settings and setup
 
 - **Welcome** is two short pages. The first says what it does in three lines;
-  the second is the Accessibility disclosure (what it sees, what the first eight
-  seconds do, what it keeps) with accept and decline. Back returns to the first.
+  the second is the Accessibility disclosure, one page of three icon tiles (it sees
+  which app is open, the first eight seconds are held, it keeps a few totals)
+  with accept and decline. Back returns to the first.
 - **First-time setup** is two numbered steps on Home: Accessibility, then apps.
   The title counts them down ("Two steps to start", "One step left"); Phone
   permission is optional and lives under Reliability in Settings; the next step is open with its reason and its
