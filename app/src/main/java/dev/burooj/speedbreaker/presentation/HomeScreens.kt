@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -26,32 +27,32 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.key
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import java.time.ZoneId
 import dev.burooj.speedbreaker.R
 import dev.burooj.speedbreaker.model.BreathChoices
 import dev.burooj.speedbreaker.model.BreathStats
+import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.model.localDayKey
-import dev.burooj.speedbreaker.model.PauseState
 import dev.burooj.speedbreaker.presentation.components.AppGlyph
 import dev.burooj.speedbreaker.presentation.components.BarAction
 import dev.burooj.speedbreaker.presentation.components.ContentMaxWidth
@@ -59,16 +60,17 @@ import dev.burooj.speedbreaker.presentation.components.Eyebrow
 import dev.burooj.speedbreaker.presentation.components.Glyphs
 import dev.burooj.speedbreaker.presentation.components.MorphingLoader
 import dev.burooj.speedbreaker.presentation.components.NavRow
+import dev.burooj.speedbreaker.presentation.components.Page
+import dev.burooj.speedbreaker.presentation.components.PrimaryAction
+import dev.burooj.speedbreaker.presentation.components.QuietAction
 import dev.burooj.speedbreaker.presentation.components.RowFrame
 import dev.burooj.speedbreaker.presentation.components.RowIcon
 import dev.burooj.speedbreaker.presentation.components.RowText
 import dev.burooj.speedbreaker.presentation.components.Section
-import dev.burooj.speedbreaker.presentation.components.Page
-import dev.burooj.speedbreaker.presentation.components.PrimaryAction
-import dev.burooj.speedbreaker.presentation.components.QuietAction
 import dev.burooj.speedbreaker.presentation.components.StatusDot
 import dev.burooj.speedbreaker.presentation.components.Tile
 import dev.burooj.speedbreaker.presentation.components.appCatalog
+import java.time.ZoneId
 import kotlinx.coroutines.launch
 
 /* ---------- First run ---------- */
@@ -178,8 +180,17 @@ private fun ColumnScope.DisclosurePage(onAccept: () -> Unit, onDecline: () -> Un
     }
     Spacer(Modifier.height(24.dp))
     PrimaryAction("I understand — continue", onAccept, Modifier.fillMaxWidth())
+    Spacer(Modifier.height(12.dp))
     QuietAction("Not now — close", onDecline, Modifier.fillMaxWidth())
-    QuietAction("Privacy policy", onPrivacy, Modifier.fillMaxWidth())
+    Spacer(Modifier.height(4.dp))
+    // A link, not a third pill: the page has one way forward and one way out.
+    TextButton(onClick = onPrivacy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+        Text(
+            "Privacy policy",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 /** One disclosed fact as a settings-style tile: a glyph, a plain title, a sentence or two beneath. */
