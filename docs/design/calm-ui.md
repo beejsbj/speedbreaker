@@ -59,16 +59,18 @@ overlay keeps its existing `BreakerOverlay` signature.
   and Apps. Home says what is happening and nothing else; a round gear in its top
   bar, beside the eyebrow, opens Settings.
 - **Settings** is one list of everything a person sets or checks, in groups of
-  ordinary rows: Defaults (Breath length with its value, Schedule, Detours by
-  name), Reliability (Notifications, Phone permission, Battery and background,
+  rows and controls: Defaults (the Breath length slider, the Schedule choice with
+  its week, Detours by name), Reliability (Notifications, Phone permission, Battery and background,
   each saying its state), Updates (GitHub build only: Check for updates with the
   installed version, the automatic check, and the answer to a check beneath
   them), and About (Help, Privacy policy, support, Reset breathing total), with
   the version at the foot. Rows that open something carry a chevron; rows that
   act where they stand do not.
-- **Breath length** and **Schedule** are each one short page: the slider with a
-  large readout, and Always on / Scheduled with the week below. **Detours** opens
-  the picker directly.
+- **A single control is set where it is listed.** Breath length is its slider with
+  a large readout, on its own tile in Settings; Schedule is Always on / Scheduled on
+  its tile, and the week opens on a tile beneath once it is scheduled. Neither has
+  a page of its own, as the automatic-update switch never did. **Detours** opens
+  the picker, because choosing apps needs a screen.
 - **Schedule as hours groups.** A week reads as groups of days sharing one set
   of hours ("9 AM to 5 PM · M T W T F", "10 AM to Midnight · S S"). Changing a
   group's hours changes all its days, so there is nothing to copy. Tapping a
@@ -188,7 +190,7 @@ export ANDROID_SDK_ROOT=/usr/lib/android-sdk JAVA_HOME=/usr/lib/jvm/java-17-open
 | ![](screenshots/stats-03-your-breaths-large-text.png) Your breaths at 160% text | |
 | ![](screenshots/settings-14-settings.png) Settings | ![](screenshots/settings-21-settings-large-text.png) Settings at 160% text |
 | ![](screenshots/settings-18-settings-phone-optional.png) Phone permission, optional, not allowed | ![](screenshots/settings-19-settings-phone-app-info.png) Once Android stops asking |
-| ![](screenshots/settings-03-breath-length.png) Breath length | ![](screenshots/settings-20-schedule.png) Schedule |
+| ![](screenshots/settings-20-settings-always-on.png) Settings, always on and no detours | |
 | ![](screenshots/settings-04-app.png) One app | ![](screenshots/settings-05-redirect-picker.png) Detour picker |
 | ![](screenshots/settings-08-schedule-hours.png) Hours groups | ![](screenshots/settings-09-time-picker.png) Time dial |
 | ![](screenshots/settings-10-time-typed.png) Typed time | ![](screenshots/settings-16-help.png) Help |

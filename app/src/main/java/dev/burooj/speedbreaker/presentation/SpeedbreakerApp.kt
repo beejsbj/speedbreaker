@@ -203,8 +203,10 @@ internal fun SpeedbreakerApp() {
                     settings = settings,
                     notificationsAllowed = notificationsAllowed,
                     onBack = { route = Route.Home },
-                    onBreathLength = { route = Route.BreathLength },
-                    onSchedule = { route = Route.Schedule },
+                    onBreathChange = { breath -> update { current -> current.copy(breathSeconds = breath) } },
+                    onScheduleTransform = { transform ->
+                        update { current -> current.copy(schedule = transform(current.schedule)) }
+                    },
                     onDetours = {
                         redirectRequest = RedirectRequest(
                             title = "Detours",
@@ -263,18 +265,6 @@ internal fun SpeedbreakerApp() {
                         update { current -> current.withTarget(app.packageName, selected) }
                     },
                 )
-                currentRoute == Route.BreathLength -> BreathLengthScreen(
-                    settings = settings,
-                    onBack = { route = Route.Settings },
-                    onBreathChange = { breath -> update { current -> current.copy(breathSeconds = breath) } },
-                )
-                currentRoute == Route.Schedule -> DefaultScheduleScreen(
-                    settings = settings,
-                    onBack = { route = Route.Settings },
-                    onScheduleTransform = { transform ->
-                        update { current -> current.copy(schedule = transform(current.schedule)) }
-                    },
-                )
                 currentRoute is Route.App -> {
                     val packageName = currentRoute.packageName
                     AppSettingsScreen(
@@ -323,8 +313,6 @@ private sealed interface Route {
     data object Apps : Route
     data object Stats : Route
     data object Settings : Route
-    data object BreathLength : Route
-    data object Schedule : Route
     data object Help : Route
     data class App(val packageName: String) : Route
 }

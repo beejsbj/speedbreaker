@@ -17,11 +17,6 @@ class SummariesTest {
     }
 
     @Test
-    fun breathLengthRowShowsTheSeconds() {
-        assertEquals("20 seconds", breathLengthValue(dev.burooj.speedbreaker.model.Settings(breathSeconds = 20)))
-    }
-
-    @Test
     fun namesCommonDaySetsAndRuns() {
         assertEquals("Every day", daysSummary((1..7).toSet()))
         assertEquals("Weekdays", daysSummary((1..5).toSet()))
