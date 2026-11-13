@@ -6,9 +6,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
@@ -25,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
@@ -38,9 +41,11 @@ import dev.burooj.speedbreaker.model.Redirects
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.presentation.components.AppGlyph
 import dev.burooj.speedbreaker.presentation.components.ConnectedChoice
+import dev.burooj.speedbreaker.presentation.components.Glyphs
 import dev.burooj.speedbreaker.presentation.components.NavRow
 import dev.burooj.speedbreaker.presentation.components.Page
 import dev.burooj.speedbreaker.presentation.components.QuietAction
+import dev.burooj.speedbreaker.presentation.components.RowIcon
 import dev.burooj.speedbreaker.presentation.components.Section
 import dev.burooj.speedbreaker.presentation.components.Tile
 import dev.burooj.speedbreaker.presentation.components.ToggleRow
@@ -49,44 +54,29 @@ import kotlin.math.roundToInt
 
 internal typealias PolicyTransform = (AppPolicy) -> AppPolicy
 
-/* ---------- Defaults: what every chosen app starts from ---------- */
+/* ---------- Defaults: what every chosen app starts from, edited in place on Settings ---------- */
 
+/** The breath slider under its name. One control, so it needs no page of its own. */
 @Composable
-internal fun BreathLengthScreen(
-    settings: Settings,
-    onBack: () -> Unit,
-    onBreathChange: (Int) -> Unit,
-) = Page(title = "Breath length", onBack = onBack, eyebrow = "Every app") {
-    Section(
-        title = null,
-        footnote = "The first 8 seconds are always locked. Continue unlocks when the breath ends.",
-    ) {
-        Tile {
-            ValueSlider(
-                current = settings.breathSeconds,
-                range = 8..60,
-                unit = "seconds",
-                onCommit = onBreathChange,
-            )
-        }
+internal fun BreathLengthTile(settings: Settings, onBreathChange: (Int) -> Unit) {
+    Tile {
+        TileHeader(Glyphs.Breath, "Breath length")
+        ValueSlider(
+            current = settings.breathSeconds,
+            range = 8..60,
+            unit = "seconds",
+            onCommit = onBreathChange,
+        )
+        TileNote("The first 8 seconds are always locked. Continue unlocks when the breath ends.")
     }
 }
 
+/** Always on or scheduled, with the week opening beneath once it is scheduled. */
 @Composable
-internal fun DefaultScheduleScreen(
-    settings: Settings,
-    onBack: () -> Unit,
-    onScheduleTransform: (ScheduleTransform) -> Unit,
-) = Page(title = "Schedule", onBack = onBack, eyebrow = "Every app") {
-    Section(
-        title = null,
-        footnote = if (settings.schedule == null) {
-            "Breaths happen at all hours."
-        } else {
-            "Outside these hours, chosen apps open freely."
-        },
-    ) {
-        ModeSwitch(
+internal fun DefaultScheduleTiles(settings: Settings, onScheduleTransform: (ScheduleTransform) -> Unit) {
+    Tile {
+        TileHeader(Glyphs.Clock, "Schedule")
+        ConnectedChoice(
             options = listOf("Always on", "Scheduled"),
             selected = if (settings.schedule == null) 0 else 1,
             onSelect = { index ->
@@ -98,14 +88,39 @@ internal fun DefaultScheduleScreen(
                     }
                 }
             },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
         )
-        settings.schedule?.let { Tile { WeekEditor(it, onScheduleTransform) } }
+        TileNote(
+            if (settings.schedule == null) {
+                "Breaths happen at all hours."
+            } else {
+                "Outside these hours, chosen apps open freely."
+            },
+        )
     }
+    settings.schedule?.let { Tile { WeekEditor(it, onScheduleTransform) } }
+}
+
+/** A tile's own name and glyph, for a control that sits in the list instead of behind a row. */
+@Composable
+private fun TileHeader(glyph: ImageVector, title: String) {
+    Row(
+        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RowIcon(glyph)
+        Spacer(Modifier.width(16.dp))
+        Text(title, style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+@Composable
+private fun TileNote(text: String) {
     Text(
-        text = "An app can keep its own hours instead: open it from Apps on Home.",
+        text = text,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 4.dp),
+        modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
     )
 }
 

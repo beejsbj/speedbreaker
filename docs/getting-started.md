@@ -81,10 +81,10 @@ continuous use, and active hours all day, every day. No detours are configured.
 
 | To change… | Open… | What to expect |
 | --- | --- | --- |
-| Breath length | **Settings → Breath length** | 8–60 seconds, shared by all chosen apps. The first eight seconds always hold the overlay. |
+| Breath length | **Settings**, the Breath length slider | 8–60 seconds, shared by all chosen apps. The first eight seconds always hold the overlay. |
 | Repeat check-ins | An app → **Check in again** | Turn off, or choose an interval from 1 to 120 minutes. A breath on opening still applies. |
 | Detour destinations | **Settings → Detours** | Choose one to four eligible apps and save, or leave detours empty. Chosen target apps cannot be detours. |
-| Active hours | **Settings → Schedule → Scheduled** | One active window per day, including overnight windows. Review the initial weekday 9 AM–5 PM schedule. |
+| Active hours | **Settings**, Schedule → **Scheduled** | One active window per day, including overnight windows. Review the initial weekday 9 AM–5 PM schedule. |
 | One app's hours | An app → **Schedule** | Follow the default, stay always on, or set custom hours that replace the default. |
 | One app's detours | An app → **Detours → Custom** | Replace the default set with one to four apps, or leave the custom set empty to show none for that app. Choose Default to inherit again. |
 | Stop breaths for one app | An app → **Stop breaths for…** | Remove it from the chosen apps. |
@@ -92,7 +92,8 @@ continuous use, and active hours all day, every day. No detours are configured.
 In the rest of this guide, **Settings** means Speedbreaker's own, behind the gear at the
 top of Home. Versions through 1.0.6 have no Settings page: breath length, detours and
 hours sit together on one **Defaults** page, and Reliability, Help and Check for updates
-are on Home itself.
+are on Home itself. In 1.0.7 only, Breath length and Schedule each open a page of their own
+from Settings.
 
 Schedules use the phone's local time. Days without a scheduled window are off.
 Outside the effective schedule, the app opens freely; entering an active window

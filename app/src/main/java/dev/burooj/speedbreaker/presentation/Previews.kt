@@ -83,11 +83,8 @@ internal val Gallery: List<GallerySpec> = listOf(
     GallerySpec("settings-15-home-off-after-use") {
         Screen { HomeSample(Protection.Off, SampleSettings, withBreaths = true) }
     },
-    GallerySpec("settings-03-breath-length") {
-        Screen { BreathLengthScreen(SampleSettings, onBack = {}, onBreathChange = {}) }
-    },
-    GallerySpec("settings-20-schedule") {
-        Screen { DefaultScheduleScreen(SampleSettings, onBack = {}, onScheduleTransform = {}) }
+    GallerySpec("settings-20-settings-always-on", heightDp = 1700) {
+        Screen { SettingsSample(settings = SampleSettings.copy(schedule = null, redirects = emptyList())) }
     },
     GallerySpec("settings-04-app") {
         Screen {
@@ -136,14 +133,14 @@ internal val Gallery: List<GallerySpec> = listOf(
     GallerySpec("settings-12-home-notifications-blocked") {
         Screen { HomeSample(Protection.On, SampleSettings, notifications = false, withBreaths = true) }
     },
-    GallerySpec("settings-14-settings", heightDp = 1500) { Screen { SettingsSample() } },
-    GallerySpec("settings-18-settings-phone-optional", heightDp = 1500) {
+    GallerySpec("settings-14-settings", heightDp = 2100) { Screen { SettingsSample() } },
+    GallerySpec("settings-18-settings-phone-optional", heightDp = 2100) {
         Screen { SettingsSample(phoneAllowed = false) }
     },
-    GallerySpec("settings-19-settings-phone-app-info", heightDp = 1500) {
+    GallerySpec("settings-19-settings-phone-app-info", heightDp = 2100) {
         Screen { SettingsSample(phoneAllowed = false, phoneNeedsSettings = true) }
     },
-    GallerySpec("settings-21-settings-large-text", fontScale = 1.6f, heightDp = 2400) { Screen { SettingsSample() } },
+    GallerySpec("settings-21-settings-large-text", fontScale = 1.6f, heightDp = 3400) { Screen { SettingsSample() } },
     GallerySpec("settings-13-home-resting") {
         Screen { HomeSample(Protection.On, OnlyInstagram, withBreaths = true, now = RestingNow) }
     },
@@ -271,12 +268,13 @@ private fun HomeSample(
 private fun SettingsSample(
     phoneNeedsSettings: Boolean = false,
     phoneAllowed: Boolean = true,
+    settings: Settings = SampleSettings,
 ) = SettingsScreen(
-    settings = SampleSettings,
+    settings = settings,
     notificationsAllowed = true,
     onBack = {},
-    onBreathLength = {},
-    onSchedule = {},
+    onBreathChange = {},
+    onScheduleTransform = {},
     onDetours = {},
     onNotifications = {},
     onOpenAppInfo = {},
@@ -412,13 +410,9 @@ private fun PreviewHomeOff() = gallery("setup-02-home-off")
 @Composable
 private fun PreviewStats() = gallery("stats-01-your-breaths")
 
-@Preview(name = "Settings", widthDp = 412, heightDp = 1500, showBackground = true)
+@Preview(name = "Settings", widthDp = 412, heightDp = 2100, showBackground = true)
 @Composable
 private fun PreviewSettings() = gallery("settings-14-settings")
-
-@Preview(name = "Breath length", widthDp = 412, heightDp = 915, showBackground = true)
-@Composable
-private fun PreviewBreathLength() = gallery("settings-03-breath-length")
 
 @Preview(name = "App", widthDp = 412, heightDp = 915, showBackground = true)
 @Composable

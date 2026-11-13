@@ -312,3 +312,21 @@ How it is shown:
 The welcome disclosure, privacy policy, README, glossary and store description say this.
 People who accepted the earlier disclosure are not shown the new wording again.
 
+## November 12 single-control owner correction
+
+Burooj later on November 12, 2026, after using 1.0.7 on his phone: "The defaults breadth length
+and schedule don't need to be in submenus. They are only one like they are only one form
+input, like one range or toggle each. Pointless. Check auto toggle is in main screen. Both
+can be in main settings."
+
+This amends the split of the Defaults page made earlier the same day:
+
+* Breath length is its slider, set in place on a tile in Settings.
+* Schedule is its Always on / Scheduled choice, set in place; when scheduled, the week
+  editor opens on a tile beneath it.
+* Detours still opens the picker.
+* The rule this leaves: a setting that is one control is set where it is listed. A row
+  opens a page only when the thing needs a screen.
+
+Stored data, breath timing and per-app settings are unchanged.
+

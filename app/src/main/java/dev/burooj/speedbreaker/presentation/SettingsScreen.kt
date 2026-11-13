@@ -1,6 +1,5 @@
 package dev.burooj.speedbreaker.presentation
 
-import android.text.format.DateFormat
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -12,7 +11,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -29,7 +27,7 @@ import dev.burooj.speedbreaker.presentation.components.StatusDot
 import dev.burooj.speedbreaker.presentation.components.appCatalog
 
 /**
- * Everything a person sets or checks, in one list: what every app starts from, what keeps
+ * Everything a person sets or checks, in one list, with single controls set in place: what every app starts from, what keeps
  * breaths reliable, updates (GitHub build only), and where to read more. Home keeps what is
  * happening; a fault still shows there, with its repair.
  */
@@ -38,8 +36,8 @@ internal fun SettingsScreen(
     settings: Settings,
     notificationsAllowed: Boolean,
     onBack: () -> Unit,
-    onBreathLength: () -> Unit,
-    onSchedule: () -> Unit,
+    onBreathChange: (Int) -> Unit,
+    onScheduleTransform: (ScheduleTransform) -> Unit,
     onDetours: () -> Unit,
     onNotifications: () -> Unit,
     onOpenAppInfo: () -> Unit,
@@ -58,7 +56,6 @@ internal fun SettingsScreen(
     updatesSection: (@Composable () -> Unit)? = null,
 ) {
     val catalog = appCatalog()
-    val use24Hour = DateFormat.is24HourFormat(LocalContext.current)
     var confirmingReset by remember { mutableStateOf(false) }
 
     Page(title = "Settings", onBack = onBack, eyebrow = "Speedbreaker") {
@@ -67,18 +64,9 @@ internal fun SettingsScreen(
             footnote = "What every chosen app starts from. An app can keep its own schedule and " +
                 "detours: open it from Apps on Home.",
         ) {
-            NavRow(
-                title = "Breath length",
-                value = breathLengthValue(settings),
-                onClick = onBreathLength,
-                leading = { RowIcon(Glyphs.Breath) },
-            )
-            NavRow(
-                title = "Schedule",
-                summary = scheduleSummary(settings.schedule, use24Hour),
-                onClick = onSchedule,
-                leading = { RowIcon(Glyphs.Clock) },
-            )
+            // Each of these is a single control, so it is set here and not on a page behind a row.
+            BreathLengthTile(settings, onBreathChange)
+            DefaultScheduleTiles(settings, onScheduleTransform)
             NavRow(
                 title = "Detours",
                 summary = detoursSummary(

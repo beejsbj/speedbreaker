@@ -72,9 +72,6 @@ internal fun appSummary(policy: AppPolicy, settings: Settings, use24Hour: Boolea
     return "${intervalSummary(policy)} · ${scheduleSummary(schedule, use24Hour).inSentence()}"
 }
 
-/** The Breath length row's value. */
-internal fun breathLengthValue(settings: Settings): String = "${settings.breathSeconds} seconds"
-
 /** The Detours row: the places by name, or what the empty row is for. */
 internal fun detoursSummary(labels: List<String>): String =
     if (labels.isEmpty()) {
