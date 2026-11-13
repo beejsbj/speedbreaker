@@ -312,14 +312,14 @@ How it is shown:
 The welcome disclosure, privacy policy, README, glossary and store description say this.
 People who accepted the earlier disclosure are not shown the new wording again.
 
-## November 13 single-control owner correction
+## November 12 single-control owner correction
 
-Burooj on November 13, 2026, after using 1.0.7 on his phone: "The defaults breadth length
+Burooj later on November 12, 2026, after using 1.0.7 on his phone: "The defaults breadth length
 and schedule don't need to be in submenus. They are only one like they are only one form
 input, like one range or toggle each. Pointless. Check auto toggle is in main screen. Both
 can be in main settings."
 
-This amends the November 12 split of the Defaults page:
+This amends the split of the Defaults page made earlier the same day:
 
 * Breath length is its slider, set in place on a tile in Settings.
 * Schedule is its Always on / Scheduled choice, set in place; when scheduled, the week
