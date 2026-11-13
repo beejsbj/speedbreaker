@@ -38,7 +38,7 @@ class FirstRunTest {
 
         compose.onNodeWithText("Continue").performScrollTo().performClick()
         compose.onNodeWithText("Before you turn it on").assertIsDisplayed()
-        compose.onNodeWithText("WHAT IT SEES").assertIsDisplayed()
+        compose.onNodeWithText("It sees which app is open").assertIsDisplayed()
         assertEquals(0, accepted)
 
         compose.onNodeWithText("Not now — close").performScrollTo().performClick()
