@@ -1,11 +1,16 @@
 package dev.burooj.speedbreaker.presentation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollTo
 import dev.burooj.speedbreaker.model.Settings
 import dev.burooj.speedbreaker.presentation.theme.SpeedbreakerTheme
@@ -42,6 +47,52 @@ class SettingsScreenTest {
         compose.onNodeWithText("None. Up to four places", substring = true).assertExists()
         compose.onNodeWithText("Detours").performScrollTo().performClick()
         assertEquals(listOf("detours"), opened)
+    }
+
+    @Test
+    fun movingTheSliderCommitsTheNewBreathLength() {
+        val committed = mutableListOf<Int>()
+        show(
+            settings = Settings(consentAccepted = true, breathSeconds = 20),
+            onBreathChange = { committed += it },
+        )
+        compose.onNodeWithContentDescription("20 seconds")
+            .performSemanticsAction(SemanticsActions.SetProgress) { it(30f) }
+        compose.runOnIdle { assertEquals(listOf(30), committed) }
+    }
+
+    @Test
+    fun choosingScheduledCreatesAWeekInPlaceAndAlwaysOnTakesItAway() {
+        var settings by mutableStateOf(Settings(consentAccepted = true))
+        compose.setContent {
+            SpeedbreakerTheme {
+                SettingsScreen(
+                    settings = settings,
+                    notificationsAllowed = true,
+                    onBack = {},
+                    onBreathChange = {},
+                    onScheduleTransform = { transform ->
+                        settings = settings.copy(schedule = transform(settings.schedule))
+                    },
+                    onDetours = {},
+                    onNotifications = {},
+                    onOpenAppInfo = {},
+                    onHelp = {},
+                    onPrivacy = {},
+                )
+            }
+        }
+        compose.onNodeWithText("Other hours").assertDoesNotExist()
+
+        compose.onNodeWithText("Scheduled").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(startingSchedule(), settings.schedule) }
+        compose.onNodeWithText("Other hours").assertExists()
+        compose.onNodeWithText("Outside these hours, chosen apps open freely.").assertExists()
+
+        compose.onNodeWithText("Always on").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(null, settings.schedule) }
+        compose.onNodeWithText("Other hours").assertDoesNotExist()
+        compose.onNodeWithText("Breaths happen at all hours.").assertExists()
     }
 
     @Test
