@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.8 — November 13, 2026
+
+Install over 1.0.7; your settings and your totals carry over.
+
+- **The Accessibility disclosure is easier to read.** The second first-run page says the
+  same three things in three short tiles with icons: it sees which app is open, the
+  first eight seconds are held, and it keeps a few totals on your phone. The details it
+  used to spell out are in the [privacy policy](docs/privacy.md). Nothing about what
+  Speedbreaker does or keeps has changed.
+
+Version code: **12**.
+
 ## 1.0.7 — November 12, 2026
 
 Install over 1.0.6; your settings and your breathing total carry over.
