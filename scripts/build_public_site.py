@@ -102,7 +102,7 @@ def tester_page():
 <style>{TEST_STYLE}</style></head><body><main>
 <a href="./" aria-label="Speedbreaker">{mark}</a>
 <h1>Help Speedbreaker reach Google&nbsp;Play</h1>
-<p class="lead">Google asks new apps for 12 testers who keep them installed for 14 days.
+<p class="lead">Google asks new apps for 12 testers who stay in the test for 14 days in a row.
 It takes about three minutes on an Android phone.</p>
 <ol>
 <li id="join"><span class="n">1</span><div><h2>Join the tester group</h2>
@@ -113,7 +113,7 @@ It takes about three minutes on an Android phone.</p>
 <a class="go" href="{TEST_OPT_IN}" target="_blank" rel="noopener">Become a tester</a></li>
 <li><span class="n">3</span><div><h2>Set it up and keep it</h2>
 <p>Open it, turn it on when it asks, and pick one app you open too often.
-Then keep it installed for 14 days.</p></div></li>
+Then keep it installed, and stay in the test, for 14 days in a row.</p></div></li>
 </ol>
 <p class="note">Installed Speedbreaker from GitHub before? Uninstall that copy first;
 Play can’t install over it.</p>
