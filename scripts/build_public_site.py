@@ -52,6 +52,87 @@ def page(name, title, description, content):
     (OUT / name).write_text(doc)
 
 
+TEST_GROUP = "https://groups.google.com/g/speedbreaker-testers"
+TEST_OPT_IN = "https://play.google.com/apps/testing/dev.burooj.speedbreaker"
+TEST_FEEDBACK = "burooj.bj+playsupport@gmail.com"
+# The tester page is a short flow, not a document: one column, two buttons, the app's palette.
+TEST_STYLE = """
+:root{--bg:#F7F2E8;--card:#FBF8F2;--ink:#1C1B17;--soft:#5F5A4F;--line:#DCD3C2;--moss:#4F6450;
+--on-moss:#F7F2E8;--wash:#DFE5D6;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root{--bg:#131311;--card:#1C1B18;--ink:#ECE5D6;--soft:#ABA595;
+--line:#3A3832;--moss:#A9BDA6;--on-moss:#131311;--wash:#28302A}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);
+font:17px/1.55 system-ui,sans-serif;-webkit-text-size-adjust:100%}
+main{max-width:480px;margin:0 auto;padding:40px 20px 56px}
+.mark{display:block;width:44px;height:44px;color:var(--ink);margin-bottom:24px}
+h1{font:400 32px/1.2 Georgia,serif;margin:0 0 12px}.lead{color:var(--soft);margin:0 0 32px}
+ol{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+li{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;
+display:grid;grid-template-columns:32px 1fr;column-gap:14px}
+.n{width:32px;height:32px;border-radius:50%;background:var(--wash);color:var(--moss);
+display:grid;place-items:center;font-weight:600;font-size:15px}
+li.done .n{background:var(--moss);color:var(--on-moss)}
+h2{font:400 21px/1.3 Georgia,serif;margin:3px 0 4px}li p{margin:0;color:var(--soft)}
+.go{grid-column:2;display:block;margin-top:16px;padding:14px 20px;border-radius:999px;
+background:var(--moss);color:var(--on-moss);text-align:center;text-decoration:none;font-weight:600}
+li.done .go{background:transparent;color:var(--moss);border:1px solid var(--line)}
+.note{margin:28px 0 0;padding:16px 20px;border-radius:16px;background:var(--wash);font-size:15px}
+footer{margin-top:28px;color:var(--soft);font-size:15px}a{color:var(--moss)}
+"""
+
+
+def tester_page():
+    mark = ('<svg class="mark" viewBox="0 0 128 128" aria-hidden="true"><g fill="none" '
+            'stroke="currentColor" stroke-width="8" stroke-linecap="round">'
+            '<path d="M 49,24 C 10,37 10,91 49,104"/><path d="M 79,24 C 118,37 118,91 79,104"/>'
+            '<circle cx="64" cy="64" r="6" fill="currentColor" stroke="none"/></g></svg>')
+    description = "Help Speedbreaker reach Google Play: join the test in about three minutes."
+    doc = f'''<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test Speedbreaker</title><meta name="description" content="{escape(description, quote=True)}">
+<link rel="canonical" href="{SITE}test.html"><meta name="robots" content="noindex">
+<link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#F7F2E8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="{THEME_COLOR}" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Speedbreaker">
+<meta property="og:title" content="Test Speedbreaker"><meta property="og:description" content="{escape(description, quote=True)}">
+<meta property="og:url" content="{SITE}test.html"><meta property="og:image" content="{SITE}{SHARE_IMAGE}">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="{SITE}{SHARE_IMAGE}">
+<style>{TEST_STYLE}</style></head><body><main>
+<a href="./" aria-label="Speedbreaker">{mark}</a>
+<h1>Help Speedbreaker reach Google&nbsp;Play</h1>
+<p class="lead">Google asks new apps for 12 testers who stay in the test for 14 days in a row.
+It takes about three minutes on an Android phone.</p>
+<ol>
+<li id="join"><span class="n">1</span><div><h2>Join the tester group</h2>
+<p>Use the Google account that’s on your phone.</p></div>
+<a class="go" href="{TEST_GROUP}" target="_blank" rel="noopener">Join the group</a></li>
+<li id="opt-in"><span class="n">2</span><div><h2>Become a tester</h2>
+<p>Tap <b>Become a tester</b>, then install Speedbreaker from Google Play.</p></div>
+<a class="go" href="{TEST_OPT_IN}" target="_blank" rel="noopener">Become a tester</a></li>
+<li><span class="n">3</span><div><h2>Set it up and keep it</h2>
+<p>Open it, turn it on when it asks, and pick one app you open too often.
+Then keep it installed, and stay in the test, for 14 days in a row.</p></div></li>
+</ol>
+<p class="note">Installed Speedbreaker from GitHub before? Uninstall that copy first;
+Play can’t install over it.</p>
+<footer>Thoughts or problems: <a href="mailto:{TEST_FEEDBACK}">{TEST_FEEDBACK}</a>.
+Thank you for the fourteen days.</footer>
+</main><script>
+// A step you have opened stays ticked when you come back to this tab.
+for (const id of ["join", "opt-in"]) {{
+  const step = document.getElementById(id), key = "sb-test-" + id;
+  try {{ if (localStorage.getItem(key)) step.classList.add("done"); }} catch (e) {{}}
+  step.querySelector(".go").addEventListener("click", () => {{
+    step.classList.add("done");
+    try {{ localStorage.setItem(key, "1"); }} catch (e) {{}}
+  }});
+}}
+</script></body></html>'''
+    (OUT / "test.html").write_text(doc)
+
+
 def render_document(path):
     source = (ROOT / path).read_text()
     # Repository-relative implementation links resolve to the public source,
@@ -114,6 +195,7 @@ Android/app versions, steps and what happened. Remove personal details from scre
 <p>For private security or privacy concerns, use
 <a href="{REPO}/security/advisories/new">GitHub private vulnerability reporting</a>.</p>
 <p>Support does not require a payment. Every app feature is free.</p>''')
+    tester_page()
     print(f"Rendered public pages: {OUT}")
 
 
