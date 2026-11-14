@@ -52,7 +52,10 @@ def page(name, title, description, content):
     (OUT / name).write_text(doc)
 
 
-TEST_GROUP = "https://groups.google.com/g/speedbreaker-testers"
+# Signups land in a Google Form owned by Burooj; he adds each address to the tester group by hand,
+# because Google Groups does not let people join it themselves.
+TEST_FORM = "https://docs.google.com/forms/d/e/1FAIpQLSfflI9hpFrBgZoSNiMLFrtoLupLkKYHInzG-wkfA1qwRUIJYA/formResponse"
+TEST_FORM_FIELD = "entry.2041371387"
 TEST_OPT_IN = "https://play.google.com/apps/testing/dev.burooj.speedbreaker"
 TEST_FEEDBACK = "burooj.bj+playsupport@gmail.com"
 # The tester page is a short flow, not a document: one column, two buttons, the app's palette.
@@ -76,6 +79,12 @@ h2{font:400 21px/1.3 Georgia,serif;margin:3px 0 4px}li p{margin:0;color:var(--so
 .go{grid-column:2;display:block;margin-top:16px;padding:14px 20px;border-radius:999px;
 background:var(--moss);color:var(--on-moss);text-align:center;text-decoration:none;font-weight:600}
 li.done .go{background:transparent;color:var(--moss);border:1px solid var(--line)}
+form{grid-column:2;margin-top:16px;display:grid;gap:10px}
+input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:14px;
+padding:13px 16px;width:100%}input:focus{outline:2px solid var(--moss);outline-offset:1px}
+button.go{border:0;font:inherit;font-weight:600;cursor:pointer;width:100%;margin-top:0}
+.sent{grid-column:2;margin:16px 0 0;color:var(--moss);display:none}li.done .sent{display:block}
+li.done form{display:none}
 .note{margin:28px 0 0;padding:16px 20px;border-radius:16px;background:var(--wash);font-size:15px}
 footer{margin-top:28px;color:var(--soft);font-size:15px}a{color:var(--moss)}
 """
@@ -105,11 +114,15 @@ def tester_page():
 <p class="lead">Google asks new apps for 12 testers who stay in the test for 14 days in a row.
 It takes about three minutes on an Android phone.</p>
 <ol>
-<li id="join"><span class="n">1</span><div><h2>Join the tester group</h2>
-<p>Use the Google account that’s on your phone.</p></div>
-<a class="go" href="{TEST_GROUP}" target="_blank" rel="noopener">Join the group</a></li>
+<li id="join"><span class="n">1</span><div><h2>Send your Gmail address</h2>
+<p>The one on your Android phone. Burooj adds you to the test, usually within a day.</p></div>
+<form action="{TEST_FORM}" method="post" target="_blank">
+<input type="email" name="{TEST_FORM_FIELD}" required autocomplete="email" inputmode="email"
+placeholder="you@gmail.com" aria-label="Gmail address">
+<button class="go" type="submit">Send</button></form>
+<p class="sent">Sent. Burooj will let you know when you’re added.</p></li>
 <li id="opt-in"><span class="n">2</span><div><h2>Become a tester</h2>
-<p>Tap <b>Become a tester</b>, then install Speedbreaker from Google Play.</p></div>
+<p>Once you’re added, tap <b>Become a tester</b>, then install Speedbreaker from Google Play.</p></div>
 <a class="go" href="{TEST_OPT_IN}" target="_blank" rel="noopener">Become a tester</a></li>
 <li><span class="n">3</span><div><h2>Set it up and keep it</h2>
 <p>Open it, turn it on when it asks, and pick one app you open too often.
@@ -120,15 +133,31 @@ Play can’t install over it.</p>
 <footer>Thoughts or problems: <a href="mailto:{TEST_FEEDBACK}">{TEST_FEEDBACK}</a>.
 Thank you for the fourteen days.</footer>
 </main><script>
-// A step you have opened stays ticked when you come back to this tab.
+// A step you have done stays ticked when you come back to this page.
+const tick = (step, key) => {{
+  step.classList.add("done");
+  try {{ localStorage.setItem(key, "1"); }} catch (e) {{}}
+}};
 for (const id of ["join", "opt-in"]) {{
   const step = document.getElementById(id), key = "sb-test-" + id;
   try {{ if (localStorage.getItem(key)) step.classList.add("done"); }} catch (e) {{}}
-  step.querySelector(".go").addEventListener("click", () => {{
-    step.classList.add("done");
-    try {{ localStorage.setItem(key, "1"); }} catch (e) {{}}
-  }});
 }}
+// Send the address without leaving the page; Google's form gives no readable reply, so a
+// finished request counts as sent. Without script, the form posts to Google in a new tab.
+const join = document.getElementById("join"), form = join.querySelector("form");
+form.addEventListener("submit", async (event) => {{
+  event.preventDefault();
+  const button = form.querySelector("button");
+  button.disabled = true; button.textContent = "Sending…";
+  try {{
+    await fetch(form.action, {{ method: "POST", mode: "no-cors", body: new FormData(form) }});
+    tick(join, "sb-test-join");
+  }} catch (e) {{
+    button.disabled = false; button.textContent = "Couldn’t send. Try again";
+  }}
+}});
+const optIn = document.getElementById("opt-in");
+optIn.querySelector(".go").addEventListener("click", () => tick(optIn, "sb-test-opt-in"));
 </script></body></html>'''
     (OUT / "test.html").write_text(doc)
 
